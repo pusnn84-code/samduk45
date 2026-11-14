@@ -28,6 +28,7 @@ export default defineConfig({
   webServer: {
     command: "node scripts/e2e-https-server.mjs",
     url: `${baseURL}/login`,
+    ignoreHTTPSErrors: true,
     // Verify the production build; never silently reuse a development server.
     reuseExistingServer: false,
     timeout: 120_000,

@@ -60,7 +60,7 @@ test("public information and the 2027 plan remain readable with JavaScript disab
   const page = await context.newPage();
   try {
     for (const path of ["/about", "/privacy", "/2027"]) {
-      expect((await page.goto(`http://localhost:3000${path}`))?.status()).toBe(200);
+      expect((await page.goto(path))?.status()).toBe(200);
       await expect(page.locator("h1")).toBeVisible();
       if (path === "/2027") {
         await expect(page.getByRole("navigation", { name: "2027 사역 계획 바로가기" })).toBeVisible();

@@ -1019,6 +1019,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   gap: 16px;
   align-items: start;
 }
+.admin-notice-layout > *, .admin-notice-editor .admin-form > *, .notice-image-editor > label { min-width: 0; }
 .admin-notice-editor { position: sticky; top: 100px; }
 .admin-notice-editor h2 { margin: 0; }
 .admin-form textarea {
@@ -1064,7 +1065,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   color: #067647;
 }
 @media (max-width: 900px) {
-  .admin-notice-layout { grid-template-columns: 1fr; }
+  .admin-notice-layout { grid-template-columns: minmax(0, 1fr); }
   .admin-notice-editor { position: static; }
 }
 
