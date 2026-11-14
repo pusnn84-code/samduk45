@@ -5,5 +5,5 @@ import { CommunityClient } from "../../../components/community/CommunityClient";
 export const metadata = { title: "도란도란" };
 export default async function CommunityPage(){
   const user=await getCurrentSessionUser();if(!user)redirect("/login");
-  return <Suspense fallback={<p role="status">불러오는 중입니다…</p>}><CommunityClient user={{id:user.id,role:user.role,isDeputyAdmin:user.isDeputyAdmin}}/></Suspense>;
+  return <main aria-label="도란도란"><Suspense fallback={<p role="status">불러오는 중입니다…</p>}><CommunityClient user={{id:user.id,role:user.role,isDeputyAdmin:user.isDeputyAdmin}}/></Suspense></main>;
 }

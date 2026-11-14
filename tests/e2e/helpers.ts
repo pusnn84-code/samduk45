@@ -8,6 +8,8 @@ export async function login(page: Page, role: keyof typeof e2eAccounts = "member
 // Exercise the real first-use gate rather than bypassing password setup in DB.
 export async function loginIdentity(page: Page, account: { name: string; phone: string }) {
   const pin = account.phone.slice(-6);
+  // A previous identity in this context must not redirect /login back home.
+  expect((await page.request.post("/api/auth/logout")).status()).toBe(200);
   await page.goto("/login");
   const switchAccount = page.getByRole("button", { name: "다른 계정으로 로그인", exact: true });
   if (await switchAccount.isVisible()) await switchAccount.click();
