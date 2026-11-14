@@ -49,6 +49,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run test:pastoral
+      - run: npm run test:bootstrap
       - run: npm run lint
       - run: npm run build
       - run: npx playwright install --with-deps chromium
