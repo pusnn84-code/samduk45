@@ -3,9 +3,9 @@ import {useState,useRef,type FormEvent} from "react";
 import {fetchJson} from "../../src/lib/fetch-json";
 import type {AutumnCard,AutumnSam} from "../../src/features/autumn-light/types";
 
-export function AutumnSamPicker({sams,village,samId,onVillage,onSam,disabled=false,includeAll=false}:{sams:AutumnSam[];village:string;samId:string;onVillage:(value:string)=>void;onSam:(value:string)=>void;disabled?:boolean;includeAll?:boolean}){
+export function AutumnSamPicker({sams,village,samId,onVillage,onSam,disabled=false,includeAll=false,villageOnly=false}:{sams:AutumnSam[];village:string;samId:string;onVillage:(value:string)=>void;onSam:(value:string)=>void;disabled?:boolean;includeAll?:boolean;villageOnly?:boolean}){
  return <div className="autumn-sam-picker"><fieldset disabled={disabled}><legend>마을 선택</legend><div className="autumn-choices">{includeAll&&<button type="button" aria-pressed={!village} onClick={()=>onVillage("")}>전체</button>}{[1,2,3,4,5].map(n=><button key={n} type="button" aria-pressed={village===String(n)} onClick={()=>onVillage(String(n))}>{n}마을</button>)}</div></fieldset>
- {village&&<fieldset disabled={disabled}><legend>샘 선택</legend><div className="autumn-choices">{includeAll&&<button type="button" aria-pressed={!samId} onClick={()=>onSam("")}>전체 샘</button>}{sams.filter(sam=>String(sam.village)===village).map(sam=><button key={sam.id} type="button" aria-pressed={samId===sam.id} onClick={()=>onSam(sam.id)}>{sam.name}</button>)}</div></fieldset>}
+ {!villageOnly&&village&&<fieldset disabled={disabled}><legend>샘 선택</legend><div className="autumn-choices">{includeAll&&<button type="button" aria-pressed={!samId} onClick={()=>onSam("")}>전체 샘</button>}{sams.filter(sam=>String(sam.village)===village).map(sam=><button key={sam.id} type="button" aria-pressed={samId===sam.id} onClick={()=>onSam(sam.id)}>{sam.name}</button>)}</div></fieldset>}
  </div>;
 }
 export function AutumnRegistration({sams,authorName,onRegistered}:{sams:AutumnSam[];authorName:string;onRegistered:(card:AutumnCard)=>void}){

@@ -6,13 +6,16 @@ const baseURL = "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  timeout: 90_000,
+  timeout: 30_000,
+  globalTimeout: 25 * 60_000,
   // The database-backed flows share a deliberately small synthetic fixture.
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
+    actionTimeout: 8_000,
+    navigationTimeout: 15_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

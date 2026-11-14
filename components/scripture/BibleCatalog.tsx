@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { bibleBooks } from "../../src/content/scripture-library";
 
@@ -18,6 +19,7 @@ const bookGroups = [
 ];
 
 export function BibleCatalog() {
+  const router = useRouter();
   const [bookId, setBookId] = useState(1);
   const [chapter, setChapter] = useState(1);
   const [verse, setVerse] = useState(1);
@@ -67,6 +69,10 @@ export function BibleCatalog() {
   }
 
   function chooseTarget(next: "chapter" | "verse") {
+    if (next === "verse" && target === "verse" && !invalid) {
+      router.push(`/scripture/bible/${book.id}/${chapter}?verse=${verse}`);
+      return;
+    }
     setTarget(next);
     setDigits("");
   }
@@ -84,7 +90,7 @@ export function BibleCatalog() {
             <h4>{group.label}</h4>
             {bibleBooks.slice(group.from, group.to).map(item => <button key={item.id} type="button"
               aria-pressed={bookId === item.id} onClick={() => chooseBook(item.id)}>
-              <small aria-hidden="true">{item.short}</small><span>{item.name}</span>
+              <small aria-hidden="true" data-testament={item.id > 39 ? "new" : "old"}>{item.short}</small><span>{item.name}</span>
             </button>)}
           </section>)}
         </div>
@@ -103,6 +109,7 @@ export function BibleCatalog() {
           {Array.from({ length: verseCount }, (_, index) => index + 1).map(number =>
             <button type="button" key={number} aria-pressed={verse === number} onClick={() => {
               setVerse(number); setTarget("verse"); setDigits("");
+              router.push(`/scripture/bible/${book.id}/${chapter}?verse=${number}`);
             }}>{number}절</button>,
           )}
         </div>
@@ -118,8 +125,6 @@ export function BibleCatalog() {
             <rect x="2" y="4" width="20" height="12" rx="1" /><path d="M5 8h2m2 0h2m2 0h2m2 0h2M5 12h2m2 0h6m2 0h2M8 20l4 2 4-2" />
           </svg>
         </button>
-        {invalid ? <button className="scripture-finder-open" type="button" disabled>본문 열기</button>
-          : <Link className="scripture-finder-open" prefetch={false} href={`/scripture/bible/${book.id}/${chapter}?verse=${verse}`}>본문 열기</Link>}
       </div>
       {invalid && <p className="scripture-keypad-error" role="alert">1~{maximum}{target === "chapter" ? "장" : "절"} 사이의 번호를 입력하세요.</p>}
       {keypadOpen && <div id="scripture-keypad" className="scripture-keypad" aria-label="장·절 숫자 입력">

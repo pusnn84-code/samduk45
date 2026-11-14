@@ -10,7 +10,7 @@ beforeEach(()=>{vi.clearAllMocks();mocks.session.mockResolvedValue({id:"member",
 const request=(data:unknown)=>new Request("https://example.test/api/prayer-requests",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(data)});
 describe("prayer visibility HTTP",()=>{
  it("keeps old clients private by default",async()=>{expect((await POST(request({content:"기도"}))).status).toBe(201);expect(mocks.create).toHaveBeenCalledWith("member","기도","private")});
- it.each(["public","anonymous","private"])("saves explicit %s selection with verified author",async visibility=>{await POST(request({content:"기도",visibility,userId:"other"}));expect(mocks.create).toHaveBeenCalledWith("member","기도",visibility)});
+ it.each(["public","anonymous","private","private_anonymous"])("saves explicit %s selection with verified author",async visibility=>{await POST(request({content:"기도",visibility,userId:"other"}));expect(mocks.create).toHaveBeenCalledWith("member","기도",visibility)});
  it("rejects unknown visibility instead of broadening publication",async()=>{expect((await POST(request({content:"기도",visibility:"all"}))).status).toBe(400);expect(mocks.create).not.toHaveBeenCalled()});
  it("requires sign-in for the prayer list",async()=>{mocks.session.mockResolvedValue(null);expect((await GET(new Request("https://example.test/api/prayer-requests/list"))).status).toBe(401);expect(mocks.list).not.toHaveBeenCalled()});
  it("ignores a forged admin query and sends private no-store headers",async()=>{const response=await GET(new Request("https://example.test/api/prayer-requests/list?role=admin"));expect(mocks.list).toHaveBeenCalledWith({id:"member",role:"member"},0);expect(response.headers.get("cache-control")).toContain("no-store")});

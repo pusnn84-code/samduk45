@@ -5,7 +5,6 @@ import { MenuUpdateBadge } from "./MenuUpdateBadge";
 import { countForMenu } from "../../src/features/menu-activity/types";
 import { MEMBER_NAVIGATION } from "../../src/content/member-navigation";
 import { MenuIcon } from "./MenuIcon";
-import { AppInstallButton } from "./AppInstall";
 import "./menu-home.css";
 
 export function MenuHome() {
@@ -13,7 +12,6 @@ export function MenuHome() {
   return <main className="menu-home" aria-labelledby="menu-home-title">
     <header className="menu-home-heading">
       <h2 id="menu-home-title">메뉴 선택<span aria-hidden="true">.</span></h2>
-      <AppInstallButton />
     </header>
     <nav className={`menu-home-grid${MEMBER_NAVIGATION.length > 8 ? " is-extended" : ""}${MEMBER_NAVIGATION.length > 10 ? " is-tall" : ""}`} aria-label="메뉴 선택">
       {MEMBER_NAVIGATION.map((item,index) =>
