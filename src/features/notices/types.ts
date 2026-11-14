@@ -10,6 +10,22 @@ export type MemberNoticeSummary = {
 export type MemberNoticeDetail = MemberNoticeSummary & {
   body: string;
   image: NoticeImage | null;
+  revision?: string;
+};
+
+export type NoticeConfirmationPerson = {
+  id: string;
+  name: string;
+  responsibilities: string[];
+  confirmedAt: string | null;
+};
+
+export type NoticeConfirmationState = {
+  revision: string;
+  canConfirm: boolean;
+  ownConfirmedAt: string | null;
+  confirmed: NoticeConfirmationPerson[];
+  unconfirmed: NoticeConfirmationPerson[];
 };
 
 export type NoticeImage = { url: string; width: number; height: number };

@@ -1,14 +1,16 @@
 "use client";
 import { useRef, useState } from "react";
-import { CHUNK_LIMIT, FILE_LIMIT, parseReportEdit, type Method, type ReportEdit } from "../../src/features/pastoral/policy";
+import { CHUNK_LIMIT, FILE_LIMIT, isSimpleLeaderForm, parseStoredReportEdit, type Method, type ReportEdit } from "../../src/features/pastoral/policy";
 import { api, emptyForm, jsonBody, message, metadata, type ReportView } from "./client";
 import { ReportFormFields } from "./ReportFormFields";
+import { EditSplitReportFields } from "./SplitReportFields";
 export function ReportEditor({report,admin,onSaved,onCancel}:{report:ReportView;admin:boolean;onSaved:()=>void;onCancel:()=>void}) {
   const [method,setMethod]=useState<Method>(report.method);const [writtenDate,setWrittenDate]=useState(report.writtenDate);
   const [form,setForm]=useState(()=>({...emptyForm(),...(report.form??{})}));
   const [keepSlots,setKeepSlots]=useState(()=>report.files.map((_,i)=>i));const [files,setFiles]=useState<File[]>([]);
   const [busy,setBusy]=useState(false);const [locked,setLocked]=useState(false);const [error,setError]=useState("");const [progress,setProgress]=useState("");
   const pending=useRef<{input:ReportEdit;files:File[];stage:"upload"|"publish"}|null>(null);
+  const simple=!admin&&isSimpleLeaderForm(report);
   const base=`/api/${admin?"admin/":""}pastoral/reports/${report.id}/edits`;
   function addFiles(selected:FileList|null) {
     const next=[...files,...Array.from(selected??[])];
@@ -19,7 +21,7 @@ export function ReportEditor({report,admin,onSaved,onCancel}:{report:ReportView;
     e.preventDefault();if(busy)return;setBusy(true);setError("");
     try {
       if(!pending.current){
-        const input=parseReportEdit({id:crypto.randomUUID(),expectedVersion:report.version,method,writtenDate,form:method==='form'?form:null,keepSlots:method==='form'?[]:keepSlots,files:await metadata(method==='form'?[]:files)});
+        const input=parseStoredReportEdit({id:crypto.randomUUID(),expectedVersion:report.version,method,writtenDate,form:method==='form'?form:null,keepSlots:method==='form'?[]:keepSlots,files:await metadata(method==='form'?[]:files)},report,admin);
         pending.current={input,files:method==='form'?[]:[...files],stage:'upload'};setLocked(true);
       }
       const draft=pending.current;
@@ -51,9 +53,9 @@ export function ReportEditor({report,admin,onSaved,onCancel}:{report:ReportView;
   }
   return <form className="pastoral-entry card" aria-label="목양지 수정" onSubmit={save}><h2>목양지 수정</h2><p>{report.periodLabel} · {report.samName}샘 · 원래 제출자 {report.submittedBy}</p>
     <p className="helper-text">수정 저장이 성공하기 전에는 기존 목양지와 첨부가 유지됩니다. 제출 월과 원래 제출자는 바뀌지 않습니다.</p>
-    <fieldset disabled={busy||locked}><legend>수정할 내용</legend><label>작성일<input type="date" value={writtenDate} onChange={e=>setWrittenDate(e.target.value)}/></label>
-      <div className="pastoral-methods">{([['photo','사진'],['file','파일'],['form','직접 입력']] as const).map(([value,label])=><label key={value}><input type="radio" name="pastoral-edit-method" checked={method===value} onChange={()=>{setMethod(value);if(value==='form'){setKeepSlots([]);setFiles([]);}setError("");}}/>{label}</label>)}</div>
-      {method==='form'?<ReportFormFields form={form} onChange={setForm}/>:<div className="pastoral-files">
+    <fieldset disabled={busy||locked}><legend>수정할 내용</legend>{(admin||report.method!=='form')&&<label>작성일<input type="date" value={writtenDate} onChange={e=>setWrittenDate(e.target.value)}/></label>}
+      {(admin||report.method!=='form')&&<div className="pastoral-methods">{([['photo','사진'],['file','파일'],['form','직접 입력']] as const).map(([value,label])=><label key={value}><input type="radio" name="pastoral-edit-method" checked={method===value} onChange={()=>{setMethod(value);if(value==='form'){setKeepSlots([]);setFiles([]);}setError("");}}/>{label}</label>)}</div>}
+      {method==='form'?(report.form?.entryKind ? <EditSplitReportFields form={form} samId={report.samId} onChange={setForm}/> : <ReportFormFields form={form} samId={report.samId} onChange={setForm} simple={simple}/>):<div className="pastoral-files">
         {report.files.map((f,slot)=><label className="pastoral-check" key={slot}><input type="checkbox" checked={keepSlots.includes(slot)} onChange={e=>{setKeepSlots(v=>e.target.checked?[...v,slot].sort():v.filter(n=>n!==slot));}}/>{f.name} 유지</label>)}
         <label>새 첨부파일 추가<input type="file" multiple accept={method==='photo'?'image/*':'.pdf,.hwp,.hwpx,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.odt,image/*'} onChange={e=>{addFiles(e.target.files);e.target.value='';}}/></label>
         <p className="helper-text">기존 파일의 ‘유지’ 체크를 해제하면 저장 시 제거됩니다. 남겨 둔 파일과 새 파일을 합해 최대 2개, 파일당 6MB입니다.</p>

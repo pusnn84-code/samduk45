@@ -2,20 +2,21 @@
 
 import { FormEvent, useState } from "react";
 import { fetchJson } from "../../src/lib/fetch-json";
-import { describeVisitStartTimes } from "../../src/features/visits/start-times";
 import type { VisitStartTimes } from "../../src/features/visits/types";
+import { VisitRecipientInput } from "./VisitRecipientInput";
 
 export function VisitRequestPanel({
   visitDate,
   requesterName,
+  isAdmin = false,
   dateAvailable,
-  startTimes,
   onClose,
   onSuccess,
   onDateUnavailable,
 }: {
   visitDate: string;
   requesterName: string;
+  isAdmin?: boolean;
   dateAvailable: boolean;
   startTimes?: VisitStartTimes | null;
   onClose: () => void;
@@ -29,6 +30,7 @@ export function VisitRequestPanel({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [recipient,setRecipient]=useState<{recipientRosterId?:string;recipientName:string}>({recipientName:""});
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -47,9 +49,10 @@ export function VisitRequestPanel({
           location,
           preferredTime,
           reason,
+          ...(isAdmin ? recipient : {}),
         }),
       });
-      setMessage("심방 신청이 전달되었습니다.");
+      setMessage(isAdmin ? "심방 일정이 확정되어 캘린더에 반영되었습니다." : "심방 신청이 전달되었습니다.");
       onSuccess();
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : "";
@@ -61,8 +64,6 @@ export function VisitRequestPanel({
           ? "신청 가능한 기간이 변경되었습니다. 달력에서 다른 날짜를 선택해 주세요."
           : code === "VISIT_ALREADY_EXISTS" || code === "VISIT_DATE_UNAVAILABLE"
           ? "방금 다른 일정이 등록되었습니다. 다른 날짜를 선택해 주세요."
-          : code === "CALENDAR_NOT_CONNECTED" || code === "CALENDAR_NOT_SELECTED"
-            ? "관리자가 Google Calendar를 연결한 뒤 신청할 수 있습니다."
             : cause instanceof Error && cause.name === "TimeoutError"
               ? "응답이 지연되어 신청 결과를 확인하지 못했습니다. 달력을 다시 확인해 주세요."
               : "신청을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
@@ -73,10 +74,10 @@ export function VisitRequestPanel({
   }
 
   return (
-    <aside className="visit-request-panel" aria-label="심방 신청하기">
+    <aside className="visit-request-panel" aria-label={isAdmin ? "심방 일정 기록" : "심방 신청하기"}>
       <div className="visit-panel-heading">
         <div>
-          <p className="eyebrow">심방 신청하기</p>
+          <p className="eyebrow">{isAdmin ? "심방 일정 기록" : "심방 신청하기"}</p>
           <h3>{visitDate}</h3>
         </div>
         <button
@@ -114,6 +115,7 @@ export function VisitRequestPanel({
           </div>
         </fieldset>
 
+        {isAdmin && <VisitRecipientInput onChange={setRecipient} disabled={busy}/>}
         <label>
           신청자
           <input value={requesterName} readOnly />
@@ -152,10 +154,7 @@ export function VisitRequestPanel({
 
         {dateAvailable && (
           <div className="visit-start-time-guidance" id="visit-start-time-guidance" aria-live="polite">
-            <p>{startTimes
-              ? describeVisitStartTimes(startTimes[visitType], visitType)
-              : "가능 시간을 확인하지 못했습니다. 잠시 후 다시 확인해 주세요."}</p>
-            <small>오전 10시~오후 5시 · {visitType === "personal" ? "개인심방 1시간" : "샘심방 2시간"} · 일정 앞뒤 30분 여유</small>
+            <p>{isAdmin ? "심방 시간을 적어주세요. 저장하면 바로 확정됩니다." : "원하시는 시간을 적어주세요. 목사님이 확인 후 일정을 확정합니다."}</p>
           </div>
         )}
 
@@ -171,7 +170,7 @@ export function VisitRequestPanel({
 
         <p className="helper-text">항목을 입력하지 않아도 신청할 수 있습니다.</p>
         <p className="visit-confirmation-copy">
-          신청한 내용을 확인 후 유선으로 확정합니다.
+          {isAdmin ? "관리자가 기록한 일정은 수락 대기 없이 심방 캘린더에 바로 반영됩니다." : "목사님이 신청을 수락하면 심방 캘린더에 반영됩니다."}
         </p>
 
         {!dateAvailable ? (
@@ -179,7 +178,7 @@ export function VisitRequestPanel({
             이 날짜는 지금 신청할 수 없습니다. 달력에서 다른 날짜를 선택해 주세요.
           </p>
         ) : message && (
-          <p className={message.includes("전달") ? "success-text" : "error-text"} role="status">
+          <p className={message.includes("전달") || message.includes("반영되었습니다") ? "success-text" : "error-text"} role="status">
             {message}
           </p>
         )}
@@ -189,7 +188,7 @@ export function VisitRequestPanel({
           type="submit"
           disabled={busy || !dateAvailable}
         >
-          {busy ? "신청 중…" : "신청"}
+          {busy ? (isAdmin ? "저장 중…" : "신청 중…") : (isAdmin ? "확정 일정 저장" : "신청")}
         </button>
       </form>
     </aside>

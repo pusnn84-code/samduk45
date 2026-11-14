@@ -7,7 +7,7 @@ import type { MemberDashboard } from "../../src/lib/types";
 const initial: MemberDashboard = {
   today: "2026-09-27",
   user: { displayName: "검증", position: null, samLabel: null },
-  challenge: { id: "challenge", title: "기도운동", startDate: "2026-09-01", endDate: "2026-09-30" },
+  challenge: { id: "challenge", title: "말씀 묵상", startDate: "2026-09-01", endDate: "2026-09-30" },
   completedDates: [],
   progress: { completed: 0, eligible: 23, rate: 0 },
 };
@@ -51,15 +51,15 @@ describe("prayer calendar layout and available dates", () => {
   it("keeps Sunday disabled while allowing Saturday's record on Sunday", () => {
     const cells = buttons(renderCalendar());
     expect(cells.find((cell) => cell.label === "9월 27일 일요일")?.disabled).toBe(true);
-    expect(cells.find((cell) => cell.label === "9월 26일 기도 완료 체크")?.disabled).toBe(false);
+    expect(cells.find((cell) => cell.label === "9월 26일 묵상 완료 체크")?.disabled).toBe(false);
     expect(cells.find((cell) => cell.label === "9월 25일 수정 기간 지남")?.disabled).toBe(true);
   });
 
   it("disables only the pending record and preserves the other editable date", () => {
     const cells = buttons(renderCalendar({ ...initial, today: "2026-09-26" }, new Set(["2026-09-26"])));
-    expect(cells.find((cell) => cell.label === "9월 26일 기도 완료 체크"))
+    expect(cells.find((cell) => cell.label === "9월 26일 묵상 완료 체크"))
       .toMatchObject({ disabled: true, busy: true });
-    expect(cells.find((cell) => cell.label === "9월 25일 기도 완료 체크"))
+    expect(cells.find((cell) => cell.label === "9월 25일 묵상 완료 체크"))
       .toMatchObject({ disabled: false, busy: false });
   });
 });

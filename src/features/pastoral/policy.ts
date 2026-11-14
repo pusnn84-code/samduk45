@@ -10,7 +10,9 @@ export type Method = "photo" | "file" | "form";
 export type Attachment = { name: string; size: number; sha256: string };
 export type Meeting = { when: string; place: string; attendees: string };
 export type Sharing = { member: string; content: string };
-export type ReportForm = { noMeeting: boolean; noMeetingReason: string; meetings: Meeting[]; sharing: Sharing[]; news: Sharing[]; leaderPrayer: string; other: string };
+export type MemberNote = { rosterId: string; member: string; sharing: string; prayer: string; news: string };
+export type ReportKind = "meeting" | "member";
+export type ReportForm = { noMeeting: boolean; noMeetingReason: string; meetings: Meeting[]; sharing: Sharing[]; news: Sharing[]; memberNotes?: MemberNote[]; leaderPrayer: string; other: string; entryMode?: "leader"; entryKind?: ReportKind; attendeeIds?: string[] };
 export type Submission = { id: string; requestId: string; samId: string; method: Method; writtenDate: string; form: ReportForm | null; files: Attachment[] };
 export type Period = { month: number };
 export type ReportRequest = { id: string; year: number; month: number; enabled: boolean };
@@ -93,6 +95,15 @@ export function villageKey(value: string | null): string {
   const result = (value ?? "").normalize("NFC").replace(/\s+/gu, "").replace(/마을$/u, "");
   return /^\d+$/.test(result) ? String(Number(result)) : result;
 }
+export function reportSamMembers(sam: Pick<SamTarget, "name" | "village">, roster: Identity[]) {
+  const samLabel = samKey(sam.name);
+  const village = villageKey(sam.village);
+  if (!samLabel || !village) return [];
+  return roster
+    .filter(person => person.isActive && samKey(person.samLabel) === samLabel && villageKey(person.village) === village)
+    .map(person => ({ rosterId: person.id, member: person.sourceName }))
+    .sort((a, b) => a.member.localeCompare(b.member, "ko") || a.rosterId.localeCompare(b.rosterId));
+}
 function nameKey(value: string): string {
   // Preserve A/B suffixes. Do not use the app's login canonicalizer for authorization.
   return value.normalize("NFC").trim().replace(/\s*(?:\(|\[)?(?:담임목사|부목사|목사|전도사|장로|권사|안수집사|집사|성도)(?:님)?(?:\)|\])?$/u, "").replace(/\s+/gu, "");
@@ -157,6 +168,38 @@ export function deriveAccess(actor: Actor, identity: Identity | null, allSams: S
   const allowed = active.filter(s => actor.role === "admin" || leaderIds.has(s.id) || villages.has(villageKey(s.village)));
   return { visible: actor.role === "admin" || leaderIds.size > 0 || villages.size > 0, sams: allowed, requiredSamIds: [...leaderIds], rosterId: identity?.isActive ? identity.id : null };
 }
+/** The member composer belongs only to the authenticated, bound SAM leader. */
+export function deriveMemberLeaderAccess(access: ReportAccess): ReportAccess {
+  const sams = access.sams.filter(sam => access.requiredSamIds.includes(sam.id));
+  return { ...access, visible: sams.length > 0, sams, requiredSamIds: sams.map(sam => sam.id) };
+}
+
+export type MemberSubmission = { id: string; form: ReportForm };
+export function parseMemberSubmission(value: unknown): MemberSubmission {
+  const input = object(value);
+  // Targets, authors, dates, method and schedule are resolved on the server.
+  if (Object.keys(input).some(key => key !== "id" && key !== "form")) throw new ReportError("INVALID_INPUT");
+  const raw = object(input.form);
+  if (raw.entryKind === "member") {
+    const form = parseForm(raw);
+    if (form.noMeeting || form.meetings.length || form.sharing.length || form.news.length || form.leaderPrayer || form.other || form.attendeeIds?.length) throw new ReportError("INVALID_INPUT");
+    if (form.memberNotes?.length !== 1) throw new ReportError("MEMBER_NOTE_REQUIRED");
+    return { id: reportId(input.id), form };
+  }
+  if (raw.noMeeting === true || !Array.isArray(raw.meetings) || raw.meetings.length !== 1) throw new ReportError("SINGLE_MEETING_REQUIRED");
+  const form = parseForm(raw);
+  if (form.meetings.length !== 1) throw new ReportError("SINGLE_MEETING_REQUIRED");
+  const meeting = form.meetings[0];
+  const when = /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})$/.exec(meeting.when);
+  if (!when || Number(when[2]) > 23 || Number(when[3]) > 59) throw new ReportError("INVALID_MEETING_DATE");
+  isoDate(when[1]);
+  if (!meeting.place || !meeting.attendees) throw new ReportError("MEETING_DETAILS_REQUIRED");
+  if (form.entryKind === "meeting") {
+    if (!form.attendeeIds?.length) throw new ReportError("ATTENDEES_REQUIRED");
+    if (form.memberNotes?.length || form.sharing.length || form.news.length || form.leaderPrayer || form.other) throw new ReportError("INVALID_INPUT");
+  }
+  return { id: reportId(input.id), form: { ...form, noMeeting: false, noMeetingReason: "" } };
+}
 function formRows<T>(input: unknown, maxRows: number, keys: string[], limits: number[]): T[] {
   if (input === undefined) return [];
   if (!Array.isArray(input) || input.length > maxRows) throw new ReportError("TOO_MANY_ROWS");
@@ -175,8 +218,31 @@ export function parseForm(value: unknown): ReportForm {
     leaderPrayer: clean(v.leaderPrayer, 5000),
     other: clean(v.other, 5000),
   };
+  if (v.entryKind !== undefined) {
+    if (v.entryKind !== "meeting" && v.entryKind !== "member") throw new ReportError("INVALID_INPUT");
+    form.entryKind = v.entryKind;
+  }
+  if (v.attendeeIds !== undefined) {
+    if (!Array.isArray(v.attendeeIds) || v.attendeeIds.length > 100) throw new ReportError("INVALID_INPUT");
+    form.attendeeIds = v.attendeeIds.map(reportId);
+    if (new Set(form.attendeeIds).size !== form.attendeeIds.length) throw new ReportError("INVALID_INPUT");
+  }
   if (form.noMeeting && !form.noMeetingReason) throw new ReportError("NO_MEETING_REASON_REQUIRED");
   if (form.noMeeting) form.meetings = [];
+  if (v.memberNotes !== undefined) {
+    if (!Array.isArray(v.memberNotes) || v.memberNotes.length > 100) throw new ReportError("TOO_MANY_ROWS");
+    const seen = new Set<string>();
+    form.memberNotes = v.memberNotes.map(value => {
+      const row = object(value);
+      const rosterId = reportId(row.rosterId);
+      if (seen.has(rosterId)) throw new ReportError("INVALID_MEMBER_NOTE");
+      seen.add(rosterId);
+      return {
+        rosterId, member: clean(row.member, 120, true), sharing: clean(row.sharing, 2000),
+        prayer: clean(row.prayer, 2000), news: clean(row.news, 2000),
+      };
+    }).filter(row => row.sharing || row.prayer || row.news);
+  }
   if (JSON.stringify(form).length > 50000) throw new ReportError("REPORT_TOO_LONG");
   return form;
 }
@@ -208,11 +274,15 @@ export function reportText(report: Pick<Submission, "method" | "writtenDate" | "
   const f = report.form;
   const section = (title: string, lines: string[]) => `\n■ ${title}\n${lines.length ? lines.join("\n\n") : "기록 없음"}\n`;
   return `샘목양지\n제출 대상: ${report.periodLabel}\n작성일: ${report.writtenDate}\n샘: ${report.samName}\n샘리더: ${report.leaderName}\n제출자: ${report.submittedBy}\n`
-    + section("샘모임", [...(f.noMeeting ? [`이번 기간 샘모임 없음\n사유: ${f.noMeetingReason}`] : []), ...f.meetings.map((r, i) => `${i + 1}. 일시: ${r.when}\n장소: ${r.place}\n참석 가정: ${r.attendees}`)])
-    + section("나눔/기도제목 (예배·성경통독은혜·기도제목)", f.sharing.map(r => `샘원: ${r.member}\n${r.content}`))
+    + (f.entryKind ? `구분: ${f.entryKind === "meeting" ? "샘모임" : "샘원 나눔·소식"}\n` : "")
+    + (f.entryKind === "member" ? "" : section("샘모임", [...(f.noMeeting ? [`이번 기간 샘모임 없음\n사유: ${f.noMeetingReason}`] : []), ...f.meetings.map((r, i) => `${i + 1}. 일시: ${r.when}\n장소: ${r.place}\n참석자: ${r.attendees}`)]))
+    + ((f.memberNotes ?? []).length ? section("샘원별 기록", (f.memberNotes ?? []).map(r => [
+      `샘원: ${r.member}`, r.sharing && `나눔: ${r.sharing}`, r.prayer && `기도제목: ${r.prayer}`, r.news && `소식: ${r.news}`,
+    ].filter(Boolean).join("\n"))) : "")
+    + (f.entryKind ? "" : section("나눔/기도제목 (예배·성경통독은혜·기도제목)", f.sharing.map(r => `샘원: ${r.member}\n${r.content}`))
     + section("샘소식 (결혼, 장례, 이사, 입원 등)", f.news.map(r => `샘원: ${r.member}\n${r.content}`))
     + section("샘리더 기도제목", f.leaderPrayer ? [f.leaderPrayer] : [])
-    + section("기타", f.other ? [f.other] : []);
+    + section("기타", f.other ? [f.other] : []));
 }
 
 export function checkOrigin(request: Request): void {
@@ -264,6 +334,24 @@ export function parseReportEdit(value: unknown): ReportEdit {
   return { id: reportId(v.id), expectedVersion: int(v.expectedVersion, 0, 2147483646),
     method: v.method, writtenDate: isoDate(v.writtenDate), keepSlots,
     form: v.method === "form" ? parseForm(v.form) : null, files };
+}
+/** New leader forms stay simple; historic rows added by an admin remain editable. */
+export function isSimpleLeaderForm(report: Pick<Submission, "method" | "form">): boolean {
+  const form = report.form;
+  return report.method === "form" && form?.entryMode === "leader" && !form.noMeeting
+    && form.meetings.length === 1 && form.sharing.length === 0 && form.news.length === 0;
+}
+export function parseStoredReportEdit(value: unknown, report: Pick<Submission, "method" | "writtenDate" | "form">, admin: boolean): ReportEdit {
+  const raw = object(value);
+  const input = parseReportEdit(!admin && report.method === "form"
+    ? { ...raw, method: report.method, writtenDate: report.writtenDate } : raw);
+  if (report.form?.entryKind && input.method === "form") {
+    return { ...input, form: { ...parseMemberSubmission({ id: input.id, form: { ...input.form, entryKind: report.form.entryKind } }).form, entryMode: "leader" } };
+  }
+  if (!admin && isSimpleLeaderForm(report)) {
+    return { ...input, form: { ...parseMemberSubmission({ id: input.id, form: input.form }).form, entryMode: "leader" } };
+  }
+  return input;
 }
 export function assertReportMutation(actor: Pick<Actor, "id" | "role">, report: { authorId: string | null; submittedAt: string | null }, admin: boolean) {
   if (admin ? actor.role !== "admin" : report.authorId !== actor.id) throw new ReportError("FORBIDDEN", 403);

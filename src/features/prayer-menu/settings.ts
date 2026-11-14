@@ -2,7 +2,7 @@ export type PrayerMenuSetting = { enabled: boolean; name: string; description: s
 
 export const defaultPrayerMenuSettings: PrayerMenuSetting = {
   enabled: true,
-  name: "기도운동",
+  name: "말씀 묵상",
   description: "",
 };
 

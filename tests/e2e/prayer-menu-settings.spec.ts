@@ -13,8 +13,8 @@ test("saved global visibility controls member and admin navigation on mobile and
     const beforeRecords = await (await member.request.get("/api/checkins")).json();
     const beforeChallenge = await (await page.request.get("/api/admin/challenge")).json();
     await page.goto("/admin/prayer");
-    const section = page.getByRole("region", { name: "운동 이름·설명 및 탭 설정" });
-    const checkbox = section.getByRole("checkbox", { name: "운동 탭 활성화" });
+    const section = page.getByRole("region", { name: "활동 이름·설명 및 탭 설정" });
+    const checkbox = section.getByRole("checkbox", { name: "활동 탭 활성화" });
     await expect(checkbox).toBeChecked();
     await expect(page.getByRole("heading", { name: "참여자 명단", exact: true })).toBeVisible();
     // The settings section follows, rather than replacing, the existing management content.
@@ -36,8 +36,8 @@ test("saved global visibility controls member and admin navigation on mobile and
     await member.evaluate(() => window.dispatchEvent(new Event("focus")));
     await expect(member).toHaveURL(/\/notices$/);
     await member.getByRole("button", { name: "메뉴 열기", exact: true }).click();
-    const memberNav = member.getByRole("navigation", { name: "56사랑 메뉴" });
-    await expect(memberNav.getByRole("link", { name: "기도운동", exact: true })).toHaveCount(0);
+    const memberNav = member.getByRole("navigation", { name: "삼덕사오 메뉴" });
+    await expect(memberNav.getByRole("link", { name: "말씀 묵상", exact: true })).toHaveCount(0);
     await expect(memberNav.getByRole("link").first()).toContainText("공지");
     await expect(memberNav.getByRole("link", { name: "심방신청" })).toBeVisible();
     await expect(memberNav).toBeInViewport({ ratio: 1 });
@@ -50,7 +50,7 @@ test("saved global visibility controls member and admin navigation on mobile and
     await expect(checkbox).not.toBeChecked();
     await page.goto("/");
     await expect(page).toHaveURL(/\/notices$/);
-    await expect(page.getByRole("navigation", { name: "56사랑 메뉴" }).getByRole("link", { name: "기도운동", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "삼덕사오 메뉴" }).getByRole("link", { name: "말씀 묵상", exact: true })).toHaveCount(0);
     await member.goto("/");
     await expect(member).toHaveURL(/\/notices$/);
 
@@ -68,13 +68,13 @@ test("saved global visibility controls member and admin navigation on mobile and
     const opener = member.getByRole("button", { name: "메뉴 열기", exact: true });
     if (await opener.isVisible()) await opener.click();
     await expect(memberNav.getByRole("link").nth(0)).toContainText("공지");
-    await expect(memberNav.getByRole("link").nth(1)).toContainText("기도운동");
+    await expect(memberNav.getByRole("link").nth(1)).toContainText("말씀 묵상");
     await expect(memberNav).toBeInViewport({ ratio: 1 });
     await member.screenshot({ path: testInfo.outputPath("mobile-menu-enabled.png"), fullPage: true, animations: "disabled" });
     await page.goto("/notices");
-    const adminNav = page.getByRole("navigation", { name: "56사랑 메뉴" });
+    const adminNav = page.getByRole("navigation", { name: "삼덕사오 메뉴" });
     await expect(adminNav.getByRole("link").nth(0)).toContainText("공지");
-    await expect(adminNav.getByRole("link").nth(1)).toContainText("기도운동");
+    await expect(adminNav.getByRole("link").nth(1)).toContainText("말씀 묵상");
     await page.screenshot({ path: testInfo.outputPath("desktop-menu-enabled.png"), fullPage: true, animations: "disabled" });
   } finally {
     expect((await page.request.put(endpoint, { data: { enabled: true } })).status()).toBe(200);
@@ -86,8 +86,8 @@ test("failed save reports an error without changing the persisted setting", asyn
   test.skip(process.env.E2E_DATABASE_READY !== "1", "Requires the disposable CI database.");
   await login(page, "admin");
   await page.goto("/admin/prayer");
-  const section = page.getByRole("region", { name: "운동 이름·설명 및 탭 설정" });
-  const checkbox = section.getByRole("checkbox", { name: "운동 탭 활성화" });
+  const section = page.getByRole("region", { name: "활동 이름·설명 및 탭 설정" });
+  const checkbox = section.getByRole("checkbox", { name: "활동 탭 활성화" });
   await expect(checkbox).toBeChecked();
   await page.route(`**${endpoint}`, async (route) => {
     if (route.request().method() === "PUT") {

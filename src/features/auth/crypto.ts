@@ -17,6 +17,15 @@ export function phoneLookupHash(phone: string): string {
     .digest("hex");
 }
 
+export function isPhonePassword(password: string, lookupHash: string | null | undefined): boolean {
+  if (!lookupHash || !/^[\d\s()+.-]+$/.test(password)) return false;
+  try {
+    return phoneLookupHash(password) === lookupHash;
+  } catch {
+    return false;
+  }
+}
+
 export async function hashPassword(value: string): Promise<string> {
   if (!value) throw new Error("INVALID_PASSWORD");
   return argon2.hash(value, { type: argon2.argon2id });
@@ -25,10 +34,15 @@ export async function hashPassword(value: string): Promise<string> {
 export async function verifyPassword(hash: string, value: string): Promise<boolean> {
   if (!value) return false;
   try {
-    return await argon2.verify(hash, value);
+    return await verifyPasswordOrThrow(hash, value);
   } catch {
     return false;
   }
+}
+
+/** Callers making disclosure decisions must distinguish invalid hashes from a mismatch. */
+export async function verifyPasswordOrThrow(hash: string, value: string): Promise<boolean> {
+  return argon2.verify(hash, value);
 }
 
 export async function hashPhonePassword(phone: string): Promise<string> {

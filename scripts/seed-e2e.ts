@@ -20,6 +20,7 @@ async function main() {
       await tx.unsafe("create role anon nologin; create role authenticated nologin;");
       const migrations = (await readdir("drizzle")).filter((name) => name.endsWith(".sql")).sort();
       for (const name of migrations) await tx.unsafe(await readFile("drizzle/" + name, "utf8"));
+      await tx`update prayer_app.prayer_menu_settings set name = '말씀 묵상' where id = 1`;
       for (const [role, account] of Object.entries(e2eAccounts)) {
         const lookup = phoneLookupHash(account.phone);
         await tx`insert into prayer_app.member_roster

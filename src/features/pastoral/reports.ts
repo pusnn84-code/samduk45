@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 import { getDb, rows, sql, type Executor } from "./db";
-import { requireReportAccess, requireReportAdmin, requireReportTarget } from "./access";
+import { requireReportAccess, requireReportAdmin, requireReportTarget, resolveReportMemberNotes } from "./access";
 import { requestColumns } from "./schedules";
 import { rasterPreview } from "./images";
-import { CHUNK_LIMIT, chunkSize, int, parseSubmission, periodLabel, photoName, ReportError, reportId, reportText, requestState, type Actor, type ReportRequest, type Submission } from "./policy";
+import { CHUNK_LIMIT, chunkSize, int, parseSubmission, periodLabel, photoName, ReportError, reportId, reportSamMembers, reportText, requestState, type Actor, type ReportRequest, type Submission } from "./policy";
 export type StoredReport = Submission & { version: number; reviewedVersion: number; authorId: string | null; samName: string; village: string; leaderName: string; submittedBy: string; submittedAt: string | null; createdAt: string; fingerprint: string; year: number; month: number };
-type StoredSummary = Pick<StoredReport, "id" | "requestId" | "samId" | "samName" | "village" | "leaderName" | "submittedBy" | "method" | "year" | "month"> & { submittedAt: string };
+type StoredSummary = Pick<StoredReport, "id" | "requestId" | "samId" | "samName" | "village" | "leaderName" | "submittedBy" | "method" | "year" | "month"> & { submittedAt: string; entryKind?: "meeting" | "member" | null };
 const reportColumns = sql`p.reviewed_version as "reviewedVersion",p.version,p.id,p.request_id as "requestId",p.sam_id as "samId",p.author_user_id as "authorId",p.sam_name as "samName",p.village,p.leader_name as "leaderName",p.submitted_by as "submittedBy",p.written_date::text as "writtenDate",p.method,p.form,p.files,p.fingerprint,to_char(p.submitted_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "submittedAt",to_char(p.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "createdAt",r.year,r.month`;
 export async function lockedReport(db: Executor, id: string): Promise<StoredReport> {
   const [report] = await rows<StoredReport>(db, sql`select ${reportColumns} from prayer_app.pastoral_reports p join prayer_app.pastoral_requests r on r.id=p.request_id where p.id=${id} for update of p`);
@@ -24,7 +24,7 @@ export async function beginReport(actor: Actor, value: unknown) {
   return getDb().transaction(async tx => {
     // Serialize per-author creation, so simultaneous tabs cannot exceed draft quota.
     await tx.execute(sql`select id from prayer_app.users where id=${actor.id} for update`);
-    const { access, sam } = await requireReportTarget(actor, input.samId, tx);
+    const { access, sam, roster } = await requireReportTarget(actor, input.samId, tx);
     const [existing] = await rows<{ id: string; authorId: string | null; fingerprint: string; submittedAt: string | null }>(tx, sql`select id,author_user_id as "authorId",fingerprint,to_char(submitted_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "submittedAt" from prayer_app.pastoral_reports where id=${input.id}`);
     if (existing) {
       if (existing.authorId !== actor.id || existing.fingerprint !== fingerprint) throw new ReportError("ID_CONFLICT", 409);
@@ -37,7 +37,8 @@ export async function beginReport(actor: Actor, value: unknown) {
     const [identity] = await rows<{ name: string }>(tx, sql`select coalesce(r.source_name,u.display_name) as name from prayer_app.users u left join prayer_app.member_roster r on r.id=u.roster_id where u.id=${actor.id}`);
     const submittedBy = identity?.name ?? actor.displayName;
     const leaderName = access.requiredSamIds.includes(sam.id) ? submittedBy : sam.leaderName || submittedBy;
-    await tx.execute(sql`insert into prayer_app.pastoral_reports(id,request_id,sam_id,author_user_id,sam_name,village,leader_name,submitted_by,written_date,method,form,files,fingerprint) values(${input.id},${input.requestId},${input.samId},${actor.id},${sam.name},${sam.village},${leaderName},${submittedBy},${input.writtenDate},${input.method},${input.form ? JSON.stringify(input.form) : null}::jsonb,${JSON.stringify(input.files)}::jsonb,${fingerprint})`);
+    const form = await resolveReportMemberNotes(input.form, null, () => reportSamMembers(sam, roster));
+    await tx.execute(sql`insert into prayer_app.pastoral_reports(id,request_id,sam_id,author_user_id,sam_name,village,leader_name,submitted_by,written_date,method,form,files,fingerprint) values(${input.id},${input.requestId},${input.samId},${actor.id},${sam.name},${sam.village},${leaderName},${submittedBy},${input.writtenDate},${input.method},${form ? JSON.stringify(form) : null}::jsonb,${JSON.stringify(input.files)}::jsonb,${fingerprint})`);
     return { id: input.id, submitted: false };
   });
 }
@@ -111,7 +112,7 @@ export async function listReports(actor: Actor, page: number, admin = false, req
   int(page, 1, 100000); if (requestId) reportId(requestId);
   const filter = sql`p.submitted_at is not null and ${admin ? sql`true` : sql`p.author_user_id=${actor.id}`} and ${requestId ? sql`p.request_id=${requestId}` : sql`true`} and ${unreviewedOnly ? sql`p.reviewed_version < p.version` : sql`true`}`;
   const [reports, count] = await Promise.all([
-    rows<StoredSummary>(getDb(), sql`select (p.reviewed_version >= p.version) as "isReviewed",p.id,p.request_id as "requestId",p.sam_id as "samId",p.sam_name as "samName",p.village,p.leader_name as "leaderName",p.submitted_by as "submittedBy",p.method,to_char(p.submitted_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "submittedAt",r.year,r.month from prayer_app.pastoral_reports p join prayer_app.pastoral_requests r on r.id=p.request_id where ${filter} order by p.submitted_at desc,p.id desc limit 20 offset ${(page - 1) * 20}`),
+    rows<StoredSummary>(getDb(), sql`select (p.reviewed_version >= p.version) as "isReviewed",p.id,p.request_id as "requestId",p.sam_id as "samId",p.sam_name as "samName",p.village,p.leader_name as "leaderName",p.submitted_by as "submittedBy",p.method,p.form->>'entryKind' as "entryKind",to_char(p.submitted_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as "submittedAt",r.year,r.month from prayer_app.pastoral_reports p join prayer_app.pastoral_requests r on r.id=p.request_id where ${filter} order by p.submitted_at desc,p.id desc limit 20 offset ${(page - 1) * 20}`),
     rows<{ count: number }>(getDb(), sql`select count(*)::int as count from prayer_app.pastoral_reports p where ${filter}`),
   ]);
   return { reports: reports.map(r => ({ ...r, periodLabel: periodLabel(r) })), total: count[0].count, page };
@@ -134,4 +135,11 @@ export async function getReportImage(actor: Actor, id: string, slot: number) {
 export async function getReportText(actor: Actor, id: string) {
   const report = await getReport(actor, id);
   return { text: "\uFEFF" + reportText(report), filename: `목양지_${report.samName}_${report.writtenDate}.txt` };
+}
+
+export async function exportSubmittedReports(actor: Actor) {
+  requireReportAdmin(actor);
+  const reports=await rows<StoredReport>(getDb(),sql`select ${reportColumns} from prayer_app.pastoral_reports p
+    join prayer_app.pastoral_requests r on r.id=p.request_id where p.submitted_at is not null order by p.submitted_at desc,p.id desc`);
+  return "\uFEFF" + reports.map(report=>reportText({...report,periodLabel:periodLabel(report)})).join("\n\n"+"─".repeat(50)+"\n\n");
 }

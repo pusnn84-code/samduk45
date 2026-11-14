@@ -1,14 +1,16 @@
 import { createHash } from "node:crypto";
 import { getDb, rows, sql, lockedPost, requireFolder, type PostRow } from "./db";
-import { assertManager, assertPostContent, CommunityError, expectedChunkSize, PAGE_SIZE, type Actor, type parsePostInput } from "./policy";
+import { assertManager, assertPostContent, isPhotoName, CommunityError, expectedChunkSize, PAGE_SIZE, type Actor, type parsePostInput } from "./policy";
 import { assertAuthor } from "./refinement-policy";
+import { canDeletePublishedPost } from "../deputies/policy";
 import { assertValidPostPhoto, readPhotoData } from "./images";
 export type FileRow = {slot:number;name:string;size:number;sha256:string};
 export async function saveDraft(user: Actor, input: ReturnType<typeof parsePostInput>) {
   return getDb().transaction(async tx => {
     await tx.execute(sql`select id from prayer_app.users where id=${user.id} for update`);
     await tx.execute(sql`delete from prayer_app.community_posts where published_at is null and created_at < now() - interval '24 hours'`);
-    await requireFolder(tx,input.folderId);
+    const folder=await requireFolder(tx,input.folderId);
+    if(folder.textOnly && input.files.length)throw new CommunityError("TEXT_ONLY_FOLDER");
     const [existing] = await rows<{authorId:string|null;publishedAt:string|null}>(tx,sql`select author_user_id as "authorId",published_at as "publishedAt" from prayer_app.community_posts where id=${input.id} for update`);
     if (existing && existing.authorId!==user.id) throw new CommunityError("FORBIDDEN",403);
     if (existing?.publishedAt) return {id:input.id,published:true};
@@ -36,6 +38,8 @@ export async function publishPost(user: Actor,id:string) {
     const post=await lockedPost(tx,id); assertAuthor(user,post.authorId);
     if(post.publishedAt) return;
     const files=await rows<FileRow>(tx,sql`select slot,name,size,sha256 from prayer_app.community_files where post_id=${id} order by slot`);
+    if(post.textOnly && files.length)throw new CommunityError("TEXT_ONLY_FOLDER");
+    if(files.some(file => !isPhotoName(file.name)))throw new CommunityError("UNSUPPORTED_POST_PHOTO");
     assertPostContent(post.body, files);
     const photoData:Buffer[]=[];
     for(const file of files) {
@@ -48,7 +52,7 @@ export async function publishPost(user: Actor,id:string) {
       }
       if(length!==file.size) throw new CommunityError("UPLOAD_INCOMPLETE",409);
       if(hash.digest("hex")!==file.sha256) throw new CommunityError("FILE_INTEGRITY_FAILED",409);
-      if(!post.body.trim())photoData.push(Buffer.concat(chunks.map(chunk=>chunk.data)));
+      photoData.push(Buffer.concat(chunks.map(chunk=>chunk.data)));
     }
     await assertValidPostPhoto(post.body,files,index=>photoData[index]);
     await tx.execute(sql`update prayer_app.community_posts set published_at=now(),updated_at=now(),version=version+1 where id=${id}`);
@@ -88,14 +92,15 @@ export async function updatePost(user:Actor,id:string,title:string,body:string) 
 export async function movePost(user:Actor,id:string,folderId:string) {
   assertManager(user);
   await getDb().transaction(async tx=>{
-    await requireFolder(tx,folderId); await lockedPost(tx,id);
+    const folder=await requireFolder(tx,folderId); await lockedPost(tx,id);
+    if(folder.textOnly && (await rows(tx,sql`select 1 from prayer_app.community_files where post_id=${id} limit 1`)).length)throw new CommunityError("TEXT_ONLY_FOLDER");
     await tx.execute(sql`update prayer_app.community_posts set folder_id=${folderId},updated_at=now(),version=version+1 where id=${id}`);
   });
 }
 export async function deletePost(user:Actor,id:string,management=false) {
   if(management) assertManager(user);
   await getDb().transaction(async tx=>{
-    const post=await lockedPost(tx,id); if(!management) assertAuthor(user,post.authorId);
+    const post=await lockedPost(tx,id); if(!management && !canDeletePublishedPost(user,post)) assertAuthor(user,post.authorId);
     await tx.execute(sql`delete from prayer_app.community_posts where id=${id}`);
   });
 }

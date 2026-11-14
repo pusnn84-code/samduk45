@@ -1,10 +1,11 @@
 import { revisionResponse } from "../../../../src/features/pastoral/edit-http";
 import { NextResponse } from "next/server";
 import { pastoralStatus } from "../../../../src/features/pastoral/schedules";
-import { beginReport, cancelDraft, getReport, getReportChunk, getReportImage, getReportText, listReports, publishReport, putReportChunk } from "../../../../src/features/pastoral/reports";
+import { cancelDraft, getReport, getReportChunk, getReportImage, getReportText, listReports, publishReport, putReportChunk } from "../../../../src/features/pastoral/reports";
 import { binary, boundedBytes, boundedJson, errorResponse, json, privateHeaders, sameOrigin, sessionActor } from "../../../../src/features/pastoral/http";
-import { requireReportAccess } from "../../../../src/features/pastoral/access";
-import { CHUNK_LIMIT, ReportError } from "../../../../src/features/pastoral/policy";
+import { getOwnReportSamMembers, getReportSamMembers, memberLeaderReportAccess, requireMemberLeaderReportAccess, requireOwnReportTarget, requireReportAccess } from "../../../../src/features/pastoral/access";
+import { submitMemberReport } from "../../../../src/features/pastoral/member-submissions";
+import { CHUNK_LIMIT, ReportError, seoulToday } from "../../../../src/features/pastoral/policy";
 import { scheduleEmailDelivery } from "../../../../src/features/email/wakeup";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,8 +13,15 @@ type Context = { params: Promise<{ path: string[] }> };
 export async function GET(request: Request, context: Context) {
   try {
     const actor = await sessionActor(); const path = (await context.params).path; const url = new URL(request.url);
+    if (path.length === 1 && path[0] === "access") return json(await memberLeaderReportAccess(actor));
+    if (path.length === 1 && path[0] === "compose") {
+      const { sam, identity } = await requireOwnReportTarget(actor);
+      return json({ sam, authorName: identity.sourceName, today: seoulToday() });
+    }
     if (path.length === 1 && path[0] === "status") return json(await pastoralStatus(actor));
-    await requireReportAccess(actor);
+    if (path.length === 3 && path[0] === "sams" && path[2] === "members") return json({ members: await (actor.role === "admin" ? getReportSamMembers(actor, path[1]) : getOwnReportSamMembers(actor, path[1])) });
+    // The shared detail/download API also serves the administrator review screen.
+    if (actor.role === "admin") await requireReportAccess(actor); else await requireMemberLeaderReportAccess(actor);
     if (path.length === 1 && path[0] === "reports") return json(await listReports(actor, Number(url.searchParams.get("page") ?? 1)));
     if (path[0] !== "reports") throw new ReportError("NOT_FOUND", 404);
     if (path.length === 2) return json({ report: await getReport(actor, path[1]) });
@@ -28,10 +36,16 @@ export async function GET(request: Request, context: Context) {
 }
 export async function POST(request: Request, context: Context) {
   try {
-    const actor = await sessionActor(); sameOrigin(request); await requireReportAccess(actor);
+    const actor = await sessionActor(); sameOrigin(request); await requireMemberLeaderReportAccess(actor);
     const path = (await context.params).path;
+    if (path.length === 1 && path[0] === "submit") {
+      const result = await submitMemberReport(actor, await boundedJson(request));
+      scheduleEmailDelivery(request);
+      return json(result, 201);
+    }
     const revision = await revisionResponse(request,path,actor,false); if(revision)return revision;
-    if (path.length === 1 && path[0] === "reports") return json(await beginReport(actor, await boundedJson(request)), 201);
+    // Historic draft creation is no longer a member submission path.
+    if (path.length === 1 && path[0] === "reports") throw new ReportError("FORM_SUBMISSION_REQUIRED", 409);
     if (path.length === 3 && path[0] === "reports" && path[2] === "publish") {
       const result = await publishReport(actor, path[1]);
       scheduleEmailDelivery(request);
@@ -42,7 +56,7 @@ export async function POST(request: Request, context: Context) {
 }
 export async function PUT(request: Request, context: Context) {
   try {
-    const actor = await sessionActor(); sameOrigin(request); await requireReportAccess(actor);
+    const actor = await sessionActor(); sameOrigin(request); await requireMemberLeaderReportAccess(actor);
     const path = (await context.params).path;
     const revision = await revisionResponse(request,path,actor,false); if(revision)return revision;
     if (path.length !== 6 || path[0] !== "reports" || path[2] !== "files" || path[4] !== "chunks") throw new ReportError("NOT_FOUND", 404);
@@ -53,7 +67,7 @@ export async function PUT(request: Request, context: Context) {
 }
 export async function DELETE(request: Request, context: Context) {
   try {
-    const actor = await sessionActor(); sameOrigin(request);
+    const actor = await sessionActor(); sameOrigin(request); await requireMemberLeaderReportAccess(actor);
     const path = (await context.params).path;
     const revision = await revisionResponse(request,path,actor,false); if(revision)return revision;
     if (path.length !== 2 || path[0] !== "reports") throw new ReportError("NOT_FOUND", 404);

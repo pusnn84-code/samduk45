@@ -2,22 +2,27 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "../components/pastoral/refinement.css";
 import "./pastoral.css";
+import "./brand45.css";
+import "../components/app/page-spacing.css";
+import "../components/app/action-controls.css";
 import { SessionHeartbeat } from "../components/auth/SessionHeartbeat";
+import { AppInstallProvider } from "../components/app/AppInstall";
+import { COMMUNITY_2027 } from "../src/content/community-2027";
 
 export const metadata: Metadata = {
   title: {
-    default: "56사랑",
-    template: "%s | 56사랑",
+    default: "삼덕사오",
+    template: "%s | 삼덕사오",
   },
-  description: "56공동체 기도운동, 심방신청, 기도요청, 공지",
-  applicationName: "56사랑",
-  appleWebApp: { capable: true, title: "56사랑", statusBarStyle: "default" },
+  description: `${COMMUNITY_2027.year}년 45공동체 · ${COMMUNITY_2027.motto}. ${COMMUNITY_2027.intro}`,
+  applicationName: "삼덕사오",
+  appleWebApp: { capable: true, title: "삼덕사오", statusBarStyle: "default" },
   icons: {
     icon: [
-      { url: "/icons/56-heart-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/56-heart-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/45-logo-v3-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/45-logo-v3-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/56-heart-apple-180.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/icons/45-logo-v3-apple-180.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
@@ -29,7 +34,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
-      <body><SessionHeartbeat />{children}</body>
+      <body><SessionHeartbeat /><AppInstallProvider>{children}</AppInstallProvider></body>
     </html>
   );
 }

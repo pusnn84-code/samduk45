@@ -7,9 +7,9 @@ describe("admin visit management UI", () => {
       "components/admin/visits/AdminVisitDetail.tsx",
       "utf8",
     );
-    expect(source).toContain("유선확정 완료");
+    expect(source).toContain("신청 수락 · 캘린더 반영");
     expect(source).toContain("완료");
     expect(source).toContain("취소");
-    expect(source).toContain("동기화");
+    expect(source).not.toContain("Google");
   });
 });

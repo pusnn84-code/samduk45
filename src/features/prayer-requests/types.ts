@@ -2,6 +2,7 @@ export type PrayerRequestStatus = "received" | "praying" | "completed";
 export type AdminPrayerRequestFilter = "all" | "unread" | PrayerRequestStatus;
 
 export type AdminPrayerRequestSummary = {
+  visibility?: import("./visibility").PrayerVisibility;
   id: string;
   requesterName: string;
   createdAt: string;
@@ -13,6 +14,7 @@ export type AdminPrayerRequestSummary = {
 };
 
 export type OwnPrayerRequest = {
+  visibility?: import("./visibility").PrayerVisibility;
   id: string;
   content: string;
   status: PrayerRequestStatus;

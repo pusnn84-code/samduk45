@@ -31,7 +31,7 @@ export function PrayerCalendar({
   pendingDates: ReadonlySet<string>;
 }) {
   const { name } = usePrayerMenuSettings();
-  const activity = name === "기도운동" ? "기도" : "참여";
+  const activity = name === "말씀 묵상" ? "묵상" : "참여";
   const checked = new Set(dashboard.completedDates);
   const { first, last } = calendarBounds(
     dashboard.challenge.startDate,

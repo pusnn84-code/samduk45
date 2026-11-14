@@ -11,7 +11,7 @@ function displayDate(value: string) {
   }).format(new Date(value));
 }
 
-export function NoticeDetail({ notice }: { notice: MemberNoticeDetail }) {
+export function NoticeDetail({ notice, children }: { notice: MemberNoticeDetail; children?: React.ReactNode }) {
   return (
     <article className="card notice-detail">
       <div className="notice-detail-heading">
@@ -31,6 +31,7 @@ export function NoticeDetail({ notice }: { notice: MemberNoticeDetail }) {
         )}
         <div className="notice-body">{notice.body}</div>
       </div>
+      {children}
     </article>
   );
 }

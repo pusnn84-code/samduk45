@@ -24,6 +24,7 @@ export async function beginEdit(user:Actor,postId:string,value:unknown) {
     await tx.execute(sql`select id from prayer_app.users where id=${user.id} for update`);
     const post=await lockedPost(tx,postId);assertAuthor(user,post.authorId);
     const input=parseEditInput(value);
+    if(post.textOnly && (input.files.length || input.keepSlots.length))throw new CommunityError("TEXT_ONLY_FOLDER");
     // Bind an array literal made only from validated slots, not a SQL tuple.
     const keepSlots=`{${input.keepSlots.join(",")}}`;
     const existing=await editRow(tx,input.id);
@@ -56,6 +57,7 @@ export async function beginEdit(user:Actor,postId:string,value:unknown) {
 export async function uploadEditChunk(user:Actor,postId:string,id:string,slot:number,index:number,data:Buffer) {
   await getDb().transaction(async tx=>{
     const post=await lockedPost(tx,postId);assertAuthor(user,post.authorId);
+    if(post.textOnly)throw new CommunityError("TEXT_ONLY_FOLDER");
     const edit=await editRow(tx,id);checkEdit(edit,user,postId);
     if(edit.appliedAt)throw new CommunityError("EDIT_ALREADY_APPLIED",409);
     if(post.version!==edit.baseVersion)throw new CommunityError("EDIT_CONFLICT",409);
@@ -80,6 +82,7 @@ export async function commitEdit(user:Actor,postId:string,id:string) {
     if(edit.appliedAt)return {id:postId};
     if(post.version!==edit.baseVersion)throw new CommunityError("EDIT_CONFLICT",409);
     const current=await rows<FileRow>(tx,sql`select slot,name,size,sha256 from prayer_app.community_files where post_id=${postId} order by slot`);
+    if(post.textOnly && (edit.files.length || edit.keepSlots.length))throw new CommunityError("TEXT_ONLY_FOLDER");
     const final:{file:FileInput;chunks:Chunk[]}[]=[];
     for(const slot of edit.keepSlots) {
       const file=current.find(file=>file.slot===slot);if(!file)throw new CommunityError("EDIT_CONFLICT",409);

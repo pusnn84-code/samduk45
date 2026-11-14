@@ -21,7 +21,7 @@ function workbookBuffer() {
 describe("admin roster upload boundary", () => {
   it("accepts a legacy xls within the size limit", () => {
     expect(() =>
-      validateRosterUploadMeta({ name: "56공동체.xls", size: 74240 }),
+      validateRosterUploadMeta({ name: "45공동체.xls", size: 74240 }),
     ).not.toThrow();
   });
 

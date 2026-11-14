@@ -18,6 +18,30 @@ test('unique stored roster name and same sam grant leader only that sam',()=>{co
 test('same name at different sam never receives leader role',()=>{const r=roster(5,'가상리더','4-1','4');assert.equal(p.deriveAccess(user,r,sams,[r],[]).visible,false);});
 test('ambiguous duplicate stored names fail closed',()=>{const r=roster(5);assert.equal(p.deriveAccess(user,r,sams.map(s=>({...s,leaderRosterId:null})),[r,roster(6)],[]).visible,false);});
 test('excess form rows rejected',()=>assert.throws(()=>p.parseSubmission({...sample(),form:{sharing:Array.from({length:41},()=>({member:'a',content:'b'}))}})));
+test('selected sam roster is restricted to its resolved village and active membership', () => {
+  const people = [
+    roster(11, '가상샘원A', '01샘', '03마을'),
+    roster(12, '다른 마을', '1샘', '4'),
+    roster(13, '다른 샘', '2샘', '3'),
+    { ...roster(14, '비활성 샘원', '1샘', '3'), isActive: false },
+  ];
+  assert.deepEqual(p.reportSamMembers({ name: '1샘', village: '3' }, people), [
+    { rosterId: id(11), member: '가상샘원A' },
+  ]);
+  assert.deepEqual(p.reportSamMembers({ name: '1샘', village: '' }, people), []);
+});
+test('keeps legacy form rows and validates optional per-member records', () => {
+  const legacy = sample().form;
+  assert.equal(Object.hasOwn(p.parseForm(legacy), 'memberNotes'), false);
+  const note = { rosterId: id(11), member: '가상샘원A', sharing: ' 나눔 ', prayer: '기도제목', news: '소식' };
+  const result = p.parseForm({ ...legacy, memberNotes: [note, { rosterId: id(12), member: '가상샘원B' }] });
+  assert.deepEqual(result.meetings, legacy.meetings);
+  assert.deepEqual(result.sharing, legacy.sharing);
+  assert.deepEqual(result.news, legacy.news);
+  assert.deepEqual(result.memberNotes, [{ ...note, sharing: '나눔' }]);
+  assert.throws(() => p.parseForm({ memberNotes: [note, note] }), { code: 'INVALID_MEMBER_NOTE' });
+  assert.throws(() => p.parseForm({ memberNotes: [{ ...note, rosterId: 'forged' }] }), { code: 'INVALID_INPUT' });
+});
 const file=(name='목양지.pdf',size=6291456)=>({name,size,sha256:'a'.repeat(64)});
 test('two full sized documents accepted with no text form',()=>assert.equal(p.parseSubmission({...sample(),method:'file',form:null,files:[file(),file('기록.hwp')]}).files.length,2));
 test('file number, empty, too large and unsupported types rejected',()=>{for(const files of [[],[file(),file(),file()],[file('x.pdf',6291457)],[file('x.pdf',0)],[file('x.html')],[file('../x.pdf')],[file('x\n.pdf')],[file('x.exe')]])assert.throws(()=>p.parseSubmission({...sample(),method:'file',form:null,files}));});

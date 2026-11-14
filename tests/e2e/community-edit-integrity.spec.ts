@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import postgres from "postgres";
+import sharp from "sharp";
 import { expect, test } from "@playwright/test";
 import { login } from "./helpers";
 const root="/api/community";
@@ -15,11 +16,11 @@ test("staged edits enforce hashes and permissions, cancel safely, and commit onc
   const context=await browser.newContext();const admin=await context.newPage();const sql=disposableDb();
   await login(page);await login(admin,"admin");
   const folderId=(await(await page.request.get(root+"/folders")).json()).folders[0].id;
-  const id=randomUUID();let editId=randomUUID();const data=Buffer.from("new file bytes");
+  const id=randomUUID();let editId=randomUUID();const data=await sharp({create:{width:8,height:8,channels:3,background:"#aabbcc"}}).png().toBuffer();
   try{
     expect((await page.request.post(root+"/posts",{data:{id,folderId,title:"원본 유지 검증",body:"변경 전 본문",files:[]}})).status()).toBe(201);
     expect((await page.request.post(`${root}/posts/${id}/publish`)).ok()).toBe(true);
-    const makeEdit=()=>({id:editId,baseVersion:1,title:"저장할 제목",body:"저장할 본문",keepSlots:[],files:[{name:"new.txt",size:data.length,sha256:digest(data)}]});
+    const makeEdit=()=>({id:editId,baseVersion:1,title:"저장할 제목",body:"저장할 본문",keepSlots:[],files:[{name:"new.png",size:data.length,sha256:digest(data)}]});
     expect((await page.request.post(`${root}/posts/${id}/edits`,{data:makeEdit()})).status()).toBe(201);
     let stage=`${root}/posts/${id}/edits/${editId}`;
     expect((await request.post(stage+"/commit")).status()).toBe(401);
@@ -62,12 +63,12 @@ test("renamed executable images never render inline and drafts remain private",a
     const path=`${root}/posts/${id}/files/0/image?sha=${digest(bytes)}`;
     expect((await request.get(path)).status()).toBe(401);expect((await admin.request.get(path)).status()).toBe(404);
     expect((await page.request.get(path)).status()).toBe(415);
-    expect((await page.request.post(`${root}/posts/${id}/publish`)).ok()).toBe(true);
+    expect((await (await page.request.post(`${root}/posts/${id}/publish`)).json()).code).toBe("INVALID_POST_PHOTO");
     const result=await page.request.get(path);expect(result.status()).toBe(415);expect(result.headers()["content-type"]).toContain("application/json");
     expect((await page.request.get(`${root}/posts/${id}/files/0/image?sha=${"0".repeat(64)}`)).status()).toBe(409);
     const raw=await page.request.get(`${root}/posts/${id}/files/0/chunks/0`);expect(await raw.body()).toEqual(bytes);expect(raw.headers()["content-type"]).toBe("application/octet-stream");
     let dialogs=0;page.on("dialog",async dialog=>{dialogs++;await dialog.dismiss();});
     await page.goto(`/community?post=${id}`);await expect(page.locator(".community-photo")).toContainText("사진을 표시하지 못했습니다");
-    await expect(page.locator(".community-download")).toHaveCount(1);expect(dialogs).toBe(0);
+    await expect(page.locator(".community-download")).toHaveCount(0);expect(dialogs).toBe(0);
   }finally{await page.request.delete(`${root}/posts/${id}`);await context.close();}
 });

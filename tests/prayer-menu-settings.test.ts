@@ -17,12 +17,12 @@ function put(body: unknown, headers: Record<string, string> = {}) {
     method: "PUT", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body),
   }));
 }
-beforeEach(() => { boundary.actor = admin; boundary.query.mockReset(); boundary.query.mockResolvedValue({ rows: [[true, "기도운동", ""]] }); });
+beforeEach(() => { boundary.actor = admin; boundary.query.mockReset(); boundary.query.mockResolvedValue({ rows: [[true, "말씀 묵상", ""]] }); });
 
 describe("global prayer menu setting", () => {
   it("defaults to enabled when the singleton has not been inserted", async () => {
     boundary.query.mockResolvedValue({ rows: [] });
-    expect(await getPrayerMenuSettings()).toEqual({ enabled: true, name: "기도운동", description: "" });
+    expect(await getPrayerMenuSettings()).toEqual({ enabled: true, name: "말씀 묵상", description: "" });
   });
   it.each(["member", "admin"] as const)("returns the same saved false value to %s without caching", async (role) => {
     boundary.actor = { ...admin, role };
@@ -59,10 +59,10 @@ describe("global prayer menu setting", () => {
     expect(boundary.query).not.toHaveBeenCalled();
   });
   it.each([false, true])("upserts only the singleton and returns the persisted %s value", async (enabled) => {
-    boundary.query.mockResolvedValue({ rows: [[enabled, "기도운동", ""]] });
+    boundary.query.mockResolvedValue({ rows: [[enabled, "말씀 묵상", ""]] });
     const response = await put({ enabled }, { origin: "http://localhost" });
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ enabled, name: "기도운동", description: "" });
+    expect(await response.json()).toEqual({ enabled, name: "말씀 묵상", description: "" });
     expect(response.headers.get("cache-control")).toContain("no-store");
     expect(boundary.query).toHaveBeenCalledTimes(1);
     const [query, params] = boundary.query.mock.calls[0];

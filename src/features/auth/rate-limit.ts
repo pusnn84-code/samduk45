@@ -81,3 +81,19 @@ export async function recordLoginFailure(
 export async function clearLoginFailures(name: string, ip: string): Promise<void> {
   await getDb().delete(authRateLimits).where(eq(authRateLimits.keyHash, keyHash(name, ip)));
 }
+
+/** Reserve before verification, under a row lock, so parallel requests and IP changes cannot bypass the PIN limit. */
+export async function reserveAccountLoginAttempt(name: string, now = new Date()): Promise<boolean> {
+  const hash = keyHash(name, "account-global");
+  return getDb().transaction(async tx => {
+    await tx.insert(authRateLimits).values({ keyHash: hash, windowStartedAt: now, failureCount: 0, blockedUntil: null }).onConflictDoNothing();
+    const [row] = await tx.select().from(authRateLimits).where(eq(authRateLimits.keyHash, hash)).for("update");
+    if (!row || (row.blockedUntil && row.blockedUntil > now)) return false;
+    await tx.update(authRateLimits).set(nextFailureState(row, now)).where(eq(authRateLimits.keyHash, hash));
+    return true;
+  });
+}
+
+export async function clearAccountLoginFailures(name: string): Promise<void> {
+  await clearLoginFailures(name, "account-global");
+}

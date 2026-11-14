@@ -5,6 +5,7 @@ import type { SessionUser } from "./session";
 import { createSession } from "./session";
 import {
   hashPhonePassword,
+  isPhonePassword,
   normalizeName,
   phoneLookupHash,
   verifyPassword,
@@ -170,7 +171,7 @@ export async function authenticateRosterLogin(
   name: string,
   password: string,
   now = new Date(),
-): Promise<{ user: SessionUser; token: string } | null> {
+): Promise<{ user: SessionUser; token: string; requiresPasswordChange: boolean } | null> {
   const result = await authenticateRosterIdentity(
     dbRosterAuthRepository,
     name,
@@ -179,7 +180,10 @@ export async function authenticateRosterLogin(
   );
   if (!result) return null;
 
-  const session = await createSession(result.participant.id, now);
+  const requiresPasswordChange = !result.roster.passwordHash || isPhonePassword(password, result.roster.phoneLookupHash);
+  const session = requiresPasswordChange
+    ? await createSession(result.participant.id, now, { passwordSetup: true })
+    : await createSession(result.participant.id, now);
   return {
     user: {
       id: result.participant.id,
@@ -188,5 +192,6 @@ export async function authenticateRosterLogin(
       role: result.participant.role,
     },
     token: session.token,
+    requiresPasswordChange,
   };
 }

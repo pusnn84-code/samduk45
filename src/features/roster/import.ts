@@ -1,6 +1,7 @@
 import { reconcileUnboundLeaders } from "../sams/identity-service";
+import { validBirthDate } from "../birthdays/dates";
 import * as fs from "node:fs";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import * as XLSX from "xlsx";
 import * as cptable from "xlsx/dist/cpexcel.full.mjs";
 
@@ -18,6 +19,7 @@ import {
 } from "./normalize";
 
 export type ImportCandidate = {
+  sourceGroup?: string;
   sourceRow: number;
   sourceName: string;
   canonicalName: string;
@@ -26,6 +28,11 @@ export type ImportCandidate = {
   village: string | null;
   sam: string | null;
   samLabel: string | null;
+  directoryAge?: number | null;
+  birthDate?: string | null;
+  directoryGender?: string | null;
+  directoryFamily?: string | null;
+  directoryGroupRole?: string | null;
 };
 
 export type ImportValidationError = {
@@ -51,6 +58,11 @@ export type PreparedRosterRow = {
   isActive: boolean;
   isAdmin: boolean;
   source: "xls";
+  directoryAge?: number | null;
+  birthDate?: string | null;
+  directoryGender?: string | null;
+  directoryFamily?: string | null;
+  directoryGroupRole?: string | null;
 };
 
 export type ImportSummary = {
@@ -58,11 +70,21 @@ export type ImportSummary = {
   imported: number;
   missingPhone: number;
   errors: number;
+  created?: number;
+  updated?: number;
+  preservedAuth?: number;
 };
 
+export type RosterImportCounts = { created: number; updated: number; preservedAuth: number };
 export type RosterImportRepository = {
-  replaceXlsRoster(rows: PreparedRosterRow[]): Promise<void>;
+  replaceXlsRoster(rows: PreparedRosterRow[]): Promise<RosterImportCounts | void>;
 };
+
+export class RosterWorkbookError extends Error {
+  constructor(code: string, readonly sourceRows: number[]) { super(code); }
+}
+
+const MISSING_PHONE_MARKERS = new Set(["", "없음", "미상", "미등록", "미입력", "미확인", "해당없음", "미보유", "휴대폰없음", "핸드폰없음", "전화없음", "번호없음", "연락처없음", "-", "—"]);
 
 const HEADER_ALIASES = {
   name: ["이름"],
@@ -90,6 +112,9 @@ function parseWorkbook(workbook: XLSX.WorkBook): ImportCandidate[] {
     raw: false,
     defval: "",
   }).map((row) => row.map(cellText));
+
+  const churchHeader = matrix.slice(0, 20).findIndex(row => ["교구", "그룹", "그룹직책", "이름", "교회직분", "핸드폰"].every(header => row.includes(header)));
+  if (churchHeader >= 0) return parseChurchExport(matrix, churchHeader);
 
   let headerRow = -1;
   let columns:
@@ -147,6 +172,48 @@ function parseWorkbook(workbook: XLSX.WorkBook): ImportCandidate[] {
   return result;
 }
 
+/** Church exports have a full group label, rather than separate village/sam columns. */
+function parseChurchExport(matrix: string[][], headerRow: number): ImportCandidate[] {
+  const headers = matrix[headerRow];
+  const at = (row: string[], label: string) => row[headers.indexOf(label)]?.trim() ?? "";
+  const invalidPhones: number[] = [];
+  const invalidAges: number[] = [];
+  const invalidBirthDates: number[] = [];
+  const result = matrix.slice(headerRow + 1).flatMap((row, offset) => {
+    if (row.every(value => !value)) return [];
+    const sourceName = at(row, "이름");
+    let canonicalName = "";
+    try { canonicalName = canonicalizeRosterName(sourceName); } catch { /* Validation reports its source row. */ }
+    const group = at(row, "그룹");
+    const villageMatch = /^(\d+)마을$/u.exec(group.replace(/\s+/gu, ""));
+    const village = villageMatch?.[1] ?? null;
+    const sam = group.includes("샘") ? group : null;
+    const phoneText = at(row, "핸드폰");
+    let phone: string | null = null;
+    if (/\d/u.test(phoneText) && !MISSING_PHONE_MARKERS.has(phoneText.replace(/\s+/gu, ""))) {
+      try { phone = normalizeOptionalPhone(phoneText); } catch { invalidPhones.push(headerRow + offset + 2); }
+    }
+    const ageText = at(row, "나이");
+    const ageMatch = /^(\d{1,3})(?:세)?$/u.exec(ageText);
+    const age = ageMatch ? Number(ageMatch[1]) : null;
+    if (ageText && (!ageMatch || age! > 130)) invalidAges.push(headerRow + offset + 2);
+    const birthText = at(row, "생년월일");
+    if (birthText && !validBirthDate(birthText)) invalidBirthDates.push(headerRow + offset + 2);
+    const family = [
+      at(row, "신앙세대주") ? `신앙세대주: ${at(row, "신앙세대주")}` : "",
+      at(row, "세대주와의관계") ? `세대주와의 관계: ${at(row, "세대주와의관계")}` : "",
+      at(row, "가족관계(세대주,배우자제외)"),
+    ].filter(Boolean).join(" · ") || null;
+    return [{ sourceGroup: group, sourceRow: headerRow + offset + 2, sourceName, canonicalName, position: at(row, "교회직분") || null, phone, village, sam, samLabel: sam || (!village ? group || null : null),
+      ...(headers.includes("생년월일") ? { birthDate: birthText || null } : {}),
+      directoryAge: age, directoryGender: at(row, "성별") || null, directoryFamily: family, directoryGroupRole: at(row, "그룹직책") || null }];
+  });
+  if (invalidPhones.length) throw new RosterWorkbookError("ROSTER_PHONE_INVALID", invalidPhones);
+  if (invalidAges.length) throw new RosterWorkbookError("ROSTER_DIRECTORY_AGE_INVALID", invalidAges);
+  if (invalidBirthDates.length) throw new RosterWorkbookError("ROSTER_BIRTH_DATE_INVALID", invalidBirthDates);
+  return result;
+}
+
 export function parseRosterWorkbook(filePath: string): ImportCandidate[] {
   return parseWorkbook(XLSX.readFile(filePath, { cellText: true }));
 }
@@ -189,11 +256,46 @@ function credentialKey(name: string, hash: string): string {
   return `${name}\u0000${hash}`;
 }
 
+export type ExistingImportIdentity = { id: string; canonicalName: string; phoneLookupHash: string | null; source: string };
+
+/** A name alone must never inherit another person's ID or stored permissions. */
+export function planRosterIdentityMatches(rows: PreparedRosterRow[], existing: ExistingImportIdentity[]) {
+  const byCredential = new Map<string, ExistingImportIdentity>();
+  for (const person of existing) {
+    if (!person.phoneLookupHash) continue;
+    const key = credentialKey(person.canonicalName, person.phoneLookupHash);
+    if (byCredential.has(key)) throw new Error("ROSTER_IDENTITY_CONFLICT");
+    byCredential.set(key, person);
+  }
+  return rows.map(row => ({ row, existing: row.phoneLookupHash ? byCredential.get(credentialKey(row.canonicalName, row.phoneLookupHash)) ?? null : null }));
+}
+
+/** Imports refresh profile data, while all authentication and assignment flags remain stored. */
+export function rosterImportProfile(row: PreparedRosterRow) {
+  return {
+    sourceName: row.sourceName,
+    canonicalName: row.canonicalName,
+    position: row.position,
+    phoneLookupHash: row.phoneLookupHash,
+    phoneCiphertext: row.phoneCiphertext,
+    village: row.village,
+    sam: row.sam,
+    samLabel: row.samLabel,
+    sourceRow: row.sourceRow,
+    ...("directoryAge" in row ? { directoryAge: row.directoryAge } : {}),
+    ...("birthDate" in row ? { birthDate: row.birthDate } : {}),
+    ...("directoryGender" in row ? { directoryGender: row.directoryGender } : {}),
+    ...("directoryFamily" in row ? { directoryFamily: row.directoryFamily } : {}),
+    ...("directoryGroupRole" in row ? { directoryGroupRole: row.directoryGroupRole } : {}),
+    updatedAt: new Date(),
+  };
+}
+
 export const dbRosterImportRepository: RosterImportRepository = {
   async replaceXlsRoster(rows) {
     const db = getDb();
 
-    await db.transaction(async (tx) => {
+    return db.transaction(async (tx) => {
       const existingRows = await tx
         .select({
           id: memberRoster.id,
@@ -204,29 +306,9 @@ export const dbRosterImportRepository: RosterImportRepository = {
         .from(memberRoster);
 
       const existingXls = existingRows.filter((row) => row.source === "xls");
-      const existingAdminKeys = new Set(
-        existingRows
-          .filter((row) => row.source === "admin" && row.phoneLookupHash)
-          .map((row) => credentialKey(row.canonicalName, row.phoneLookupHash!)),
-      );
-
-      for (const row of rows) {
-        if (
-          row.phoneLookupHash &&
-          existingAdminKeys.has(credentialKey(row.canonicalName, row.phoneLookupHash))
-        ) {
-          throw new Error("ROSTER_ADMIN_CONFLICT");
-        }
-      }
-
-      const existingByCredential = new Map(
-        existingXls
-          .filter((row) => row.phoneLookupHash)
-          .map((row) => [
-            credentialKey(row.canonicalName, row.phoneLookupHash!),
-            row.id,
-          ]),
-      );
+      const matches = planRosterIdentityMatches(rows, existingRows);
+      let created = 0;
+      let updated = 0;
 
       const linkedUsers = await tx
         .select({
@@ -247,30 +329,18 @@ export const dbRosterImportRepository: RosterImportRepository = {
         { id: string; row: PreparedRosterRow }
       >();
 
-      for (const row of rows) {
+      for (const { row, existing } of matches) {
         const key = row.phoneLookupHash
           ? credentialKey(row.canonicalName, row.phoneLookupHash)
           : null;
-        const existingId = key ? existingByCredential.get(key) : undefined;
+        const existingId = existing?.id;
 
         if (existingId) {
           await tx
             .update(memberRoster)
-            .set({
-              sourceName: row.sourceName,
-              canonicalName: row.canonicalName,
-              position: row.position,
-              phoneLookupHash: row.phoneLookupHash,
-              phoneCiphertext: row.phoneCiphertext,
-              village: row.village,
-              sam: row.sam,
-              samLabel: row.samLabel,
-              isActive: row.isActive,
-              isAdmin: row.isAdmin,
-              sourceRow: row.sourceRow,
-              updatedAt: new Date(),
-            })
+            .set(rosterImportProfile(row))
             .where(eq(memberRoster.id, existingId));
+          updated += 1;
           processedIds.add(existingId);
           if (key) importedByCredential.set(key, { id: existingId, row });
           continue;
@@ -280,6 +350,7 @@ export const dbRosterImportRepository: RosterImportRepository = {
           .insert(memberRoster)
           .values(row)
           .returning({ id: memberRoster.id });
+        created += 1;
         processedIds.add(inserted.id);
         if (key) importedByCredential.set(key, { id: inserted.id, row });
       }
@@ -305,8 +376,6 @@ export const dbRosterImportRepository: RosterImportRepository = {
             displayName: match.row.canonicalName,
             normalizedName: match.row.canonicalName.toLocaleLowerCase("ko-KR"),
             phoneLookupHash: match.row.phoneLookupHash!,
-            role: match.row.isAdmin ? "admin" : "member",
-            isActive: match.row.isActive,
             updatedAt: new Date(),
           })
           .where(eq(users.id, user.id));
@@ -322,6 +391,7 @@ export const dbRosterImportRepository: RosterImportRepository = {
       if (activeUsers.some((row) => !row.rosterId)) {
         throw new Error("UNMAPPED_ACTIVE_USER");
       }
+      return { created, updated, preservedAuth: updated };
     });
   },
 };
@@ -333,6 +403,7 @@ export async function importRosterCandidates(
         adminName: string;
         adminPhone: string;
         adminCredential?: never;
+        preserveExistingAdmin?: boolean;
         repository?: RosterImportRepository;
       }
     | {
@@ -342,6 +413,7 @@ export async function importRosterCandidates(
           canonicalName: string;
           phoneLookupHash: string;
         };
+        preserveExistingAdmin?: boolean;
         repository?: RosterImportRepository;
       },
 ): Promise<ImportSummary> {
@@ -383,17 +455,23 @@ export async function importRosterCandidates(
       isActive: true,
       isAdmin,
       source: "xls" as const,
+      ...("directoryAge" in row ? { directoryAge: row.directoryAge } : {}),
+      ...("birthDate" in row ? { birthDate: row.birthDate } : {}),
+      ...("directoryGender" in row ? { directoryGender: row.directoryGender } : {}),
+      ...("directoryFamily" in row ? { directoryFamily: row.directoryFamily } : {}),
+      ...("directoryGroupRole" in row ? { directoryGroupRole: row.directoryGroupRole } : {}),
     };
   });
 
-  if (adminMatches !== 1) throw new Error("INITIAL_ADMIN_NOT_FOUND");
+  if (adminMatches > 1 || (adminMatches === 0 && !options.preserveExistingAdmin)) throw new Error("INITIAL_ADMIN_NOT_FOUND");
 
-  await (options.repository ?? dbRosterImportRepository).replaceXlsRoster(prepared);
+  const counts = await (options.repository ?? dbRosterImportRepository).replaceXlsRoster(prepared);
 
   return {
     total: rows.length,
     imported: prepared.length,
     missingPhone: validation.missingPhone,
     errors: 0,
+    ...(counts ?? {}),
   };
 }

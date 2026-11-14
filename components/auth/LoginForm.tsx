@@ -24,7 +24,7 @@ export function LoginForm() {
       const body = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        router.replace("/");
+        router.replace(body.status === "password_change_required" ? "/set-password" : body.status === "pin_setup_required" ? "/set-pin" : "/");
         router.refresh();
         return;
       }
@@ -35,6 +35,8 @@ export function LoginForm() {
             ? "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."
             : "등록된 이름과 비밀번호를 확인해 주세요."),
       );
+    } catch {
+      setMessage("연결을 확인한 후 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -61,15 +63,17 @@ export function LoginForm() {
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="비밀번호를 입력하세요"
+          placeholder="처음: 휴대폰 번호 / 이후: 간편비밀번호 6자리"
+          aria-describedby="login-password-help"
         />
       </label>
+      <p id="login-password-help" className="login-password-help"><strong>처음이신가요? 비밀번호 칸에 휴대폰 번호를 입력하세요.</strong><span>번호는 ‘-’ 없이 입력해 주세요. 설정을 마친 분은 간편비밀번호 6자리를 입력하세요.</span></p>
       {message && <p className="error-text" role="alert">{message}</p>}
       <button className="primary-button" type="submit" disabled={busy}>
         {busy ? "확인 중…" : "로그인"}
       </button>
       <p className="helper-text">
-        비밀번호를 변경하지 않은 경우 초기 비밀번호는 등록된 전화번호입니다.
+        처음 로그인하면 나만의 숫자 6자리 비밀번호를 설정합니다.
       </p>
     </form>
   );

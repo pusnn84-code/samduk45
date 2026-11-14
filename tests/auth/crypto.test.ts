@@ -28,6 +28,35 @@ describe("authentication crypto", () => {
     expect(a).not.toContain("01012345678");
   });
 
+  it.each([
+    "01012345678",
+    "010-1234-5678",
+    " 010 1234 5678 ",
+    "(010) 1234-5678",
+    "010.1234.5678",
+  ])("recognizes the account's own phone as an unsafe custom password: %s", async password => {
+    const { isPhonePassword, phoneLookupHash } = await import("../../src/features/auth/crypto");
+    expect(isPhonePassword(password, phoneLookupHash("01012345678"))).toBe(true);
+  });
+
+  it("keeps a different number or a passphrase containing digits distinct from the account phone", async () => {
+    const { isPhonePassword, phoneLookupHash } = await import("../../src/features/auth/crypto");
+    const lookup = phoneLookupHash("01012345678");
+    expect(isPhonePassword("01099999999", lookup)).toBe(false);
+    expect(isPhonePassword("우리집01012345678!", lookup)).toBe(false);
+    expect(isPhonePassword("my-password-2027", lookup)).toBe(false);
+  });
+
+  it("handles missing credentials and malformed numeric passwords without throwing", async () => {
+    const { isPhonePassword, phoneLookupHash } = await import("../../src/features/auth/crypto");
+    expect(isPhonePassword("01012345678", null)).toBe(false);
+    expect(isPhonePassword("01012345678", undefined)).toBe(false);
+    const lookup = phoneLookupHash("01012345678");
+    for (const password of ["", "123", " ", "---", "01234567890123456789"]) {
+      expect(isPhonePassword(password, lookup)).toBe(false);
+    }
+  });
+
   it("hashes and verifies the phone with Argon2id", async () => {
     const { hashPhonePassword, verifyPhonePassword } = await import("../../src/features/auth/crypto");
     const hash = await hashPhonePassword("01012345678");

@@ -1,11 +1,13 @@
 "use client";
+import type { InternalVisitPatch } from "../../../src/features/visits/internal-calendar";
 
 import { fetchJson } from "../../../src/lib/fetch-json";
 import { useEffect, useMemo, useState } from "react";
-import type { AdminVisitRecord, VisitDetailPatch } from "../../../src/features/visits/admin-service";
+import type { AdminVisitRecord } from "../../../src/features/visits/admin-service";
 import type { VisitStatus } from "../../../src/features/visits/types";
 import { AdminVisitDetail } from "./AdminVisitDetail";
 import { AdminVisitList } from "./AdminVisitList";
+import { AdminVisitSchedule } from "./AdminVisitSchedule";
 
 async function readJson(url: string, init?: RequestInit) {
   return fetchJson<{ visits?: AdminVisitRecord[] }>(url, {
@@ -16,9 +18,8 @@ async function readJson(url: string, init?: RequestInit) {
 
 function errorCopy(cause: unknown): string {
   const code = cause instanceof Error ? cause.message : "";
-  if (code === "VISIT_SYNC_PENDING") return "Google 일정 생성 중입니다. 잠시 후 다시 조회해 주세요.";
-  if (code === "CALENDAR_EVENT_DELETE_FAILED") return "Google 일정 삭제를 확인하지 못해 신청을 남겨 두었습니다. 다시 시도해 주세요.";
-  if (code === "CALENDAR_NOT_CONNECTED" || code === "CALENDAR_NOT_SELECTED") return "관리자 설정에서 Google Calendar 연결과 캘린더 선택을 확인해 주세요.";
+  if (code === "VISIT_ALREADY_EXISTS") return "해당 날짜에 이미 다른 신청이나 일정이 있습니다.";
+  if (code === "VISIT_NOT_EDITABLE") return "취소되거나 완료된 일정은 수정할 수 없습니다. 다시 조회해 주세요.";
   return "처리 결과를 확인하지 못했습니다. 다시 조회한 뒤 시도해 주세요.";
 }
 
@@ -27,6 +28,7 @@ export function AdminVisitManagement({
 }: {
   initialStatus?: "all" | VisitStatus;
 }) {
+  const [refreshKey, setRefreshKey] = useState(0);
   const [visits, setVisits] = useState<AdminVisitRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<"all" | VisitStatus>(initialStatus);
@@ -52,6 +54,7 @@ export function AdminVisitManagement({
       );
       const next = (body.visits ?? []) as AdminVisitRecord[];
       setVisits(next);
+      setRefreshKey(value => value + 1);
       setSelectedId((current) =>
         current && next.some((visit) => visit.id === current)
           ? current
@@ -95,7 +98,7 @@ export function AdminVisitManagement({
     };
   }, [initialStatus]);
 
-  async function save(patch: VisitDetailPatch) {
+  async function save(patch: InternalVisitPatch) {
     if (!selected || busy) return;
     setBusy(true);
     setError("");
@@ -112,9 +115,9 @@ export function AdminVisitManagement({
     }
   }
 
-  async function action(actionName: "confirm" | "complete" | "cancel" | "delete") {
+  async function action(actionName: "confirm" | "complete" | "cancel" | "delete" | "decline") {
     if (!selected || busy) return;
-    if (actionName === "delete" && !window.confirm(`${selected.requesterName}님의 ${selected.visitDate} 심방 신청과 연결된 Google 일정을 삭제할까요? 삭제한 신청 내용은 복구할 수 없습니다.`)) return;
+    if (actionName === "delete" && !window.confirm(`${selected.requesterName}님의 ${selected.visitDate} 심방 신청을 삭제할까요? 삭제한 신청 내용은 복구할 수 없습니다.`)) return;
     if (actionName === "cancel" && !window.confirm("이 심방 신청을 취소할까요?")) {
       return;
     }
@@ -138,9 +141,13 @@ export function AdminVisitManagement({
       <section className="admin-page-heading">
         <p className="eyebrow">상담 & 심방</p>
         <h1>심방 신청 관리</h1>
-        <p>신청 내용을 확인하고 Google Calendar 동기화 상태와 확정 과정을 관리합니다.</p>
+        <p>성도의 신청을 수락하면 캘린더에 반영됩니다. 목사님은 일정을 직접 등록할 수 있습니다.</p>
       </section>
 
+      <AdminVisitSchedule refreshKey={refreshKey} onChanged={() => { void load(); }} onSelect={id => {
+        setStatus("all"); setFrom(""); setTo("");
+        void readJson("/api/admin/visits").then(body => { setVisits(body.visits ?? []); setSelectedId(id); }).catch(() => setError("일정을 불러오지 못했습니다."));
+      }} />
       {error && <p className="error-text" role="alert">{error}</p>}
       {loading ? (
         <section className="card empty-state">

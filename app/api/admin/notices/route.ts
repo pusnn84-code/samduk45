@@ -8,6 +8,7 @@ import {
 } from "../../../../src/features/notices/service";
 import { DomainError } from "../../../../src/lib/http";
 import { sendNoticePush } from "../../../../src/features/push/service";
+import { requireNoticePublisher } from "../../../../src/features/deputies/policy";
 
 function errorResponse(error: unknown) {
   if (error instanceof DomainError) {
@@ -30,8 +31,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getCurrentSessionUser();
-    requireAdmin(user);
+    requireNoticePublisher(user);
+    if ((request.headers.get("origin") && request.headers.get("origin") !== new URL(request.url).origin) || request.headers.get("sec-fetch-site") === "cross-site") throw new DomainError("FORBIDDEN", 403);
     const input = await parseNoticeRequest(request);
+    if (user.role !== "admin" && input.status !== "published") throw new DomainError("FORBIDDEN", 403);
     const result = await createNotice(user.id, input);
     if (result.didPublish) {
       try {

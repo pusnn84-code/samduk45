@@ -1,4 +1,5 @@
 import { DomainError } from "../../lib/http";
+import { assignRosterGroups, existingGroupAssignments, type GroupAssignment } from "../roster/group-assignments";
 import {
   importRosterCandidates,
   parseRosterWorkbookBuffer,
@@ -27,6 +28,7 @@ export async function importRosterUploadBuffer({
   buffer,
   adminCredential,
   repository,
+  groupAssignments,
 }: {
   buffer: Buffer;
   adminCredential: {
@@ -34,10 +36,15 @@ export async function importRosterUploadBuffer({
     phoneLookupHash: string;
   };
   repository?: RosterImportRepository;
+  groupAssignments?: GroupAssignment[];
 }): Promise<ImportSummary> {
-  const rows = parseRosterWorkbookBuffer(buffer);
+  const parsed = parseRosterWorkbookBuffer(buffer);
+  const assignments = groupAssignments ?? (parsed.some(row => row.sourceGroup) ? await existingGroupAssignments() : []);
+  const rows = assignRosterGroups(parsed, assignments);
   return importRosterCandidates(rows, {
     adminCredential,
     repository,
+    // An authenticated administrator can be staff omitted from the congregation export.
+    preserveExistingAdmin: true,
   });
 }

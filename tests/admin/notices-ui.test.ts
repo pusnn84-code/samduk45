@@ -15,7 +15,8 @@ describe("admin notice management UI", () => {
     expect(editor).toContain("발행");
     expect(list).toContain("임시저장");
     expect(list).toContain("발행됨");
-    expect(list).toContain("읽음");
+    expect(list).toContain("전체 사용자 열람");
+    expect(list).toContain("보기 · 확인 현황");
     expect(list).toContain("삭제");
     expect(list).toContain("수정");
   });

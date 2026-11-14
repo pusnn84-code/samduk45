@@ -281,7 +281,7 @@ export function AdminDashboard({
       <header className="admin-header">
         <div>
           <p className="eyebrow">관리자</p>
-          <h1>기도운동 진행 현황</h1>
+          <h1>말씀 묵상 진행 현황</h1>
           <p>
             {initial.challenge
               ? `${initial.challenge.startDate} ~ ${initial.challenge.endDate}`
@@ -392,7 +392,7 @@ export function AdminDashboard({
 
         <form className="roster-import-form" onSubmit={submitRosterImport}>
           <div>
-            <strong>56공동체 명단 가져오기</strong>
+            <strong>45공동체 명단 가져오기</strong>
             <p className="helper-text">
               구형 .xls 파일만 허용합니다. 기존 참여자의 기도기록은 유지됩니다.
             </p>
@@ -401,7 +401,7 @@ export function AdminDashboard({
             name="file"
             type="file"
             accept=".xls,application/vnd.ms-excel"
-            aria-label="56공동체 XLS 파일"
+            aria-label="45공동체 XLS 파일"
             required
             disabled={importBusy}
           />
@@ -485,7 +485,7 @@ export function AdminDashboard({
             {modal === "challenge" && (
               <form action={submitChallenge} className="admin-form">
                 <h2>도전 설정</h2>
-                <label>제목<input name="title" defaultValue={initial.challenge?.title ?? "기도운동 1달 도전"} required /></label>
+                <label>제목<input name="title" defaultValue={initial.challenge?.title ?? "말씀 묵상 1달 도전"} required /></label>
                 <label>시작일<input name="startDate" type="date" value={challengeStart} onChange={(event) => changeChallengeStart(event.target.value)} required /></label>
                 <label>종료일<input name="endDate" type="date" value={challengeEnd} onChange={(event) => setChallengeEnd(event.target.value)} required /></label>
                 <p className="helper-text">시작일을 바꾸면 1개월 기준 종료일이 자동 계산되며, 필요하면 종료일을 직접 수정할 수 있습니다.</p>

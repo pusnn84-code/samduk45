@@ -2,6 +2,7 @@ import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import { prayerRequestComments, prayerRequests, users } from "../../db/schema";
 import { DomainError } from "../../lib/http";
+import { PrayerVisibility } from "./visibility";
 import type {
   AdminPrayerRequestDetail,
   AdminPrayerRequestSummary,
@@ -37,12 +38,14 @@ export function parsePrayerRequestStatus(value: string): PrayerRequestStatus {
 export async function createPrayerRequest(
   userId: string,
   content: string,
+  visibility: PrayerVisibility = "private",
 ): Promise<string> {
   const normalized = normalizePrayerRequestContent(content);
   return getDb().transaction(async (tx) => {
     const [created] = await tx.insert(prayerRequests).values({
       userId,
       content: normalized,
+      visibility: PrayerVisibility.parse(visibility),
       status: "received",
     }).returning({ id: prayerRequests.id });
     return created.id;
@@ -56,6 +59,7 @@ export async function listPrayerRequestsForAdmin(
     .select({
       id: prayerRequests.id,
       requesterName: users.displayName,
+      visibility: prayerRequests.visibility,
       content: prayerRequests.content,
       status: prayerRequests.status,
       createdAt: prayerRequests.createdAt,
@@ -76,6 +80,7 @@ export async function listPrayerRequestsForAdmin(
   return rows.map((row) => ({
     id: row.id,
     requesterName: row.requesterName,
+    visibility: row.visibility as PrayerVisibility,
     hasUnreadComments: row.hasUnreadComments,
     completedByRequester: row.completedByRequester,
     completedAt: row.completedAt?.toISOString() ?? null,
@@ -95,6 +100,7 @@ export async function getPrayerRequestForAdmin(
     .select({
       id: prayerRequests.id,
       requesterName: users.displayName,
+      visibility: prayerRequests.visibility,
       content: prayerRequests.content,
       status: prayerRequests.status,
       createdAt: prayerRequests.createdAt,
@@ -112,6 +118,7 @@ export async function getPrayerRequestForAdmin(
   return {
     id: row.id,
     requesterName: row.requesterName,
+    visibility: row.visibility as PrayerVisibility,
     hasUnreadComments: row.hasUnreadComments,
     completedByRequester: row.completedByRequester,
     completedAt: row.completedAt?.toISOString() ?? null,
@@ -209,14 +216,14 @@ export async function hasUnreadPrayerComments(userId: string): Promise<boolean> 
 
 export async function listOwnPrayerRequests(userId: string, page = 0): Promise<{ requests: OwnPrayerRequest[]; hasMore: boolean }> {
   const rows = await getDb().select({
-    id: prayerRequests.id, content: prayerRequests.content, status: prayerRequests.status,
+    id: prayerRequests.id, content: prayerRequests.content, status: prayerRequests.status, visibility: prayerRequests.visibility,
     createdAt: prayerRequests.createdAt, version: prayerRequests.version,
     completedByRequester: prayerRequests.completedByRequester,
     hasUnreadComments: unreadAdminComment,
   }).from(prayerRequests).where(eq(prayerRequests.userId, userId))
     .orderBy(desc(prayerRequests.createdAt), desc(prayerRequests.id)).limit(11).offset(page * 10);
   return {
-    requests: rows.slice(0, 10).map(row => ({ ...row, status: row.status as PrayerRequestStatus, createdAt: row.createdAt.toISOString() })),
+    requests: rows.slice(0, 10).map(row => ({ ...row, visibility: row.visibility as PrayerVisibility, status: row.status as PrayerRequestStatus, createdAt: row.createdAt.toISOString() })),
     hasMore: rows.length > 10,
   };
 }

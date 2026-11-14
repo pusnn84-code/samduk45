@@ -1,28 +1,26 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import AboutPage, { metadata as aboutMetadata } from "../app/(public)/about/page";
 import PrivacyPage, { metadata as privacyMetadata } from "../app/(public)/privacy/page";
-import { GOOGLE_CALENDAR_SCOPES } from "../src/features/google-calendar/oauth";
+import { CONTACT_INSTRUCTION, getBranding, publicPageMetadata } from "../src/lib/branding";
 
 const about = () => renderToStaticMarkup(createElement(AboutPage));
 const privacy = () => renderToStaticMarkup(createElement(PrivacyPage));
+afterEach(() => vi.unstubAllEnvs());
 
 describe("public information content", () => {
   it("describes the real features and links the policy and app entry", () => {
     const html = about();
-    for (const feature of ["공지", "기도운동", "심방신청", "기도요청", "커뮤니티", "목양지"]) expect(html).toContain(feature);
+    for (const feature of ["공지", "성경통독", "심방신청", "기도요청", "도란도란", "목양지"]) expect(html).toContain(feature);
     expect(html).toContain('href="/privacy"');
     expect(html).toContain('href="/login"');
-    expect(html).toContain("일반 회원의 Google 계정 연결은 필요하지 않습니다.");
-    expect(aboutMetadata.alternates?.canonical).toBe("https://prayer-one-month-challenge.vercel.app/about");
+    expect(html).toContain("Google 계정 연결 없이 이용할 수 있습니다.");
+    expect(aboutMetadata.alternates?.canonical).toBe(publicPageMetadata("/about").alternates?.canonical);
   });
   it("documents the exact Google scopes and limits instead of promising no third parties", () => {
     const html = privacy();
-    for (const scope of GOOGLE_CALENDAR_SCOPES) expect(html).toContain(scope.split("/auth/")[1]);
-    for (const text of ["갱신 토큰", "이벤트 ID", "Supabase", "Vercel", "Google", "Limited Use", "범용 AI 모델", "공유 설정"]) expect(html).toContain(text);
-    expect(html).toContain("기존 일정의 제목·설명·참석자 목록은 이 조회에서 요청하지 않으며");
-    expect(html).toContain("심방 사유와 별도의 기도요청 내용은 심방 일정 설명에 넣지 않습니다");
+    for (const text of ["앱 데이터베이스", "Google Calendar 연결·조회·일정 전송 기능은 종료", "Supabase", "Vercel", "가족관계는 제공하지 않습니다"]) expect(html).toContain(text);
     expect(html).toContain("gmail.send");
     expect(html).toContain("기존 메일 본문·목록을 읽거나 수정하는 권한은 요청하지 않습니다");
   });
@@ -31,10 +29,23 @@ describe("public information content", () => {
     expect(html).toContain("연결 해제만으로 자동 삭제되지 않습니다");
     expect(html).toContain("자동 삭제 기한은 설정되어 있지 않습니다");
     expect(html).toContain('href="https://myaccount.google.com/connections"');
-    expect(html).toContain('href="mailto:ditto0310@gmail.com"');
+    const { supportEmail } = getBranding();
+    expect(html).toContain(supportEmail ? `href="mailto:${supportEmail}"` : CONTACT_INSTRUCTION);
     expect(html).toContain("180일");
     expect(html).not.toContain("TODO");
-    expect(privacyMetadata.alternates?.canonical).toBe("https://prayer-one-month-challenge.vercel.app/privacy");
+    expect(privacyMetadata.alternates?.canonical).toBe(publicPageMetadata("/privacy").alternates?.canonical);
+  });
+  it("does not invent an operator email before one is configured", () => {
+    vi.stubEnv("SUPPORT_EMAIL", "");
+    for (const html of [about(), privacy()]) {
+      expect(html).toContain(CONTACT_INSTRUCTION);
+      expect(html).not.toContain('href="mailto:');
+    }
+  });
+  it("uses the configured operator email for public support and rights requests", () => {
+    vi.stubEnv("SUPPORT_EMAIL", "care+45@example.org");
+    for (const html of [about(), privacy()]) expect(html).toContain('href="mailto:care+45@example.org"');
+    expect(privacy()).toContain("본인 정보의 열람·정정·삭제");
   });
   it("has working section destinations for every policy contents link including Gmail", () => {
     const html = privacy();

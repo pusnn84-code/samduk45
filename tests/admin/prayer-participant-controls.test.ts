@@ -15,7 +15,7 @@ describe("prayer participant management controls", () => {
     const html = renderToStaticMarkup(React.createElement(AdminPrayerManagement, {
       initial: aggregateAdminDashboard([member], challenge),
     }));
-    const button = html.match(/<button[^>]*aria-label="가람 기도운동 명단에서 삭제"[^>]*>/)?.[0];
+    const button = html.match(/<button[^>]*aria-label="가람 말씀 묵상 명단에서 삭제"[^>]*>/)?.[0];
     expect(button).toBeDefined();
     expect(button).not.toContain("disabled");
   });
@@ -24,7 +24,7 @@ describe("prayer participant management controls", () => {
     const html = renderToStaticMarkup(React.createElement(AdminPrayerManagement, {
       initial: aggregateAdminDashboard([member]),
     }));
-    expect(html).not.toContain('aria-label="가람 기도운동 명단에서 삭제"');
+    expect(html).not.toContain('aria-label="가람 말씀 묵상 명단에서 삭제"');
     expect(html).not.toContain("<h2>참여자 명단</h2>");
     expect(html).not.toContain("participant-table");
     expect(html).not.toContain("<h2>샘별 통계</h2>");
@@ -35,7 +35,7 @@ describe("prayer participant management controls", () => {
     const html = renderToStaticMarkup(React.createElement(AdminPrayerManagement, {
       initial: aggregateAdminDashboard([member], challenge, false),
     }));
-    expect(html).not.toContain('aria-label="가람 기도운동 명단에서 삭제"');
+    expect(html).not.toContain('aria-label="가람 말씀 묵상 명단에서 삭제"');
     expect(html).not.toContain("<h2>참여자 명단</h2>");
     expect(html).not.toContain("participant-table");
     expect(html).not.toContain("<h2>샘별 통계</h2>");

@@ -5,6 +5,9 @@ import { fetchJson } from "../../src/lib/fetch-json";
 import type { OwnPrayerRequest } from "../../src/features/prayer-requests/types";
 import { PrayerRequestForm } from "./PrayerRequestForm";
 import { PrayerComments } from "./PrayerComments";
+import { PrayerList } from "./PrayerList";
+import { prayerVisibilityLabels } from "../../src/features/prayer-requests/visibility";
+import "./prayer-list.css";
 
 const labels = { received: "접수", praying: "기도중", completed: "완료" } as const;
 
@@ -43,6 +46,7 @@ function OwnRequestCard({ request, refresh }: { request: OwnPrayerRequest; refre
       <span className={"prayer-status is-" + request.status}>{labels[request.status]}</span>
     </button>
     {expanded && <div id={"prayer-detail-" + request.id} className="prayer-request-expanded">
+    <p className="helper-text">{prayerVisibilityLabels[request.visibility??"private"]}</p>
     {editing ? <form className="prayer-request-edit" onSubmit={save}>
       <label>기도내용 수정<textarea aria-label="기도내용 수정" value={editing.content} required maxLength={10000} disabled={busy} onChange={event => setEditing({ ...editing, content: event.target.value })} /></label>
       <div className="prayer-request-actions">
@@ -64,6 +68,7 @@ function OwnRequestCard({ request, refresh }: { request: OwnPrayerRequest; refre
 }
 
 export function PrayerRequestWorkspace() {
+  const [tab,setTab]=useState<"write"|"list">("write");
   const [requests, setRequests] = useState<OwnPrayerRequest[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -95,6 +100,8 @@ export function PrayerRequestWorkspace() {
   }, [page, revision]);
 
   return <>
+    <nav className="prayer-tabs" aria-label="기도요청 메뉴"><button type="button" aria-pressed={tab==="write"} onClick={()=>setTab("write")}>기도요청</button><button type="button" aria-pressed={tab==="list"} onClick={()=>setTab("list")}>기도목록</button></nav>
+    {tab==="list"?<PrayerList revision={revision}/>:<>
     <PrayerRequestForm onSubmitted={() => { setPage(0); refresh(); }} />
     <section className="own-prayer-requests" aria-label="내 기도요청">
       <div className="section-heading"><h2>내 기도요청</h2><button type="button" className="text-button" onClick={refresh}>목록 새로고침</button></div>
@@ -107,5 +114,6 @@ export function PrayerRequestWorkspace() {
         <button type="button" className="text-button" disabled={!hasMore || loading} onClick={() => { setLoading(true); setPage(value => value + 1); }}>다음</button>
       </nav>}
     </section>
+    </>}
   </>;
 }

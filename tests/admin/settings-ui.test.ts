@@ -21,8 +21,8 @@ describe("admin integration settings UI", () => {
     const visits=readFileSync("app/admin/visits/page.tsx","utf8");
     const old=readFileSync("app/admin/settings/page.tsx","utf8");
     const nav=readFileSync("components/admin/AdminSidebar.tsx","utf8");
-    expect(visits.indexOf("<GoogleCalendarSettings")).toBeGreaterThan(visits.indexOf("<VisitAvailabilitySettings"));
-    expect(old).toContain('redirect("/admin/visits#google-calendar")');
+    expect(visits).not.toContain("<GoogleCalendarSettings");
+    expect(old).toContain('redirect("/admin/visits")');
     expect(nav).not.toContain('/admin/settings');
     expect(visits).not.toContain('PushSettingsStatus');
   });

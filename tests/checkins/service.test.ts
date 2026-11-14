@@ -10,7 +10,7 @@ function fakeRepo(initial: string[] = [], insertError?: Error & { code?: string 
   const repo: CheckinRepository = {
     getActiveChallenge: async () => ({
       id: "challenge-1",
-      title: "기도운동 1달 도전",
+      title: "말씀 묵상 1달 도전",
       startDate: "2026-09-01",
       endDate: "2026-09-30",
     }),

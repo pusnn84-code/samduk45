@@ -1,18 +1,19 @@
 import type { MetadataRoute } from "next";
+import { COMMUNITY_2027 } from "../src/content/community-2027";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "56사랑",
-    short_name: "56사랑",
-    description: "56공동체 기도운동, 심방신청, 기도요청, 공지",
+    name: "삼덕사오",
+    short_name: "삼덕사오",
+    description: `${COMMUNITY_2027.year}년 45공동체 · ${COMMUNITY_2027.motto}. ${COMMUNITY_2027.intro}`,
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#ffffff",
     icons: [
-      { src: "/icons/56-heart-192.png", sizes: "192x192", type: "image/png" },
-      { src: "/icons/56-heart-512.png", sizes: "512x512", type: "image/png" },
-      { src: "/icons/56-heart-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icons/45-logo-v3-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icons/45-logo-v3-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/icons/45-logo-v3-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

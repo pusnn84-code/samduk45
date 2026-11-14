@@ -21,7 +21,7 @@ test("photo-only posts publish after upload retry and can retain photos or becom
     const publish = page.getByRole("button", { name: "등록", exact: true });
     await body.fill(" \n ");
     await expect(publish).toBeDisabled();
-    await page.locator('input[type="file"]').setInputFiles({ name: "소식.png", mimeType: "image/png", buffer: image });
+    await page.getByLabel("사진 첨부", { exact: true }).setInputFiles({ name: "소식.png", mimeType: "image/png", buffer: image });
     await expect(publish).toBeEnabled();
     await page.route("**/api/community/posts/*/files/*/chunks/*", route => route.fulfill({ status: 503, json: {} }));
     const created = page.waitForResponse(response => response.url().endsWith(root + "/posts") && response.request().method() === "POST");
@@ -47,7 +47,7 @@ test("photo-only posts publish after upload retry and can retain photos or becom
     await expect(page).toHaveURL(new RegExp(`post=${id}$`));
     await expect(page.locator(".community-post-title")).toHaveText("사진만 유지한 수정 소식");
     await page.getByRole("link", { name: "게시글 수정", exact: true }).click();
-    await page.getByRole("button", { name: "소식.png 첨부 제거", exact: true }).click();
+    await page.getByRole("button", { name: /소식\.(png|webp|jpg) 첨부 제거/ }).click();
     await expect(page.getByRole("button", { name: "수정 저장", exact: true })).toBeDisabled();
     await body.fill("이번에는 글로만 소식을 전합니다.");
     await page.getByRole("button", { name: "수정 저장", exact: true }).click();
@@ -59,7 +59,7 @@ test("photo-only posts publish after upload retry and can retain photos or becom
 
     await page.getByRole("link", { name: "게시글 수정", exact: true }).click();
     await body.fill("");
-    await page.locator('input[type="file"]').setInputFiles({ name: "새사진.png", mimeType: "image/png", buffer: image });
+    await page.getByLabel("사진 첨부", { exact: true }).setInputFiles({ name: "새사진.png", mimeType: "image/png", buffer: image });
     await page.getByRole("button", { name: "수정 저장", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`post=${id}$`));
     await page.reload();
@@ -76,24 +76,24 @@ test("API rejects empty posts and edits, and photo-only publication waits for ve
   const image = await photo(), document = Buffer.from("첨부 문서");
   const ids = [randomUUID(), randomUUID(), randomUUID()];
   const files = [{ name: "photo.png", size: image.length, sha256: hash(image) }, { name: "document.txt", size: document.length, sha256: hash(document) }];
-  const input = { id: ids[0], folderId, title: "사진만 게시 API 검증", body: "", files };
+  const input = { id: ids[0], folderId, title: "사진만 게시 API 검증", body: "", files: [files[0]] };
   try {
     for (const attachments of [[], [files[1]]]) {
       const result = await page.request.post(root + "/posts", { data: { ...input, files: attachments } });
-      expect(result.status()).toBe(400); expect((await result.json()).code).toBe("POST_CONTENT_REQUIRED");
+      expect(result.status()).toBe(400); expect((await result.json()).code).toBe(attachments.length ? "UNSUPPORTED_POST_PHOTO" : "POST_CONTENT_REQUIRED");
     }
     expect((await page.request.post(root + "/posts", { data: input })).status()).toBe(201);
     const postUrl = `${root}/posts/${ids[0]}`;
     expect((await page.request.post(postUrl + "/publish")).status()).toBe(409);
     expect((await page.request.put(postUrl + "/files/0/chunks/0", { data: Buffer.alloc(image.length), headers: { "content-type": "application/octet-stream" } })).ok()).toBe(true);
     expect((await (await page.request.post(postUrl + "/publish")).json()).code).toBe("FILE_INTEGRITY_FAILED");
-    for (const [slot, data] of [image, document].entries()) {
+    for (const [slot, data] of [image].entries()) {
       expect((await page.request.put(postUrl + `/files/${slot}/chunks/0`, { data, headers: { "content-type": "application/octet-stream" } })).ok()).toBe(true);
     }
     expect((await page.request.post(postUrl + "/publish")).ok()).toBe(true);
     expect((await page.request.put(postUrl, { data: { title: input.title, body: " " } })).ok()).toBe(true);
     const stored = (await (await page.request.get(postUrl)).json()).post;
-    for (const keepSlots of [[], [1]]) {
+    for (const keepSlots of [[]]) {
       const edit = await page.request.post(postUrl + "/edits", { data: { id: randomUUID(), baseVersion: stored.version, title: input.title, body: "", keepSlots, files: [] } });
       expect(edit.status()).toBe(400); expect((await edit.json()).code).toBe("POST_CONTENT_REQUIRED");
     }
@@ -109,15 +109,9 @@ test("API rejects empty posts and edits, and photo-only publication waits for ve
     const fakeUrl = `${root}/posts/${ids[2]}`;
     expect((await page.request.put(fakeUrl + "/files/0/chunks/0", { data: fakePhoto, headers: { "content-type": "application/octet-stream" } })).ok()).toBe(true);
     expect((await (await page.request.post(fakeUrl + "/publish")).json()).code).toBe("INVALID_POST_PHOTO");
-    // The existing text-with-attachment workflow stays usable, but clearing its body is rejected.
-    expect((await page.request.put(fakeUrl, { data: { title: "본문이 있는 첨부 글", body: "파일 설명" } })).ok()).toBe(true);
-    expect((await page.request.post(fakeUrl + "/publish")).ok()).toBe(true);
-    expect((await (await page.request.put(fakeUrl, { data: { title: "사진만", body: "" } })).json()).code).toBe("INVALID_POST_PHOTO");
-    const fakeStored = (await (await page.request.get(fakeUrl)).json()).post;
-    const editId = randomUUID();
-    expect((await page.request.post(fakeUrl + "/edits", { data: { id: editId, baseVersion: fakeStored.version, title: "사진만 수정", body: "", keepSlots: [0], files: [] } })).status()).toBe(201);
-    expect((await (await page.request.post(fakeUrl + `/edits/${editId}/commit`)).json()).code).toBe("INVALID_POST_PHOTO");
-    expect((await (await page.request.get(fakeUrl)).json()).post.body).toBe("파일 설명");
+    // A caption cannot be used to publish invalid image bytes.
+    expect((await (await page.request.put(fakeUrl, { data: { title: "본문이 있는 사진 글", body: "사진 설명" } })).json()).code).toBe("INVALID_POST_PHOTO");
+    expect((await (await page.request.post(fakeUrl + "/publish")).json()).code).toBe("INVALID_POST_PHOTO");
   } finally {
     for (const id of ids) await page.request.delete(`${root}/posts/${id}`);
   }

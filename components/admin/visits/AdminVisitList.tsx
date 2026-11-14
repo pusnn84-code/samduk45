@@ -95,14 +95,14 @@ export function AdminVisitList({
               onClick={() => onSelect(visit)}
             >
               <span>
-                <strong>{visit.requesterName}</strong>
+                <strong>{visit.recipientName || visit.attendees || visit.requesterName}{visit.recipientSam ? `(${visit.recipientSam})` : ""}</strong>
                 <small>
                   {visit.visitType === "sam" ? "샘심방" : "개인심방"}
                 </small>
               </span>
               <span>{visit.visitDate}</span>
-              <span>{statusLabel(visit.status)}</span>
-              <span>{visit.calendarSyncStatus === "synced" ? "동기화됨" : "동기화 " + visit.calendarSyncStatus}</span>
+              <span>{visit.isUnavailable ? "불가" : statusLabel(visit.status)}</span>
+              <span>{visit.preferredTime || "시간 미정"}</span>
             </button>
           ))}
         </div>

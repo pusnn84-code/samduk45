@@ -18,6 +18,7 @@ const RosterInput = z.object({
   sam: z.string().trim().max(80).nullable(),
   isActive: z.boolean(),
   isAdmin: z.boolean(),
+  isNoticeOfficer: z.boolean().optional(),
 });
 
 const RosterUpdate = RosterInput.extend({

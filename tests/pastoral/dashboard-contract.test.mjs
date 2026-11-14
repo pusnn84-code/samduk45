@@ -8,8 +8,8 @@ test('dashboard exposes pastoral unread and registered/login metrics, not old ca
  assert.ok(!ui.includes('이번 주 확정 심방'));
  assert.ok(!ui.includes('data.notices.published'));
 });
-test('administrator navigation puts notices before prayer',()=>{
- const s=read('components/admin/AdminSidebar.tsx'); assert.ok(s.indexOf('"/admin/notices"')<s.indexOf('"/admin/prayer"'));
+test('administrator navigation keeps notices before visits after meditation removal',()=>{
+ const s=read('components/admin/AdminSidebar.tsx'); assert.ok(s.indexOf('"/admin/notices"')<s.indexOf('"/admin/visits"')); assert.ok(!s.includes('"/admin/prayer"'));
 });
 test('successful session creation persists the first login transactionally',()=>{
  const s=read('src/features/auth/session.ts'); assert.ok(s.includes('.transaction(')); assert.ok(s.includes('firstLoginAt'));

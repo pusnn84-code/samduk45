@@ -34,13 +34,15 @@ export async function photoPreview(user:Actor,postId:string,slot:number,expected
   return renderPhoto(await readPhotoData(user,postId,slot,expectedHash));
 }
 export async function assertValidPostPhoto(body:string,files:ReadonlyArray<{name:string}>,read:(index:number)=>Buffer|Promise<Buffer>) {
-  if(body.trim())return;
+  let photos = 0;
   for(let index=0;index<files.length;index++) {
-    if(!isPhotoName(files[index].name))continue;
-    try { await renderPhoto(await read(index)); return; }
+    if(!isPhotoName(files[index].name))continue; // Preserve legacy documents during text edits; new metadata rejects them.
+    try { await renderPhoto(await read(index)); photos++; }
     catch(error) {
       if(!(error instanceof CommunityError) || error.code!=="UNSUPPORTED_IMAGE")throw error;
+      throw new CommunityError("INVALID_POST_PHOTO");
     }
   }
+  if(body.trim() || photos > 0)return;
   throw new CommunityError("INVALID_POST_PHOTO");
 }

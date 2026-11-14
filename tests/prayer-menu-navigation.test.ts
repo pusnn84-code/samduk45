@@ -11,40 +11,41 @@ vi.mock("next/link", () => ({
 vi.mock("../components/pastoral/ReportStatusBadge", () => ({ ReportBadge: () => null }));
 vi.mock("../components/notices/UnreadNoticeBadge", () => ({ UnreadNoticeBadge: () => null }));
 
-function renderMenu(prayerMenuEnabled: boolean, pastoralVisible = false) {
-  const props = { unreadCount: 0, prayerMenuEnabled, pastoralVisible };
+function renderMenu(prayerMenuEnabled: boolean) {
+  const props = { unreadCount: 0, prayerMenuEnabled };
   return renderToStaticMarkup(React.createElement(MemberSidebar, props));
 }
 
 describe("member prayer menu visibility", () => {
-  it("puts notices first and prayer immediately after notices", () => {
+  it("uses the requested member menu order", () => {
     const html = renderMenu(true);
-    const labels = ["공지", "기도운동", "심방신청", "기도요청", "커뮤니티"];
+    const labels = ["공지", "오늘의 생일", "성경통독", "기도요청", "심방요청", "도란도란", "마을과 샘", "샘목양지", "2027 사역안내"];
     const positions = labels.map((label) => html.indexOf(`>${label}<`));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 
-  it.each([false, true])("hides prayer for every pastoral permission (%s) without hiding other menus", (pastoralVisible) => {
-    const html = renderMenu(false, pastoralVisible);
-    expect(html).not.toContain(">기도운동<");
+  it("keeps the pastoral link with other menus when the old prayer setting is disabled", () => {
+    const html = renderMenu(false);
+    expect(html).not.toContain(">말씀 묵상<");
     expect(html).toContain(">공지<");
-    expect(html).toContain(">심방신청<");
+    expect(html).toContain(">심방요청<");
     expect(html).toContain(">기도요청<");
-    expect(html).toContain(">커뮤니티<");
-    expect(html.includes(">목양지<")).toBe(pastoralVisible);
+    expect(html).toContain(">도란도란<");
+    expect(html).toContain(">샘목양지<");
   });
 
-  it("keeps prayer visible by default for existing callers", () => {
+  it("removes the meditation menu for existing callers", () => {
     const html = renderToStaticMarkup(React.createElement(MemberSidebar, { unreadCount: 0 }));
-    expect(html).toContain(">기도운동<");
+    expect(html).not.toContain('href="/"');
+    expect(html).not.toContain(">말씀 묵상<");
   });
 
-  it.each([false, true])("marks only the prayer request menu when unread comments exist (%s)", (prayerHasUnread) => {
+  it.each([false, true])("keeps prayer comments out of the three designated new-post menu indicators (%s)", (prayerHasUnread) => {
     const html = renderToStaticMarkup(React.createElement(MemberSidebar, { unreadCount: 0, prayerHasUnread }));
     const prayerLink = html.match(/<a href="\/prayer-requests"[\s\S]*?<\/a>/)?.[0];
     expect(prayerLink).toBeDefined();
-    expect(prayerLink!.includes('aria-label="읽지 않은 기도요청 댓글"')).toBe(prayerHasUnread);
-    expect(html.match(/읽지 않은 기도요청 댓글/g)?.length ?? 0).toBe(prayerHasUnread ? 1 : 0);
+    expect(prayerLink!.includes('aria-label="읽지 않은 기도요청 댓글"')).toBe(false);
+    expect(html.match(/읽지 않은 기도요청 댓글/g)?.length ?? 0).toBe(0);
   });
 });

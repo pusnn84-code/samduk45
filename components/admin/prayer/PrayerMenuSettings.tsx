@@ -33,7 +33,7 @@ export function PrayerMenuSettings() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (enabled === null || saving) return;
-    if (!name.trim()) { setError("운동 이름을 입력해 주세요."); return; }
+    if (!name.trim()) { setError("활동 이름을 입력해 주세요."); return; }
     setSaving(true);
     setError("");
     setMessage("");
@@ -55,8 +55,8 @@ export function PrayerMenuSettings() {
 
   return (
     <section className="card admin-section" aria-labelledby="prayer-menu-settings-title">
-      <h2 id="prayer-menu-settings-title">운동 이름·설명 및 탭 설정</h2>
-      <p className="helper-text">운동 이름은 사용자·관리자 메뉴와 화면 제목에, 설명은 사용자 운동 화면에 표시됩니다. 기존 참여 기록과 도전 기간은 유지됩니다.</p>
+      <h2 id="prayer-menu-settings-title">활동 이름·설명 및 탭 설정</h2>
+      <p className="helper-text">활동 이름은 사용자·관리자 메뉴와 화면 제목에, 설명은 사용자 활동 화면에 표시됩니다. 기존 참여 기록과 도전 기간은 유지됩니다.</p>
       {enabled === null ? (
         <>
           {!error && <p role="status">설정을 불러오는 중입니다.</p>}
@@ -64,13 +64,13 @@ export function PrayerMenuSettings() {
         </>
       ) : (
         <form className="admin-form" onSubmit={(event) => void save(event)}>
-          <label>운동 이름<input name="activityName" value={name} maxLength={40} required disabled={saving} placeholder="예: 기도운동, 말씀 읽기, 감사운동" onChange={(event) => { setName(event.target.value); setMessage(""); }} /></label>
-          <label>운동 설명<textarea aria-label="운동 설명" name="activityDescription" value={description} maxLength={2000} rows={4} disabled={saving} placeholder="운동의 목적과 참여 방법을 입력해 주세요." onChange={(event) => { setDescription(event.target.value); setMessage(""); }} /></label>
+          <label>활동 이름<input name="activityName" value={name} maxLength={40} required disabled={saving} placeholder="예: 말씀 묵상, 말씀 읽기, 감사운동" onChange={(event) => { setName(event.target.value); setMessage(""); }} /></label>
+          <label>활동 설명<textarea aria-label="활동 설명" name="activityDescription" value={description} maxLength={2000} rows={4} disabled={saving} placeholder="활동의 목적과 참여 방법을 입력해 주세요." onChange={(event) => { setDescription(event.target.value); setMessage(""); }} /></label>
           <p className="helper-text">설명은 최대 2,000자까지 입력할 수 있습니다. 줄바꿈이 그대로 표시되며, 비워 두면 설명을 표시하지 않습니다.</p>
           <label className="checkbox-row">
             <input type="checkbox" name="prayerMenuEnabled" checked={enabled} disabled={saving}
               onChange={(event) => { setEnabled(event.target.checked); setMessage(""); setError(""); }} />
-            운동 탭 활성화
+            활동 탭 활성화
           </label>
           <p className="helper-text">체크 후 저장하면 메뉴에 표시되고, 체크를 해제한 후 저장하면 메뉴에서 사라집니다.</p>
           <button className="primary-button compact-button" type="submit" disabled={saving}>{saving ? "저장 중..." : "저장"}</button>

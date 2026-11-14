@@ -5,9 +5,11 @@ import { createPrayerRequest, listOwnPrayerRequests } from "../../../src/feature
 import { json, prayerActor, prayerError } from "../../../src/features/prayer-requests/http";
 import { DomainError } from "../../../src/lib/http";
 import { scheduleEmailDelivery } from "../../../src/features/email/wakeup";
+import { PrayerVisibility } from "../../../src/features/prayer-requests/visibility";
 
 const PrayerRequestInput = z.object({
   content: z.string().trim().min(1).max(10000),
+  visibility: PrayerVisibility.default("private"),
 });
 
 export async function GET(request: Request) {
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const id = await createPrayerRequest(user.id, parsed.data.content);
+    const id = await createPrayerRequest(user.id, parsed.data.content, parsed.data.visibility);
     scheduleEmailDelivery(request);
     return NextResponse.json({ status: "ok", id }, { status: 201 });
   } catch (error) {

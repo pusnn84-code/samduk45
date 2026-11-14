@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentSessionUser } from "../../../../src/features/auth/http-session";
 import { DomainError } from "../../../../src/lib/http";
-import { getMonthAvailability } from "../../../../src/features/visits/service";
-import { getSelectedCalendarProvider } from "../../../../src/features/visits/provider-factory";
+import { getInternalMonthAvailability } from "../../../../src/features/visits/internal-calendar";
 
 const MonthQuery = z.string().regex(/^\d{4}-\d{2}$/);
 const headers = { "Cache-Control": "private, no-store" };
@@ -20,8 +19,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const provider = await getSelectedCalendarProvider();
-    const dates = await getMonthAvailability(month, provider);
+    const dates = await getInternalMonthAvailability(month);
     return NextResponse.json({ dates }, { headers });
   } catch (error) {
     if (error instanceof DomainError) {

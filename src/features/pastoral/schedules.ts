@@ -1,5 +1,5 @@
 import { getDb, rows, sql } from "./db";
-import { directory, requireReportAdmin, reportAccess } from "./access";
+import { directory, requireReportAdmin, memberLeaderReportAccess } from "./access";
 import { countMissing, int, parseSchedule, periodLabel, reportId, seoulToday, ReportError, type Actor, type ReportRequest } from "./policy";
 export const requestColumns = sql`id,year,month,enabled`;
 export async function getSchedule(actor: Actor, year: number) {
@@ -28,7 +28,7 @@ export async function saveSchedule(actor: Actor, input: unknown) {
   return getSchedule(actor, config.year);
 }
 export async function pastoralStatus(actor: Actor) {
-  const access = await reportAccess(actor);
+  const access = await memberLeaderReportAccess(actor);
   if (!access.visible) return { visible: false, count: 0, sams: [], requiredSamIds: [], requests: [], completed: [], today: seoulToday() };
   const requests = await rows<ReportRequest>(getDb(), sql`select ${requestColumns} from prayer_app.pastoral_requests where enabled=true order by year desc,month desc`);
   const ids = access.sams.map(s => s.id);

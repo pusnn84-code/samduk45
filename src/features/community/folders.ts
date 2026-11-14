@@ -4,7 +4,7 @@ import { parseFolderOrder } from "./refinement-policy";
 // Shared by folder creation, deletion and reorder; transaction-level, pooler-safe.
 const lockFolders = (db: Executor) => db.execute(sql`select pg_advisory_xact_lock(560029,1)`);
 export async function listFolders() {
-  return rows<{id:string;name:string;postCount:number}>(getDb(), sql`select f.id,f.name,(select count(*)::int from prayer_app.community_posts p where p.folder_id=f.id and p.published_at is not null) as "postCount" from prayer_app.community_folders f order by f.sort_order,f.created_at,f.id`);
+  return rows<{id:string;name:string;postCount:number;textOnly:boolean}>(getDb(), sql`select f.id,f.name,f.text_only as "textOnly",(select count(*)::int from prayer_app.community_posts p where p.folder_id=f.id and p.published_at is not null) as "postCount" from prayer_app.community_folders f order by f.sort_order,f.created_at,f.id`);
 }
 export async function createFolder(user: Actor, name: unknown) {
   assertManager(user); const validName = parseFolderName(name);

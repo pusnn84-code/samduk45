@@ -1,11 +1,18 @@
 "use client";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api, displayDate, ErrorBox, errorText, Loading, Pagination, useResource, type Comment, type PageData, type Viewer } from "./shared";
-export function Comments({postId,user,admin=false}:{postId:string;user:Viewer;admin?:boolean}) {
+export function Comments({postId,user,admin=false,focusComposer=false,onCountChange}:{postId:string;user:Viewer;admin?:boolean;focusComposer?:boolean;onCountChange?:(count:number)=>void}) {
   const [revision,setRevision]=useState(0),[page,setPage]=useState(1),[body,setBody]=useState("");
   const [editing,setEditing]=useState(""),[editBody,setEditBody]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
   const submitted=useRef({id:"",body:""});const pending=useRef(false);
-  const resource=useResource<PageData<Comment>>(`/posts/${postId}/comments?page=${page}`,revision);
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const resource=useResource<PageData<Comment>>(`/posts/${postId}/comments?page=${page}`,revision,true);
+  useEffect(() => {
+    if (focusComposer) composer.current?.focus();
+  }, [focusComposer]);
+  useEffect(() => {
+    if (resource.data) onCountChange?.(resource.data.total);
+  }, [resource.data, onCountChange]);
   async function action(work:()=>Promise<unknown>,done:()=>void){
     if(pending.current)return;pending.current=true;setBusy(true);setMessage("");
     try{await work();done();setRevision(value=>value+1);}catch(error){setMessage(errorText(error));}finally{pending.current=false;setBusy(false);}
@@ -23,7 +30,10 @@ export function Comments({postId,user,admin=false}:{postId:string;user:Viewer;ad
       </article>)}
       {resource.data.total>50&&<Pagination {...resource.data} onPage={setPage}/>}
     </>}
-    {!admin&&<form onSubmit={submit} className="community-comment-form"><label>댓글 내용<textarea value={body} onChange={event=>setBody(event.target.value)} maxLength={2000} rows={3} disabled={busy} required placeholder="서로를 존중하는 따뜻한 이야기를 나눠 주세요."/></label><div className="community-actions"><span className="helper-text">{body.length} / 2,000</span><button className="primary-button" disabled={busy||!body.trim()}>댓글 등록</button></div></form>}
+    {!admin && <form onSubmit={submit} className="community-comment-form">
+      <textarea ref={composer} aria-label="댓글 내용" value={body} onChange={event => setBody(event.target.value)} maxLength={2000} rows={2} disabled={busy} required placeholder="댓글을 입력하세요." />
+      <button className="primary-button" disabled={busy || !body.trim()}>댓글 등록</button>
+    </form>}
     {message&&<p className="error-text" role="alert">{message}</p>}
   </section>;
 }

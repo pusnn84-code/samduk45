@@ -27,6 +27,8 @@ import type {
 } from "./types";
 
 export type SubmitVisitInput = {
+  recipientName?: string;
+  recipientSam?: string | null;
   requesterUserId: string;
   visitDate: string;
   visitType: "personal" | "sam";

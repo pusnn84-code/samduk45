@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+// Load the large SDK during module setup, outside behavior-test deadlines.
+import "googleapis";
 
 const connection = vi.hoisted(() => ({ current: null as null | {
   id: string; refreshTokenCiphertext: string; selectedCalendarId: string;

@@ -11,7 +11,7 @@ describe("dashboard browser-only boundary", () => {
 
     expect(wrapper).toContain('"use client"');
     expect(wrapper).toMatch(/ssr:\s*false/);
-    expect(page).toContain("PrayerDashboardNoSsr");
+    expect(page).toContain("MenuHome");
     expect(page).not.toContain("<PrayerDashboardClient");
   });
 });

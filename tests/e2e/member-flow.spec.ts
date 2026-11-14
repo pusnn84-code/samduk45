@@ -30,7 +30,7 @@ test.describe("database-backed member flows", () => {
     const request = { prayerDate, challengeId: dashboard.challenge.id };
     expect((await page.request.post("/api/checkins", { data: { ...request, checked: false } })).ok()).toBe(true);
     await page.reload();
-    const check = page.getByRole("button", { name: `${month}월 ${day}일 기도 완료 체크`, exact: true });
+    const check = page.getByRole("button", { name: `${month}월 ${day}일 묵상 완료 체크`, exact: true });
     await page.route("**/api/checkins", async (route) => {
       if (route.request().method() !== "POST") return route.continue();
       expect(route.request().postDataJSON()).toMatchObject({ ...request, checked: true });
@@ -43,7 +43,7 @@ test.describe("database-backed member flows", () => {
     await page.unroute("**/api/checkins");
     await expect(check).toBeEnabled();
     await check.click();
-    const cancel = page.getByRole("button", { name: `${month}월 ${day}일 기도 완료 취소`, exact: true });
+    const cancel = page.getByRole("button", { name: `${month}월 ${day}일 묵상 완료 취소`, exact: true });
     await expect(cancel).toBeEnabled();
     const saved = await (await page.request.get("/api/checkins")).json() as { dashboard: MemberDashboard };
     expect(saved.dashboard.completedDates.filter((date) => date === prayerDate)).toHaveLength(1);
@@ -90,10 +90,10 @@ test.describe("database-backed member flows", () => {
   test("mobile member drawer and all four sections fit 360 pixels", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await login(page);
-    await expect(page.getByRole("heading", { name: "기도운동", exact: true })).toBeVisible();
-    await expect(page.getByText("기도운동 1달 도전", { exact: true })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "말씀 묵상", exact: true })).toBeVisible();
+    await expect(page.getByText("말씀 묵상 1달 도전", { exact: true })).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath("member-mobile.png"), fullPage: true });
-    for (const label of ["심방신청", "기도요청", "공지", "기도운동"]) {
+    for (const label of ["심방신청", "기도요청", "공지", "말씀 묵상"]) {
       await page.getByRole("button", { name: "메뉴 열기", exact: true }).click();
       await page.locator(".community-sidebar").getByRole("link", { name: new RegExp("^" + label) }).click();
       await expect(page.locator(".community-sidebar")).not.toHaveClass(/is-open/);

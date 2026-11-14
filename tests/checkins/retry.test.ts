@@ -4,7 +4,7 @@ import { toggleCheckin, type CheckinRepository } from "../../src/features/checki
 function setup(initial = false) {
   const dates = new Set(initial ? ["2026-09-17"] : []);
   const repository: CheckinRepository = {
-    getActiveChallenge: async () => ({ id: "challenge-1", title: "기도운동", startDate: "2026-09-01", endDate: "2026-09-30" }),
+    getActiveChallenge: async () => ({ id: "challenge-1", title: "말씀 묵상", startDate: "2026-09-01", endDate: "2026-09-30" }),
     findCheckin: async (_user, _challenge, date) => dates.has(date) ? { id: date } : null,
     insertCheckin: async (_user, _challenge, date) => { dates.add(date); },
     deleteCheckin: async (id) => { dates.delete(id); },

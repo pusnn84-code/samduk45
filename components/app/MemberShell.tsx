@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { PrayerMenuProvider, usePrayerMenuSettings } from "./PrayerMenuProvider";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { PrayerMenuProvider } from "./PrayerMenuProvider";
 import type { PrayerMenuSetting } from "../../src/features/prayer-menu/settings";
 import type { SessionUser } from "../../src/features/auth/session";
 import { LogoutButton } from "../auth/LogoutButton";
-import { ReportBadge, usePastoralBadge } from "../pastoral/ReportStatusBadge";
+
 import { MemberSidebar } from "./MemberSidebar";
-import { UnreadNoticeBadge, useUnreadNoticeCount } from "../notices/UnreadNoticeBadge";
-import { useUnreadPrayerComments } from "../prayer-requests/useUnreadPrayerComments";
+import { MenuIcon } from "./MenuIcon";
+import { MenuActivityProvider, useMenuActivity } from "./MenuActivityProvider";
+import { MenuUpdateBadge } from "./MenuUpdateBadge";
+
+import { COMMUNITY_2027 } from "../../src/content/community-2027";
 
 export function MemberShell({
   user,
@@ -22,39 +25,34 @@ export function MemberShell({
   children: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  return <PrayerMenuProvider initial={initialPrayerMenuSettings} menuOpen={menuOpen}>
+  return <MenuActivityProvider><PrayerMenuProvider initial={initialPrayerMenuSettings} menuOpen={menuOpen}>
     <MemberShellContent user={user} menuOpen={menuOpen} setMenuOpen={setMenuOpen}>{children}</MemberShellContent>
-  </PrayerMenuProvider>;
+  </PrayerMenuProvider></MenuActivityProvider>;
 }
 
 function MemberShellContent({ user, menuOpen, setMenuOpen, children }: {
   user: SessionUser; menuOpen: boolean; setMenuOpen: React.Dispatch<React.SetStateAction<boolean>>; children: React.ReactNode;
 }) {
-  const { enabled: prayerMenuEnabled, name } = usePrayerMenuSettings();
-  const pathname = usePathname();
-  const router = useRouter();
-  useEffect(() => {
-    if (!prayerMenuEnabled && pathname === "/") router.replace("/notices");
-  }, [prayerMenuEnabled, pathname, router]);
-  const unreadCount = useUnreadNoticeCount();
-  const prayerHasUnread = useUnreadPrayerComments(menuOpen);
-  const pastoral = usePastoralBadge();
+  const { counts } = useMenuActivity();
+
+
+  const isMenuHome = usePathname() === "/";
 
   return (
-    <div className="community-app">
+    <div className={`community-app${isMenuHome ? " is-menu-home" : ""}`}>
       <aside className={`community-sidebar${menuOpen ? " is-open" : ""}`}>
-        <div className="sidebar-brand">
-          <img src="/icons/56-heart-192.png" alt="" width={44} height={44} />
-          <strong>56사랑</strong>
-        </div>
+        <Link href="/" className="sidebar-brand" onClick={() => setMenuOpen(false)} aria-label="삼덕사오 메뉴 선택">
+          <img src="/brand/samduk45-logo-v3.png" alt="삼덕사오" width={104} height={101} />
+        </Link>
 
-        <MemberSidebar prayerMenuEnabled={prayerMenuEnabled} prayerMenuName={name} pastoralVisible={pastoral.visible} pastoralCount={pastoral.count} unreadCount={unreadCount} prayerHasUnread={prayerHasUnread} onNavigate={() => setMenuOpen(false)} />
+        <MemberSidebar unreadCount={counts.notices} communityCount={counts.community} readingCount={counts.reading} memberCount={counts.members} onNavigate={() => setMenuOpen(false)} />
 
         <div className="sidebar-footer">
           <Link href="/profile" onClick={() => setMenuOpen(false)}>내 정보</Link>
           {user.role === "admin" && (
             <Link href="/admin" onClick={() => setMenuOpen(false)}>관리자</Link>
           )}
+          {user.role !== "admin" && user.isDeputyAdmin && <Link href="/leadership" onClick={() => setMenuOpen(false)}>부관리자</Link>}
           <LogoutButton />
         </div>
       </aside>
@@ -76,15 +74,15 @@ function MemberShellContent({ user, menuOpen, setMenuOpen, children }: {
             aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
             onClick={() => setMenuOpen((value) => !value)}
           >
-            ☰
-            {pastoral.count > 0 ? <ReportBadge count={pastoral.count} /> : <UnreadNoticeBadge count={unreadCount} />}
+            <MenuIcon name="menu" />
+            {<MenuUpdateBadge count={counts.notices + counts.community + (counts.reading ?? 0)} label="새 소식" />}
           </button>
           <div>
-            <h1>56공동체</h1>
-            <p className="community-verse">성령이 하나 되게 하신 것을 힘써 지키라(엡 4:3)</p>
+            <p className="brand-kicker">삼덕교회 45공동체 · {COMMUNITY_2027.year}년</p><h1>{COMMUNITY_2027.motto}</h1>
+            <p className="community-verse">{COMMUNITY_2027.verseExcerpt} ({COMMUNITY_2027.verseRef})</p>
           </div>
         </header>
-        <div className="community-content">{!prayerMenuEnabled && pathname === "/" ? null : children}</div>
+        <div className="community-content">{children}</div>
       </div>
     </div>
   );

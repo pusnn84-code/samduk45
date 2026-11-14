@@ -12,6 +12,17 @@ beforeAll(() => {
 });
 
 describe("administrator roster preparation", () => {
+  it("preserves notice-officer assignment when legacy callers omit the new field", () => {
+    const result = prepareAdminRosterValues({ name: "가상임원", position: null, phone: null, village: null, sam: null, isActive: true, isAdmin: false });
+    expect(Object.hasOwn(result, "isNoticeOfficer")).toBe(false);
+  });
+  it("allows explicit notice-officer assignment and revocation without promoting the account", () => {
+    for (const isNoticeOfficer of [true, false]) {
+      const result = prepareAdminRosterValues({ name: "가상임원", position: null, phone: null, village: null, sam: null, isActive: true, isAdmin: false, isNoticeOfficer });
+      expect(result.isNoticeOfficer).toBe(isNoticeOfficer);
+      expect(result.isAdmin).toBe(false);
+    }
+  });
   it("prepares canonical identity, encrypted phone, and village-sam label", () => {
     const result = prepareAdminRosterValues({
       name: "김은희A",

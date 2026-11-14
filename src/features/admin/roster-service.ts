@@ -6,6 +6,7 @@ import { memberRoster, sessions, users } from "../../db/schema";
 import { DomainError } from "../../lib/http";
 import {
   hashPassword,
+  isPhonePassword,
   hashPhonePassword,
   normalizeName,
   phoneLookupHash,
@@ -28,6 +29,7 @@ export type AdminRosterInput = {
   sam: string | null;
   isActive: boolean;
   isAdmin: boolean;
+  isNoticeOfficer?: boolean;
 };
 
 export type PreparedAdminRosterValues = {
@@ -41,6 +43,7 @@ export type PreparedAdminRosterValues = {
   samLabel: string | null;
   isActive: boolean;
   isAdmin: boolean;
+  isNoticeOfficer?: boolean;
 };
 
 export type AdminRosterRow = {
@@ -53,6 +56,7 @@ export type AdminRosterRow = {
   samLabel: string | null;
   isActive: boolean;
   isAdmin: boolean;
+  isNoticeOfficer?: boolean;
   joined: boolean;
   passwordMode: "initial" | "custom";
 };
@@ -106,6 +110,7 @@ export function prepareAdminRosterValues(
     samLabel: makeSamLabel(village, sam),
     isActive: input.isActive,
     isAdmin: input.isAdmin,
+    ...(input.isNoticeOfficer !== undefined ? { isNoticeOfficer: input.isNoticeOfficer } : {}),
   };
 }
 
@@ -159,6 +164,7 @@ export async function listRosterForAdmin({
       samLabel: memberRoster.samLabel,
       isActive: memberRoster.isActive,
       isAdmin: memberRoster.isAdmin,
+      isNoticeOfficer: memberRoster.isNoticeOfficer,
       passwordHash: memberRoster.passwordHash,
       firstLoginAt: users.firstLoginAt,
     })
@@ -176,6 +182,7 @@ export async function listRosterForAdmin({
     samLabel: row.samLabel,
     isActive: row.isActive,
     isAdmin: row.isAdmin,
+    isNoticeOfficer: row.isNoticeOfficer,
     joined: hasLoginHistory(row.firstLoginAt),
     passwordMode: passwordModeFromHash(row.passwordHash),
   }));
@@ -391,6 +398,7 @@ export async function resetRosterPassword(
       phoneLookupHash: memberRoster.phoneLookupHash,
       phoneCiphertext: memberRoster.phoneCiphertext,
       userId: users.id,
+      passwordHash: memberRoster.passwordHash,
     })
     .from(memberRoster)
     .leftJoin(users, eq(users.rosterId, memberRoster.id))
@@ -403,6 +411,7 @@ export async function resetRosterPassword(
   let userPasswordHash: string | null = null;
 
   if (password === null) {
+    if (target.passwordHash) throw new DomainError("PHONE_RESET_DISABLED", 409);
     if (!target.phoneLookupHash || !target.phoneCiphertext) {
       throw new DomainError("PHONE_REQUIRED_FOR_INITIAL_PASSWORD", 409);
     }
@@ -411,6 +420,7 @@ export async function resetRosterPassword(
     userPasswordHash = await hashPhonePassword(phone);
   } else {
     if (!password) throw new DomainError("INVALID_PASSWORD", 400);
+    if (isPhonePassword(password, target.phoneLookupHash)) throw new DomainError("PASSWORD_IS_PHONE", 400);
     if (await passwordConflictsForSameName(id, target.canonicalName, password)) {
       throw new DomainError("PASSWORD_CONFLICT_SAME_NAME", 409);
     }

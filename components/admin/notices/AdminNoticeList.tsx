@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { AdminNoticeRow, NoticeStatus } from "../../../src/features/notices/types";
 
 export function AdminNoticeList({
@@ -52,11 +53,12 @@ export function AdminNoticeList({
                 </div>
                 <p className="helper-text">
                   {notice.status === "published"
-                    ? "읽음 " + notice.readCount + " / " + notice.targetActiveUsers
+                    ? "전체 사용자 열람 " + notice.readCount + " / " + notice.targetActiveUsers
                     : "아직 사용자에게 공개되지 않았습니다."}
                 </p>
               </div>
               <div className="header-actions">
+                {notice.status === "published" && <Link className="text-button" href={`/notices/${notice.id}`}>보기 · 확인 현황</Link>}
                 <button className="text-button" type="button" onClick={() => onEdit(notice)}>
                   수정
                 </button>

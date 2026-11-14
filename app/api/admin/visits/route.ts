@@ -5,6 +5,9 @@ import { getCurrentSessionUser } from "../../../../src/features/auth/http-sessio
 import { listVisitsForAdmin } from "../../../../src/features/visits/admin-service";
 import { DomainError } from "../../../../src/lib/http";
 
+import { VisitDetailsInput, createInternalAppointment } from "../../../../src/features/visits/internal-calendar";
+import { recipientForVisit } from "../../../../src/features/visits/shared-calendar";
+
 const Status = z.enum(["requested", "confirmed", "completed", "cancelled"]);
 const DateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -39,8 +42,21 @@ export async function GET(request: Request) {
       from: from?.data,
       to: to?.data,
     });
-    return NextResponse.json({ visits });
+    return NextResponse.json({ visits }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return errorResponse(error);
   }
+}
+
+export async function POST(request: Request) {
+  try {
+    const user = await getCurrentSessionUser();
+    requireAdmin(user);
+    const parsed = VisitDetailsInput.extend({ recipientRosterId: z.uuid().optional(), recipientName: z.string().trim().max(120).optional() }).safeParse(await request.json().catch(() => null));
+    if (!parsed.success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400 });
+    const recipient = await recipientForVisit(user, parsed.data);
+    const { recipientRosterId: _roster, recipientName: _name, ...details } = parsed.data;
+    const result = await createInternalAppointment({ ...details, ...recipient, requesterUserId: user.id });
+    return NextResponse.json({ status: "ok", ...result }, { status: 201 });
+  } catch (error) { return errorResponse(error); }
 }

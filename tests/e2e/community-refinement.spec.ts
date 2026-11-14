@@ -80,12 +80,12 @@ test("photos precede body and attachment edits remain atomic and retry-safe", as
   await login(page); await login(other, "admin");
   const folderId = (await (await page.request.get(root + "/folders")).json()).folders[0].id;
   const image = await sharp({create: {width: 640, height: 480, channels: 3, background: "#aabbcc"}}).png().toBuffer();
-  const id = await post(page.request, folderId, "사진과 첨부 변경", [{name: "사진.png", data: image}, {name: "기존.txt", data: Buffer.from("보존 전 자료")}]);
+  const id = await post(page.request, folderId, "사진과 첨부 변경", [{name: "사진.png", data: image}, {name: "기존.png", data: image}]);
   try {
     await page.request.put(`${root}/posts/${id}/like`, {data: {liked: true}});
     await page.request.post(`${root}/posts/${id}/comments`, {data: {id: randomUUID(), body: "보존할 댓글"}});
     await page.setViewportSize({width: 360, height: 900}); await page.goto(`/community?post=${id}`);
-    const photo = page.locator(".community-photo img"); await expect(photo).toHaveCount(1);
+    const photo = page.locator(".community-photo img").first(); await expect(page.locator(".community-photo img")).toHaveCount(2);
     await expect.poll(() => photo.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
     const imageBox = await photo.boundingBox(); const bodyBox = await page.locator(".community-post > .community-body").boundingBox();
     expect(bodyBox!.y - imageBox!.y - imageBox!.height).toBeGreaterThanOrEqual(55);
@@ -93,16 +93,17 @@ test("photos precede body and attachment edits remain atomic and retry-safe", as
     const preview = await page.request.get(src!); expect(preview.headers()["content-type"]).toContain("image/webp");
     await expectNoOverflow(page); await page.screenshot({path: test.info().outputPath("photo-before-body-360.png"), fullPage: true, animations: "disabled"});
     await page.getByRole("link", {name: "게시글 수정", exact: true}).click();
-    await page.getByRole("button", {name: "기존.txt 첨부 제거", exact: true}).click();
-    const replacement = Buffer.alloc(6291456, 67);
-    await page.locator('input[type="file"]').setInputFiles({name: "새자료.txt", mimeType: "text/plain", buffer: replacement});
+    await page.getByRole("button", {name: "기존.png 첨부 제거", exact: true}).click();
+    const replacement = image;
+    await page.getByLabel("사진 첨부", { exact: true }).setInputFiles({name: "새사진.png", mimeType: "image/png", buffer: replacement});
+    await expect(page.getByRole("button", {name: "수정 저장", exact: true})).toBeEnabled();
     // Match the textbox's accessible name, not a wrapping label's textarea textContent.
     await page.getByRole("textbox", {name: "내용", exact: true}).fill("수정한 본문");
     await page.route("**/edits/*/files/*/chunks/*", route => route.fulfill({status: 503, contentType: "application/json", body: "{}"}));
     await page.getByRole("button", {name: "수정 저장", exact: true}).click();
     await expect(page.locator(".community").getByRole("alert")).toContainText("다시 시도");
     const unchanged = (await (await other.request.get(`${root}/posts/${id}`)).json()).post;
-    expect(unchanged.body).toBe("원래 본문"); expect(unchanged.files.map((f: {name: string}) => f.name)).toEqual(["사진.png", "기존.txt"]);
+    expect(unchanged.body).toBe("원래 본문"); expect(unchanged.files.map((f: {name: string}) => f.name)).toEqual(["사진.png", "기존.png"]);
     await page.unroute("**/edits/*/files/*/chunks/*");
     await page.route("**/edits/*/commit", async route => {const response = await route.fetch(); expect(response.ok()).toBe(true); await route.abort("failed");});
     await page.getByRole("button", {name: "수정 저장", exact: true}).click();
@@ -110,11 +111,11 @@ test("photos precede body and attachment edits remain atomic and retry-safe", as
     await page.unroute("**/edits/*/commit"); await page.getByRole("button", {name: "수정 저장", exact: true}).click();
     await expect(page).toHaveURL(new RegExp(`post=${id}$`));
     const saved = (await (await page.request.get(`${root}/posts/${id}`)).json()).post;
-    expect(saved.body).toBe("수정한 본문"); expect(saved.files.map((f: {name: string}) => f.name)).toEqual(["사진.png", "새자료.txt"]);
-    expect(saved.files[0].sha256).toBe(hash(image)); expect(saved.files[1].sha256).toBe(hash(replacement)); expect(saved.likeCount).toBe(1); expect(saved.version).toBe(2);
+    expect(saved.body).toBe("수정한 본문"); expect(saved.files[0].name).toBe("사진.png"); expect(saved.files[1].name).toMatch(/^새사진\.(png|webp|jpg)$/);
+    expect(saved.files[0].sha256).toBe(hash(image)); expect(saved.files[1].size).toBeLessThanOrEqual(1048576); expect(saved.likeCount).toBe(1); expect(saved.version).toBe(2);
     await expect(page.locator(".community-comment")).toContainText("보존할 댓글");
     await page.getByRole("link", {name: "게시글 수정", exact: true}).click();
-    for (const name of ["사진.png", "새자료.txt"]) await page.getByRole("button", {name: `${name} 첨부 제거`, exact: true}).click();
+    for (const name of saved.files.map((file: {name: string}) => file.name)) await page.getByRole("button", {name: `${name} 첨부 제거`, exact: true}).click();
     await page.getByRole("button", {name: "수정 저장", exact: true}).click();
     await expect(page).toHaveURL(new RegExp(`post=${id}$`)); await expect(page.locator(".community-download")).toHaveCount(0);
   } finally { await page.request.delete(`${root}/posts/${id}`); await context.close(); }
@@ -123,13 +124,14 @@ test("photos precede body and attachment edits remain atomic and retry-safe", as
 test("edit sessions reject nonauthors, stale versions and excess retained plus new files", async ({page, browser, request}) => {
   const context = await browser.newContext(); const admin = await context.newPage(); await login(page); await login(admin, "admin");
   const folderId = (await (await page.request.get(root + "/folders")).json()).folders[0].id;
-  const id = await post(page.request, folderId, "수정 권한 검사", [{name: "하나.txt", data: Buffer.from("1")}, {name: "둘.txt", data: Buffer.from("2")}]);
+  const fixture = await sharp({create:{width:8,height:8,channels:3,background:"#aabbcc"}}).png().toBuffer();
+  const id = await post(page.request, folderId, "수정 권한 검사", [{name: "하나.png", data: fixture}, {name: "둘.png", data: fixture}]);
   try {
     const original = (await (await page.request.get(`${root}/posts/${id}`)).json()).post;
     const data = {id: randomUUID(), baseVersion: original.version, title: "수정 권한 검사", body: "새 본문", keepSlots: [0,1], files: []};
     expect((await request.post(`${root}/posts/${id}/edits`, {data})).status()).toBe(401);
     expect((await admin.request.post(`${root}/posts/${id}/edits`, {data})).status()).toBe(403);
-    expect((await page.request.post(`${root}/posts/${id}/edits`, {data: {...data, files: [{name: "셋.txt", size: 1, sha256: hash(Buffer.from("3"))}]}})).status()).toBe(400);
+    expect((await page.request.post(`${root}/posts/${id}/edits`, {data: {...data, files: [{name: "셋.png", size: 1, sha256: hash(Buffer.from("3"))}]}})).status()).toBe(400);
     expect((await page.request.post(`${root}/posts/${id}/edits`, {data})).status()).toBe(201);
     expect((await page.request.put(`${root}/posts/${id}`, {data: {title: "다른 창 수정", body: "더 최신 본문"}})).ok()).toBe(true);
     expect((await page.request.post(`${root}/posts/${id}/edits/${data.id}/commit`)).status()).toBe(409);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { VisitDateAvailability } from "../../src/features/visits/types";
 import { fetchJson } from "../../src/lib/fetch-json";
+import { entryTitle, type CalendarEntry } from "../../src/features/visits/shared-calendar-policy";
 
 function currentSeoulMonth(): string {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -33,31 +34,23 @@ function weekday(date: string): number {
   return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
 }
 
-const unavailableLabel: Record<string, string> = {
-  outside_booking_period: "신청 기간 밖",
-  past_date: "지난 날짜",
-  calendar_unavailable: "일정 확인 불가",
-  google_event: "기존 일정 있음",
-  blocked_date: "신청 불가",
-  blocked_weekday: "신청 불가 요일",
-  existing_visit: "심방 신청 있음",
-};
-
 export function VisitCalendar({
   selectedDate,
   onSelect,
   onAvailabilityChange,
   refreshKey = 0,
+  onEntriesChange,
 }: {
   selectedDate: string | null;
   onSelect: (date: string) => void;
   onAvailabilityChange: (dates: VisitDateAvailability[]) => void;
   refreshKey?: number;
+  onEntriesChange?: (entries: CalendarEntry[]) => void;
 }) {
   const [month, setMonth] = useState(currentSeoulMonth);
   const [retryKey, setRetryKey] = useState(0);
   const [result, setResult] = useState<{
-    key: string; dates: VisitDateAvailability[]; message: string;
+    key: string; dates: VisitDateAvailability[]; entries: CalendarEntry[]; message: string;
   } | null>(null);
   const requestKey = `${month}:${refreshKey}:${retryKey}`;
   const selectedMonth = selectedDate?.slice(0, 7);
@@ -76,12 +69,16 @@ export function VisitCalendar({
       try {
         // Keep an open request current even while browsing a different month.
         const months = additionalMonth ? [month, additionalMonth] : [month];
-        const responses = await Promise.allSettled(months.map((value) =>
+        const responses = await Promise.allSettled(months.map(async (value) => {
+          const [availability, calendar] = await Promise.all([
           fetchJson<{ dates: VisitDateAvailability[] }>("/api/visits/availability?month=" + encodeURIComponent(value), {
             cache: "no-store",
             signal: controller.signal,
           }),
-        ));
+          fetchJson<{ entries: CalendarEntry[] }>("/api/visits/calendar?month=" + encodeURIComponent(value), {cache:"no-store",signal:controller.signal}),
+          ]);
+          return {...availability, entries:calendar.entries};
+        }));
         const bodies = responses.map((response) => {
           if (response.status === "rejected") throw response.reason;
           return response.value;
@@ -89,19 +86,18 @@ export function VisitCalendar({
         if (!controller.signal.aborted) {
           const dates = Array.isArray(bodies[0].dates) ? bodies[0].dates : [];
           const unavailable = dates.some((date) => !date.available && date.reason === "calendar_unavailable");
-          setResult({ key: requestKey, dates, message: unavailable
+          setResult({ key: requestKey, dates, entries: bodies[0].entries ?? [], message: unavailable
             ? "일정 조회가 지연되고 있습니다. 다시 확인해 주세요." : "" });
           onAvailabilityChange(bodies.flatMap((body) => Array.isArray(body.dates) ? body.dates : []));
+          onEntriesChange?.(bodies.flatMap(body => body.entries ?? []));
         }
-      } catch (error) {
+      } catch {
         if (controller.signal.aborted) return;
-        const code = error instanceof Error ? error.message : "";
-        setResult({ key: requestKey, dates: [], message:
-          code === "CALENDAR_NOT_CONNECTED" || code === "CALENDAR_NOT_SELECTED"
-            ? "관리자가 Google Calendar를 연결하면 심방 신청을 시작할 수 있습니다."
-            : "일정을 확인하기 어렵습니다. 잠시 후 다시 시도해 주세요.",
+        setResult({ key: requestKey, dates: [], entries: [], message:
+          "일정을 확인하기 어렵습니다. 잠시 후 다시 시도해 주세요.",
         });
         onAvailabilityChange([]);
+        onEntriesChange?.([]);
       } finally {
         pending = false;
       }
@@ -122,13 +118,14 @@ export function VisitCalendar({
       window.removeEventListener("focus", refreshVisible);
       document.removeEventListener("visibilitychange", refreshVisible);
     };
-  }, [month, additionalMonth, requestKey, onAvailabilityChange]);
+  }, [month, additionalMonth, requestKey, onAvailabilityChange, onEntriesChange]);
 
   function navigateMonth(amount: number) {
     setMonth((value) => moveMonth(value, amount));
   }
 
   const leadingCells = dates.length === 0 ? 0 : weekday(dates[0].date);
+  const today=new Intl.DateTimeFormat("sv-SE",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 
   return (
     <section className="card visit-calendar-card">
@@ -172,7 +169,7 @@ export function VisitCalendar({
           ))}
           {dates.map((item) => {
             const selected = selectedDate === item.date;
-            const reason = item.available ? null : unavailableLabel[item.reason];
+            const entries = result?.entries.filter(entry => entry.date === item.date) ?? [];
 
             return (
               <button
@@ -181,28 +178,22 @@ export function VisitCalendar({
                 className={[
                   "visit-day",
                   item.available ? "is-available" : "is-unavailable",
+                  item.date<today ? "is-past" : "",
                   selected ? "is-selected" : "",
                 ].filter(Boolean).join(" ")}
-                disabled={!item.available}
                 onClick={() => onSelect(item.date)}
-                aria-label={
-                  item.available
-                    ? item.date + " 심방 신청 가능"
-                    : item.date + " " + (reason ?? "신청 불가")
-                }
+                aria-pressed={selected}
+                aria-label={item.date + (entries.length ? ` 일정 ${entries.length}건` : " 일정 없음")}
               >
                 <span>{dayNumber(item.date)}</span>
-                <small>{item.available ? "신청 가능" : reason}</small>
+                <div className="visit-day-entries">{entries.slice(0,2).map(entry => <span className="visit-day-entry" key={entry.id} title={entryTitle(entry)}><i className={`visit-status-dot is-${entry.status}`} /><span>{entry.title}</span></span>)}{entries.length>2&&<span className="visit-day-more">+{entries.length-2}</span>}</div>
               </button>
             );
           })}
         </div>
       )}
 
-      <div className="visit-calendar-legend">
-        <span><i className="visit-dot is-free" /> 신청 가능</span>
-        <span><i className="visit-dot is-busy" /> 신청 불가</span>
-      </div>
+      <div className="visit-status-legend"><span><i className="visit-status-dot is-confirmed"/>확정</span><span><i className="visit-status-dot is-requested"/>대기</span><span><i className="visit-status-dot is-unavailable"/>불가</span></div>
     </section>
   );
 }

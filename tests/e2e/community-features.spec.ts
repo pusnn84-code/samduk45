@@ -1,5 +1,5 @@
-import { createHash, randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { createHash, randomUUID, randomBytes } from "node:crypto";
+import sharp from "sharp";
 import postgres from "postgres";
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { login, expectNoOverflow } from "./helpers";
@@ -20,54 +20,38 @@ function testDb(){
 }
 test.beforeEach(()=>{test.skip(process.env.E2E_DATABASE_READY!=="1","Requires disposable CI database");});
 
-test("two exact 6MB attachments, comments and likes work through the mobile UI",async({page,browser,request})=>{
+test("two photos are optimized before upload and retain comments, likes and editing",async({page,browser,request})=>{
   test.setTimeout(180000);
-  const adminContext=await browser.newContext();const admin=await adminContext.newPage();
+  const adminContext=await browser.newContext(); const admin=await adminContext.newPage();
   let fid="",pid="";
-  const title="첨부와 좋아요 검증 "+randomUUID().slice(0,8);
-  const files=[{name:"자료 하나.pdf",mimeType:"application/pdf",buffer:Buffer.alloc(max,65)},{name:"자료 둘.txt",mimeType:"text/plain",buffer:Buffer.alloc(max,66)}];
-  const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
-  const alert=page.locator(".community").getByRole("alert");
+  const title="사진과 이야기 검증 "+randomUUID().slice(0,8);
+  const large=await sharp(randomBytes(2400*1600*3),{raw:{width:2400,height:1600,channels:3}}).png().toBuffer();
+  const small=await sharp({create:{width:300,height:200,channels:3,background:"#aabbcc"}}).png().toBuffer();
+  const files=[{name:"풍경.png",mimeType:"image/png",buffer:large},{name:"나눔.png",mimeType:"image/png",buffer:small}];
   try{
-    await login(admin,"admin");fid=await folder(admin.request,"나눔 검증 "+randomUUID().slice(0,8));
+    await login(admin,"admin");fid=await folder(admin.request,"사진 검증 "+randomUUID().slice(0,8));
     await page.setViewportSize({width:360,height:800});await login(page);
-    await page.goto(`/community?folder=${fid}`);await page.getByRole("link",{name:"글쓰기",exact:true}).click();
-    await page.getByLabel("제목",{exact:true}).fill(title);await page.getByLabel("내용",{exact:true}).fill("마음을 나눕니다.\n<script>텍스트로만 표시</script>");
-    const picker=page.locator('input[type="file"]');
-    await picker.setInputFiles([...files,{name:"셋.txt",mimeType:"text/plain",buffer:Buffer.from("third")}]);
-    await expect(alert).toContainText("최대 2개");
-    await picker.setInputFiles({name:"초과.pdf",mimeType:"application/pdf",buffer:Buffer.alloc(max+1)});
-    await expect(alert).toContainText("6MB 이하");
+    await page.goto('/community?folder='+fid+'&new=1');
+    await page.getByLabel("제목",{exact:true}).fill(title);await page.getByLabel("내용",{exact:true}).fill("마음을 나눕니다.");
+    expect(await page.locator('input[type="file"]').count()).toBe(1);
+    const picker=page.getByLabel("사진 첨부",{exact:true});
+    await picker.setInputFiles([...files,files[1]]);await expect(page.locator(".community").getByRole("alert")).toContainText("최대 2장");
     await picker.setInputFiles(files);await expect(page.locator(".community-file-row")).toHaveCount(2);
-    await page.route("**/api/community/posts",async route=>{if(route.request().method()==="POST")await route.fulfill({status:503,contentType:"application/json",body:'{}'});else await route.continue();});
-    await page.getByRole("button",{name:"등록",exact:true}).click();await expect(alert).toContainText("다시 시도");
-    await expect(page.getByLabel("제목",{exact:true})).toHaveValue(title);await expect(page.locator(".community-file-row")).toHaveCount(2);
-    await page.unroute("**/api/community/posts");
-    await page.getByRole("button",{name:"등록",exact:true}).click();
+    await expect(page.getByRole("button",{name:"등록",exact:true})).toBeEnabled();
+    await expect(page.locator(".community-file-row").first()).toContainText("→");
+    await page.route("**/api/community/posts",async route=>{if(route.request().method()==="POST")await route.fulfill({status:503,json:{}});else await route.continue();});
+    await page.getByRole("button",{name:"등록",exact:true}).click();await expect(page.locator(".community").getByRole("alert")).toContainText("다시 시도");
+    await page.unroute("**/api/community/posts");await page.getByRole("button",{name:"등록",exact:true}).click();
     await expect(page.locator(".community-post-title")).toHaveText(title,{timeout:60000});pid=new URL(page.url()).searchParams.get("post")!;
-    expect((await request.get(`${root}/posts/${pid}`)).status()).toBe(401);
-    await expect(page.locator(".community-download")).toHaveCount(2);await expect(page.locator(".community-post > .community-body")).toContainText("<script>");
-    await expectNoOverflow(page);
-    const like=page.getByRole("button",{name:"좋아요",exact:true});
-    await like.click();await expect(like).toHaveAttribute("aria-pressed","true");await expect(like.locator(".community-like-count")).toHaveText("1");
-    await page.reload();await expect(like).toHaveAttribute("aria-pressed","true");
-    await like.click();await expect(like).toHaveAttribute("aria-pressed","false");await expect(like.locator(".community-like-count")).toHaveText("0");
-    await page.getByLabel("댓글 내용").fill("함께 응원합니다.");await page.getByRole("button",{name:"댓글 등록",exact:true}).click();
-    await expect(page.locator(".community-comment")).toContainText("함께 응원합니다.");
-    await page.getByRole("button",{name:"댓글 수정",exact:true}).click();await page.getByRole("textbox",{name:"댓글 수정",exact:true}).fill("함께 기도합니다.");await page.getByRole("button",{name:"댓글 수정 저장"}).click();
-    await expect(page.locator(".community-comment")).toContainText("함께 기도합니다.");
-    for(const file of files){
-      const wait=page.waitForEvent("download");await page.getByRole("button",{name:new RegExp(file.name)}).click();
-      const downloaded=await wait;expect(downloaded.suggestedFilename()).toBe(file.name);
-      expect(digest(await readFile((await downloaded.path())!))).toBe(digest(file.buffer));
-    }
-    await page.screenshot({path:test.info().outputPath("community-mobile-post.png"),fullPage:true});
-    await page.getByRole("link",{name:"게시글 수정",exact:true}).click();await page.getByLabel("제목",{exact:true}).fill(title+" 수정");await page.getByRole("button",{name:"수정 저장"}).click();
-    await expect(page.locator(".community-post-title")).toHaveText(title+" 수정");await expect(page.locator(".community-download")).toHaveCount(2);
-    await page.goto(`/community?folder=${fid}`);await expect(page.locator(".community-post-row")).toContainText("좋아요 0 · 댓글 1 · 첨부 2");
-    await expectNoOverflow(page);await page.screenshot({path:test.info().outputPath("community-mobile-list.png"),fullPage:true});
-    expect(errors).toEqual([]);
-  }finally{if(pid)await admin.request.delete(`/api/admin/community/posts/${pid}`);if(fid)await admin.request.delete(`${root}/folders/${fid}`);await adminContext.close();}
+    const saved=(await(await page.request.get(root+'/posts/'+pid)).json()).post;
+    expect(saved.files).toHaveLength(2);expect(saved.files.every((f:{size:number})=>f.size<=1048576)).toBe(true);expect(saved.files[0].size).toBeLessThan(large.length);
+    await expect(page.locator(".community-photo img")).toHaveCount(2);await expect(page.locator(".community-attachments")).toHaveCount(0);
+    expect((await request.get(root+'/posts/'+pid)).status()).toBe(401);
+    const like=page.getByRole("button",{name:"좋아요",exact:true});await like.click();await expect(like).toHaveAttribute("aria-pressed","true");
+    await page.getByLabel("댓글 내용").fill("함께 응원합니다.");await page.getByRole("button",{name:"댓글 등록",exact:true}).click();await expect(page.locator(".community-comment")).toContainText("함께 응원합니다.");
+    await page.getByRole("link",{name:"게시글 수정",exact:true}).click();await page.getByLabel("제목",{exact:true}).fill(title+" 수정");await page.getByRole("button",{name:"수정 저장",exact:true}).click();
+    await expect(page.locator(".community-post-title")).toHaveText(title+" 수정");await expect(page.locator(".community-photo img")).toHaveCount(2);await expectNoOverflow(page);
+  }finally{if(pid)await admin.request.delete('/api/admin/community/posts/'+pid);if(fid)await admin.request.delete(root+'/folders/'+fid);await adminContext.close();}
 });
 
 test("likes are unique per member, retry-safe, private and cascade with posts",async({page,browser,request})=>{
@@ -135,7 +119,7 @@ test("unpublished uploads, digest checks and hard limits cannot be bypassed",asy
   const adminContext=await browser.newContext();const admin=await adminContext.newPage();let fid="";const id=randomUUID();const sql=testDb();
   try{
     await login(page);await login(admin,"admin");fid=await folder(admin.request,"파일 경계 "+randomUUID().slice(0,8));
-    const buffer=Buffer.from("valid bytes");const file={name:"문서.txt",size:buffer.length,sha256:digest(buffer)};
+    const buffer=await sharp({create:{width:8,height:8,channels:3,background:"#ccddaa"}}).png().toBuffer();const file={name:"사진.png",size:buffer.length,sha256:digest(buffer)};
     const data={id,folderId:fid,title:"전송 중 초안",body:"비공개 본문",files:[file]};
     expect((await page.request.post(root+"/posts",{data:{...data,files:[file,file,file]}})).status()).toBe(400);
     expect((await page.request.post(root+"/posts",{data:{...data,files:[{...file,size:max+1}]}})).status()).toBe(413);

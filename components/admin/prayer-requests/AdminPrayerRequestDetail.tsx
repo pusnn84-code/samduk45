@@ -1,5 +1,6 @@
 "use client";
 import { PrayerComments } from "../../prayer-requests/PrayerComments";
+import { prayerVisibilityLabels } from "../../../src/features/prayer-requests/visibility";
 
 import type {
   AdminPrayerRequestDetail,
@@ -39,6 +40,7 @@ export function AdminPrayerRequestDetail({
     <section className="card admin-request-detail" aria-busy={busy || undefined}>
       <div>
         <p className="eyebrow">요청자</p>
+        <p className="helper-text">{prayerVisibilityLabels[request.visibility??"private"]}{request.visibility==="anonymous"?" · 목사님에게는 실제 이름이 표시됩니다.":""}</p>
         <div className="admin-request-requester">
           <h2>{request.requesterName}</h2>
           <time dateTime={request.createdAt} aria-label={`요청일 ${requestedDate}`}>{requestedDate}</time>

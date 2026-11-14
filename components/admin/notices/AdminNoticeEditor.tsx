@@ -34,10 +34,12 @@ export function AdminNoticeEditor({
   notice,
   onSaved,
   onCancel,
+  publishOnly = false,
 }: {
   notice: AdminNoticeRow | null;
   onSaved: () => void;
   onCancel: () => void;
+  publishOnly?: boolean;
 }) {
   const [title, setTitle] = useState(notice?.title ?? "");
   const [body, setBody] = useState(notice?.body ?? "");
@@ -139,14 +141,14 @@ export function AdminNoticeEditor({
       {error && <p className="error-text" role="alert">{error}</p>}
 
       <div className="admin-editor-actions">
-        <button
+        {!publishOnly && <button
           className="text-button"
           type="button"
           disabled={busy || !title.trim() || !body.trim()}
           onClick={() => void submit("draft")}
         >
           {busy ? "저장 중…" : "임시저장"}
-        </button>
+        </button>}
         <button
           className="primary-button compact-button"
           type="button"

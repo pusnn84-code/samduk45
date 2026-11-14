@@ -10,3 +10,5 @@ coverage/
 .superpowers/
 .DS_Store
 fresh-install.sql
+.pnpm-store/
+*.tsbuildinfo

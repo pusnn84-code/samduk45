@@ -1,19 +1,12 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { getCurrentSessionUser } from "../../../src/features/auth/http-session";
 import { DomainError } from "../../../src/lib/http";
-import { getSelectedCalendarProvider } from "../../../src/features/visits/provider-factory";
-import { submitVisitRequest } from "../../../src/features/visits/service";
+import { VisitDetailsInput, submitInternalVisit, createInternalAppointment, listOwnVisits } from "../../../src/features/visits/internal-calendar";
 import { scheduleEmailDelivery } from "../../../src/features/email/wakeup";
-
-const VisitInput = z.object({
-  visitDate: z.iso.date(),
-  visitType: z.enum(["personal", "sam"]),
-  attendees: z.string().trim().max(3000).default(""),
-  location: z.string().trim().max(500).default(""),
-  preferredTime: z.string().trim().max(200).default(""),
-  reason: z.string().trim().max(10000).default(""),
-});
+import { z } from "zod";
+import { recipientForVisit } from "../../../src/features/visits/shared-calendar";
+import { checkOrigin, readReportJson, ReportError } from "../../../src/features/pastoral/policy";
+const Input = VisitDetailsInput.extend({ recipientRosterId: z.uuid().optional(), recipientName: z.string().trim().max(120).optional() });
 
 export async function POST(request: Request) {
   const user = await getCurrentSessionUser();
@@ -21,21 +14,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ code: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const parsed = VisitInput.safeParse(await request.json().catch(() => null));
+  let body: unknown;
+  try { checkOrigin(request); body = await readReportJson(request); }
+  catch (error) { if (error instanceof ReportError) return NextResponse.json({code:error.code},{status:error.status}); throw error; }
+  const parsed = Input.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400 });
   }
 
   try {
-    const provider = await getSelectedCalendarProvider();
-    const result = await submitVisitRequest(
+    const isAdmin = user.role === "admin";
+    const recipient = await recipientForVisit(user, parsed.data);
+    const { recipientRosterId: _roster, recipientName: _name, ...details } = parsed.data;
+    const result = await (isAdmin ? createInternalAppointment : submitInternalVisit)(
       {
         requesterUserId: user.id,
-        ...parsed.data,
+        ...details, ...recipient,
       },
-      provider,
     );
-    scheduleEmailDelivery(request);
+    if (!isAdmin) scheduleEmailDelivery(request);
     return NextResponse.json({ status: "ok", ...result }, { status: 201 });
   } catch (error) {
     if (error instanceof DomainError) {
@@ -43,4 +40,10 @@ export async function POST(request: Request) {
     }
     throw error;
   }
+}
+
+export async function GET() {
+  const user = await getCurrentSessionUser();
+  if (!user) return NextResponse.json({ code: "UNAUTHORIZED" }, { status: 401 });
+  return NextResponse.json({ visits: await listOwnVisits(user.id) }, { headers: { "Cache-Control": "private, no-store" } });
 }

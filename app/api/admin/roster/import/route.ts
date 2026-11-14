@@ -10,10 +10,15 @@ import { canonicalizeRosterName } from "../../../../../src/features/roster/norma
 import { getDb } from "../../../../../src/db/client";
 import { users } from "../../../../../src/db/schema";
 import { DomainError } from "../../../../../src/lib/http";
+import { parseGroupAssignments } from "../../../../../src/features/roster/group-assignments";
+import { RosterWorkbookError } from "../../../../../src/features/roster/import";
 
 export const runtime = "nodejs";
 
 function errorResponse(error: unknown) {
+  if (error instanceof RosterWorkbookError) {
+    return NextResponse.json({ code: error.message, sourceRows: error.sourceRows }, { status: 400 });
+  }
   if (error instanceof DomainError) {
     return NextResponse.json({ code: error.code }, { status: error.status });
   }
@@ -27,10 +32,11 @@ function errorResponse(error: unknown) {
     code === "INITIAL_ADMIN_NOT_FOUND" ||
     code === "ROSTER_HEADERS_MISSING" ||
     code === "ROSTER_SHEET_MISSING"
+    || code === "ROSTER_GROUP_MAPPING_INVALID" || code === "ROSTER_GROUP_MAPPING_REQUIRED"
   ) {
     return NextResponse.json({ code }, { status: 400 });
   }
-  if (code === "UNMAPPED_ACTIVE_USER" || code === "ROSTER_ADMIN_CONFLICT") {
+  if (code === "UNMAPPED_ACTIVE_USER" || code === "ROSTER_ADMIN_CONFLICT" || code === "ROSTER_IDENTITY_CONFLICT") {
     return NextResponse.json({ code }, { status: 409 });
   }
 
@@ -49,6 +55,13 @@ export async function POST(request: Request) {
     }
 
     validateRosterUploadMeta({ name: file.name, size: file.size });
+    const assignmentFile = form.get("groupAssignments");
+    let groupAssignments;
+    if (assignmentFile instanceof File && assignmentFile.size > 0) {
+      if (assignmentFile.size > 100_000) return NextResponse.json({ code: "ROSTER_GROUP_MAPPING_INVALID" }, { status: 400 });
+      try { groupAssignments = parseGroupAssignments(JSON.parse(await assignmentFile.text())); }
+      catch { return NextResponse.json({ code: "ROSTER_GROUP_MAPPING_INVALID" }, { status: 400 }); }
+    }
 
     const [credential] = await getDb()
       .select({
@@ -65,6 +78,7 @@ export async function POST(request: Request) {
 
     const summary = await importRosterUploadBuffer({
       buffer: Buffer.from(await file.arrayBuffer()),
+      groupAssignments,
       adminCredential: {
         canonicalName: canonicalizeRosterName(credential.displayName),
         phoneLookupHash: credential.phoneLookupHash,

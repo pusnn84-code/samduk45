@@ -21,6 +21,11 @@
 .pastoral-methods label, .pastoral label.pastoral-check { display: flex; align-items: center; gap: 8px; padding: 12px 0; }
 .pastoral-section { display: grid; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e1e6e2; }
 .pastoral-input-row { display: grid; gap: 12px; border: 1px solid #e1e6e2; border-radius: 12px; padding: 14px; background: #fafbf9; }
+.pastoral-member-note { grid-template-columns: minmax(6rem, .6fr) repeat(3, minmax(0, 1fr)); align-items: start; }
+.pastoral-member-note > strong { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .pastoral-member-note { grid-template-columns: minmax(0, 1fr); }
+}
 .pastoral-row-label, .pastoral-file-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
 .pastoral-file-row { padding: 12px 0; border-bottom: 1px solid #e1e6e2; }
 .pastoral-file-row span { overflow-wrap: anywhere; min-width: 0; flex: 1; }

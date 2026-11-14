@@ -2,9 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import { fetchJson } from "../../src/lib/fetch-json";
+import { type PrayerVisibility, prayerVisibilityLabels } from "../../src/features/prayer-requests/visibility";
 
 export function PrayerRequestForm({ onSubmitted }: { onSubmitted?: () => void } = {}) {
   const [content, setContent] = useState("");
+  const [visibility,setVisibility]=useState<PrayerVisibility>("private");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -21,10 +23,11 @@ export function PrayerRequestForm({ onSubmitted }: { onSubmitted?: () => void } 
       await fetchJson("/api/prayer-requests", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, visibility }),
       });
 
       setContent("");
+      setVisibility("private");
       setMessage("기도요청이 전달되었습니다.");
       onSubmitted?.();
     } catch (error) {
@@ -41,6 +44,10 @@ export function PrayerRequestForm({ onSubmitted }: { onSubmitted?: () => void } 
       <p className="prayer-request-guidance">
         중보 기도가 필요한 내용을 자유롭게 적어주세요.
       </p>
+      <fieldset className="prayer-visibility-options" disabled={busy} aria-describedby="prayer-visibility-help"><legend>공개 범위 선택</legend>
+        {(["private","public","anonymous"] as const).map(value=><label key={value}><input type="radio" name="prayer-visibility" value={value} checked={visibility===value} onChange={()=>setVisibility(value)}/>{prayerVisibilityLabels[value]}</label>)}
+      </fieldset>
+      <p id="prayer-visibility-help" className="helper-text">{visibility==="private"?"비공개로 선택하면 작성자 본인과 목사님만 확인할 수 있습니다.":visibility==="anonymous"?"기도목록에 내용이 공개되고 이름은 ‘무명’으로 표시됩니다. 목사님은 실제 이름을 확인할 수 있습니다.":"기도목록에 이름과 기도내용이 공개되어 로그인한 공동체 구성원이 함께 볼 수 있습니다."}</p>
       <label>
         <span className="sr-only">기도 요청 내용</span>
         <textarea

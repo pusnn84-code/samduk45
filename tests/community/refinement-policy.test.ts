@@ -9,7 +9,7 @@ describe("community refinement policy",()=>{
     expect(parseEditInput({...input,body:"",keepSlots:[],files:[{name:"photo.png",size:1,sha256:"0".repeat(64)}]}).body).toBe("");
     expect(()=>parseEditInput({...input,body:" ",keepSlots:[],files:[]})).toThrow("POST_CONTENT_REQUIRED");
   });
-  it("counts retained and new attachments together",()=>{expect(()=>parseEditInput({...input,keepSlots:[0,1],files:[{name:"third.txt",size:1,sha256:"0".repeat(64)}]})).toThrow("TOO_MANY_FILES");});
+  it("counts retained and new attachments together",()=>{expect(()=>parseEditInput({...input,keepSlots:[0,1],files:[{name:"third.jpg",size:1,sha256:"0".repeat(64)}]})).toThrow("TOO_MANY_FILES");});
   it("rejects duplicate and invalid retained slots",()=>{for(const keepSlots of [[0,0],[2],[-1],["0"]])expect(()=>parseEditInput({...input,keepSlots})).toThrow();});
   it("requires a safe optimistic version",()=>{for(const baseVersion of [-1,1.2,"0",null,Number.MAX_SAFE_INTEGER+1])expect(()=>parseEditInput({...input,baseVersion})).toThrow();});
   it("keeps file size, count and extension checks for edits",()=>{expect(()=>parseEditInput({...input,files:[{name:"large.png",size:6291457,sha256:"0".repeat(64)}]})).toThrow("FILE_TOO_LARGE");expect(()=>parseEditInput({...input,files:[{name:"x.svg",size:1,sha256:"0".repeat(64)}]})).toThrow("UNSUPPORTED_FILE");});

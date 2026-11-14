@@ -105,7 +105,7 @@ test.describe("administrator metrics and review lifecycle",()=>{
       await page.setViewportSize({width:1280,height:900});await expectNoOverflow(page);
       await page.screenshot({path:info.outputPath('dashboard-1280.png'),fullPage:true});
       const links=await page.getByRole('navigation',{name:'관리자 메뉴',exact:true}).getByRole('link').allTextContents();
-      expect(links.indexOf('공지 관리')).toBeLessThan(links.indexOf('기도운동 관리'));
+      expect(links.indexOf('공지 관리')).toBeLessThan(links.indexOf('말씀 묵상 관리'));
     } finally {await db`delete from prayer_app.notices where id in ${db(ids)}`;await db.end();}
   });
 

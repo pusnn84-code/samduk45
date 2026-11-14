@@ -4,7 +4,7 @@ import { addDays, defaultEndDate, isPrayerDay } from "../../src/features/challen
 import { expectNoOverflow, login } from "./helpers";
 
 const pages = [
-  ["/admin", "대시보드"], ["/admin/prayer", "기도운동 관리"],
+  ["/admin", "대시보드"], ["/admin/prayer", "말씀 묵상 관리"],
   ["/admin/visits", "심방 신청 관리"], ["/admin/prayer-requests", "기도요청 관리"],
   ["/admin/notices", "공지 관리"], ["/admin/users", "사용자 관리"],
 ] as const;
@@ -38,8 +38,8 @@ test.describe("database-backed administrator flows", () => {
     await page.goto("/admin");
     await page.getByRole("button", { name: "관리자 메뉴 열기" }).click();
     await expect(page.getByRole("navigation", { name: "관리자 메뉴", exact: true })).toBeVisible();
-    await page.getByRole("link", { name: "기도운동 관리", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "기도운동 관리", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "말씀 묵상 관리", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "말씀 묵상 관리", exact: true })).toBeVisible();
     await expect(page.locator(".admin-hub-sidebar")).not.toHaveClass(/is-open/);
     await expect.poll(() => page.locator(".admin-hub-sidebar").evaluate((element) => element.getBoundingClientRect().right)).toBeLessThanOrEqual(0);
     await expectNoOverflow(page);
@@ -97,14 +97,14 @@ test.describe("database-backed administrator flows", () => {
   test("Calendar setup reports missing configuration and invalid OAuth state safely", async ({ page }) => {
     await login(page, "admin");
     const status = await page.request.get("/api/admin/google-calendar/status");
-    expect(status.status()).toBe(200);
-    expect(await status.json()).toEqual({ connected: false, accountEmail: null, selectedCalendarId: null, selectedCalendarName: null });
+    expect(status.status()).toBe(410);
+    expect(await status.json()).toEqual({ code: "GOOGLE_CALENDAR_RETIRED" });
     const connect = await page.request.get("/api/admin/google-calendar/connect", { maxRedirects: 0 });
-    expect(connect.status()).toBe(503);
-    expect(await connect.json()).toEqual({ code: "GOOGLE_CALENDAR_NOT_CONFIGURED" });
+    expect(connect.status()).toBe(410);
+    expect(await connect.json()).toEqual({ code: "GOOGLE_CALENDAR_RETIRED" });
     const callback = await page.request.get("/api/admin/google-calendar/callback?code=synthetic&state=invalid", { maxRedirects: 0 });
-    expect(callback.status()).toBe(400);
-    expect(await callback.json()).toEqual({ code: "GOOGLE_OAUTH_STATE_MISMATCH" });
+    expect(callback.status()).toBe(410);
+    expect(await callback.json()).toEqual({ code: "GOOGLE_CALENDAR_RETIRED" });
     const disconnect = await page.request.delete("/api/admin/google-calendar/connection");
     expect(disconnect.status()).toBe(200);
     expect(await disconnect.json()).toEqual({ status: "ok" });

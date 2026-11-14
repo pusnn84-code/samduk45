@@ -160,7 +160,7 @@ export function VisitAvailabilitySettings() {
       <div>
         <h2>심방 신청 가능일</h2>
         <p className="helper-text">
-          Google 일정과 별개로 반복 요일 또는 특정 날짜를 신청 불가로 설정할 수 있습니다.
+          반복 요일 또는 특정 날짜를 신청 불가로 설정할 수 있습니다.
         </p>
       </div>
 
@@ -194,7 +194,7 @@ export function VisitAvailabilitySettings() {
 
         <div className="specific-date-setting">
           <h3>특정 날짜 설정</h3>
-          <p className="helper-text">활성화한 날짜는 반복 비활성 요일과 Google 일정이 있어도 신청할 수 있습니다. 이미 심방이 있는 날짜에는 중복 신청할 수 없습니다.</p>
+          <p className="helper-text">활성화한 날짜는 반복 비활성 요일이어도 신청할 수 있습니다. 이미 심방이 있는 날짜에는 중복 신청할 수 없습니다.</p>
           <div className="specific-date-form">
             <label>
               날짜

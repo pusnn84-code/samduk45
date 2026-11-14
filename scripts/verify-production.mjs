@@ -1,5 +1,6 @@
 import { writeFile, readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { APP_NAME, CONTACT_INSTRUCTION, getBranding } from '../src/lib/branding.ts';
 
 export function productionDeployment(items, sha) {
   return items.find(d => d.sha === sha && d.creator?.login === 'vercel[bot]' &&
@@ -16,6 +17,22 @@ export function deploymentOrigin(value, custom) {
 // deployment protection or follow authentication redirects.
 export function publicVerificationOrigin(deploymentUrl, configuredUrl, repositoryHomepage) {
   return deploymentOrigin(configuredUrl || repositoryHomepage || deploymentUrl, configuredUrl);
+}
+export function publicPageMatches(kind, body, origin, { appName = APP_NAME, supportEmail } = getBranding()) {
+  const path = kind === 'public-about' ? '/about' : kind === 'public-privacy' ? '/privacy' : null;
+  if (!path) return false;
+  // Production must identify its own public pages, even when app URL configuration is missing.
+  const canonicalTag = body.match(/<link\b[^>]*\brel=["']canonical["'][^>]*>/i)?.[0];
+  const canonical = canonicalTag?.match(/\bhref=["']([^"']+)["']/i)?.[1];
+  if (canonical !== new URL(path, origin).href) return false;
+  const contacts = [...body.matchAll(/\bhref=["'](mailto:[^"']+)["']/gi)].map(match => match[1]);
+  const contactMatches = supportEmail
+    ? contacts.length > 0 && contacts.every(contact => contact === `mailto:${supportEmail}`)
+    : contacts.length === 0 && body.includes(CONTACT_INSTRUCTION);
+  if (!contactMatches) return false;
+  return kind === 'public-about'
+    ? body.includes(appName) && body.includes('Google Calendar') && body.includes('href="/privacy"')
+    : ['개인정보처리방침', 'calendar.calendarlist.readonly', 'gmail.send', 'Limited Use'].every(text => body.includes(text));
 }
 async function main() {
   const repository = process.env.GITHUB_REPOSITORY;
@@ -48,6 +65,7 @@ async function main() {
     if (!deployment || status?.state !== 'success' || !status.environment_url) throw new Error('PRODUCTION_METADATA_NOT_READY');
     const repositoryInfo = await github('');
     const origin = publicVerificationOrigin(status.environment_url, process.env.PUBLIC_APP_URL, repositoryInfo.homepage);
+    const branding = getBranding();
     result.publicUrlSource = process.env.PUBLIC_APP_URL ? 'PUBLIC_APP_URL' : repositoryInfo.homepage ? 'repository-homepage' : 'deployment-url';
     result.generatedDeploymentUrl = deploymentOrigin(status.environment_url, process.env.PUBLIC_APP_URL);
     Object.assign(result, { deploymentId: deployment.id, deploymentSha: deployment.sha, environment: deployment.environment, deploymentState: status.state, url: origin });
@@ -96,8 +114,7 @@ async function main() {
       if (passed && kind === 'dashboard-release') passed = JSON.parse(body).release === expectedDashboard;
       if (passed && kind === 'release') passed = JSON.parse(body).release === expected;
       if (passed && kind === 'health') { const data = JSON.parse(body); passed = data.status === 'ok' && data.database === 'ok'; }
-      if (passed && kind === 'public-about') passed = body.includes('56사랑') && body.includes('Google Calendar') && body.includes('href="/privacy"');
-      if (passed && kind === 'public-privacy') passed = body.includes('개인정보처리방침') && body.includes('calendar.calendarlist.readonly') && body.includes('gmail.send') && body.includes('Limited Use') && body.includes('mailto:ditto0310@gmail.com');
+      if (passed && (kind === 'public-about' || kind === 'public-privacy')) passed = publicPageMatches(kind, body, origin, branding);
       if (passed && kind === 'login') passed = body.includes('비밀번호');
       if (passed && kind === 'private') passed = ['UNAUTHORIZED','FORBIDDEN'].includes(JSON.parse(body).code);
       if (passed && kind === 'redirect') { const target = new URL(response.headers.get('location') ?? '', origin); passed = target.origin === origin && target.pathname === '/login'; }

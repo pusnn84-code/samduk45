@@ -2,7 +2,7 @@ import { fetchJson } from "../../src/lib/fetch-json";
 import type { Attachment, ReportAccess, ReportForm, ReportRequest, Submission } from "../../src/features/pastoral/policy";
 export { fetchJson as api };
 export type Status = ReportAccess & { today: string; count: number; requests: ReportRequest[]; completed: { requestId: string; samId: string }[] };
-export type Summary = { isReviewed?: boolean; id: string; samName: string; leaderName: string; submittedBy: string; method: string; submittedAt: string; periodLabel: string };
+export type Summary = { isReviewed?: boolean; id: string; samName: string; leaderName: string; submittedBy: string; method: string; submittedAt: string; periodLabel: string; entryKind?: "meeting" | "member" | null };
 export type ReportView = Submission & Omit<Summary, "submittedAt"> & { submittedAt: string | null; version: number; isOwner: boolean };
 export const emptyForm = (): ReportForm => ({ noMeeting: false, noMeetingReason: "", meetings: [{ when: "", place: "", attendees: "" }], sharing: [{ member: "", content: "" }], news: [{ member: "", content: "" }], leaderPrayer: "", other: "" });
 export const jsonBody = (method: string, body?: unknown): RequestInit => ({ method, ...(body === undefined ? {} : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }) });
@@ -13,6 +13,11 @@ export function message(error: unknown): string {
     LEADER_SELECTION_REQUIRED:"동명이인이 있습니다. 소속을 확인해 한 분을 선택해 주세요.", LEADER_SELECTION_INVALID:"선택한 성도의 이름·소속을 다시 확인해 주세요.",
     REPORT_CHANGED: "다른 수정이 먼저 저장되었습니다. 입력 내용을 보관하고 목양지를 다시 열어 주세요.", EDIT_APPLIED: "이미 수정 저장되었습니다. 최신 목양지를 확인해 주세요.", EDIT_NOT_FOUND: "수정 초안을 찾을 수 없습니다. 목양지를 다시 열어 주세요.", REPORT_NOT_FINALIZED: "제출 완료된 목양지만 수정·삭제할 수 있습니다.",
     INVALID_INPUT: "입력 내용과 날짜를 확인해 주세요.", INVALID_DATE: "올바른 날짜를 선택해 주세요.",
+    SAM_BINDING_AMBIGUOUS: "담당 샘이 여러 곳으로 등록되어 있습니다. 관리자에게 샘리더 등록을 확인해 주세요.",
+    SINGLE_MEETING_REQUIRED: "샘모임 한 건을 입력해 주세요.", INVALID_MEETING_DATE: "샘모임 날짜와 시간을 입력해 주세요.",
+    MEETING_DETAILS_REQUIRED: "샘모임 장소와 참석자를 입력해 주세요.", FORM_SUBMISSION_REQUIRED: "목양지 작성 화면에서 입력해 제출해 주세요.",
+    ATTENDEES_REQUIRED: "참석자를 한 명 이상 선택해 주세요.", MEMBER_NOTE_REQUIRED: "샘원을 선택하고 나눔·기도제목·소식 중 하나 이상을 입력해 주세요.",
+    INVALID_MEMBER_NOTE: "같은 샘원이 여러 번 입력되었습니다.", MEMBER_NOT_IN_SAM: "선택한 샘의 명단이 바뀌었습니다. 명단을 다시 확인해 주세요.",
     MONTH_CLOSED: "선택한 달 안에서만 제출할 수 있습니다. 현재 월을 확인해 주세요.", INVALID_VILLAGE_LABEL: "마을장은 1마을장과 같은 형식으로 입력해 주세요.", NO_MEETING_REASON_REQUIRED: "샘모임을 하지 못한 이유를 입력해 주세요.", INVALID_FILE_COUNT: "사진이나 파일은 1~2개, 직접 입력은 파일 없이 제출해 주세요.",
     UNSUPPORTED_FILE: "지원하지 않는 파일입니다. PDF·한글·Word·Excel·텍스트 또는 사진을 선택해 주세요.",
     PHOTO_REQUIRED: "사진 제출에는 사진 파일을 선택해 주세요.", UNSUPPORTED_IMAGE: "사진을 확인할 수 없습니다. JPG·PNG로 변환하거나 파일 제출을 이용해 주세요.",

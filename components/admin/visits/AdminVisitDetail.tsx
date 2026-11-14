@@ -1,9 +1,9 @@
 "use client";
+import type { InternalVisitPatch } from "../../../src/features/visits/internal-calendar";
 
 import { useState } from "react";
 import type {
   AdminVisitRecord,
-  VisitDetailPatch,
 } from "../../../src/features/visits/admin-service";
 
 export function AdminVisitDetail({
@@ -14,9 +14,10 @@ export function AdminVisitDetail({
 }: {
   visit: AdminVisitRecord | null;
   busy: boolean;
-  onSave: (patch: VisitDetailPatch) => Promise<void>;
-  onAction: (action: "confirm" | "complete" | "cancel" | "delete") => Promise<void>;
+  onSave: (patch: InternalVisitPatch) => Promise<void>;
+  onAction: (action: "confirm" | "complete" | "cancel" | "delete" | "decline") => Promise<void>;
 }) {
+  const [visitDate, setVisitDate] = useState(visit?.visitDate ?? "");
   const [visitType, setVisitType] = useState<"personal" | "sam">(
     visit?.visitType ?? "personal",
   );
@@ -24,6 +25,7 @@ export function AdminVisitDetail({
   const [location, setLocation] = useState(visit?.location ?? "");
   const [preferredTime, setPreferredTime] = useState(visit?.preferredTime ?? "");
   const [reason, setReason] = useState(visit?.reason ?? "");
+  const [recipientName,setRecipientName]=useState(visit?.recipientName || visit?.attendees || visit?.requesterName || "");
 
   if (!visit) {
     return (
@@ -33,37 +35,24 @@ export function AdminVisitDetail({
     );
   }
 
-  const syncLabel =
-    visit.calendarSyncStatus === "synced"
-      ? "Google Calendar 동기화됨"
-      : visit.calendarSyncStatus === "failed"
-        ? "Google Calendar 동기화 실패"
-        : "Google Calendar 동기화 대기";
-
   return (
     <section className="card admin-visit-detail">
       <div className="section-heading">
         <div>
           <p className="eyebrow">신청 상세</p>
-          <h2>{visit.requesterName}</h2>
+          <h2>{visit.recipientName || visit.attendees || visit.requesterName}</h2>
         </div>
-        <span
-          className={
-            visit.calendarSyncStatus === "failed"
-              ? "status-pill danger-button"
-              : "status-pill is-success"
-          }
-        >
-          {syncLabel}
-        </span>
+        <span className="status-pill">{visit.isUnavailable ? "불가" : visit.status === "requested" ? "수락 대기" : visit.status === "confirmed" ? "캘린더 반영됨" : visit.status === "completed" ? "심방 완료" : "취소됨"}</span>
       </div>
 
       <dl className="admin-visit-summary">
         <div><dt>신청 날짜</dt><dd>{visit.visitDate}</dd></div>
-        <div><dt>상태</dt><dd>{visit.status}</dd></div>
+        <div><dt>상태</dt><dd>{visit.isUnavailable ? "불가" : visit.status === "requested" ? "수락 대기" : visit.status === "confirmed" ? "확정" : visit.status === "completed" ? "완료" : "취소"}</dd></div>
       </dl>
 
       <div className="admin-form">
+        <label>심방 대상자 이름<input maxLength={120} value={recipientName} onChange={event=>setRecipientName(event.target.value)} disabled={busy || visit.status === "cancelled" || visit.status === "completed"}/></label>
+        <label>심방 날짜<input type="date" value={visitDate} onChange={event => setVisitDate(event.target.value)} disabled={busy || visit.status === "cancelled" || visit.status === "completed"} /></label>
         <label>
           심방 유형
           <select
@@ -71,7 +60,7 @@ export function AdminVisitDetail({
             onChange={(event) =>
               setVisitType(event.target.value as "personal" | "sam")
             }
-            disabled={busy || visit.status === "cancelled"}
+            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
           >
             <option value="personal">개인심방</option>
             <option value="sam">샘심방</option>
@@ -82,7 +71,7 @@ export function AdminVisitDetail({
           <textarea
             value={attendees}
             onChange={(event) => setAttendees(event.target.value)}
-            disabled={busy || visit.status === "cancelled"}
+            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
           />
         </label>
         <label>
@@ -90,7 +79,7 @@ export function AdminVisitDetail({
           <input
             value={location}
             onChange={(event) => setLocation(event.target.value)}
-            disabled={busy || visit.status === "cancelled"}
+            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
           />
         </label>
         <label>
@@ -98,7 +87,7 @@ export function AdminVisitDetail({
           <input
             value={preferredTime}
             onChange={(event) => setPreferredTime(event.target.value)}
-            disabled={busy || visit.status === "cancelled"}
+            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
           />
         </label>
         <label>
@@ -106,23 +95,25 @@ export function AdminVisitDetail({
           <textarea
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            disabled={busy || visit.status === "cancelled"}
+            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
           />
         </label>
       </div>
 
-      {visit.status !== "cancelled" && (
+      {(visit.status === "requested" || visit.status === "confirmed") && (
         <button
           className="text-button"
           type="button"
           disabled={busy}
           onClick={() =>
             void onSave({
+              visitDate,
               visitType,
               attendees,
               location,
               preferredTime,
               reason,
+              recipientName,
             })
           }
         >
@@ -131,8 +122,9 @@ export function AdminVisitDetail({
       )}
 
       <div className="admin-visit-actions">
+        {visit.status === "requested" && <button type="button" className="text-button danger-button" disabled={busy} onClick={()=>void onAction("decline")}>불가</button>}
         <button className="text-button danger-button" type="button"
-          disabled={busy || (visit.calendarSyncStatus === "pending" && !visit.googleEventId)}
+          disabled={busy}
           onClick={() => void onAction("delete")}>신청 삭제</button>
         {visit.status === "requested" && (
           <button
@@ -141,7 +133,7 @@ export function AdminVisitDetail({
             disabled={busy}
             onClick={() => void onAction("confirm")}
           >
-            유선확정 완료
+            신청 수락 · 캘린더 반영
           </button>
         )}
         {visit.status === "confirmed" && (

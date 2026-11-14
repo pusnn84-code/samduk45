@@ -28,6 +28,9 @@ import type {
 import { requesterSam, requesterSamJoin, requesterSamLabel } from "./requester-identity";
 
 export type AdminVisitRecord = {
+  recipientName?: string | null;
+  recipientSam?: string | null;
+  isUnavailable?: boolean;
   id: string;
   requesterName: string;
   samLabel?: string | null;
@@ -110,6 +113,9 @@ export const dbVisitAdminRepository: VisitAdminRepository & VisitDeleteRepositor
     const [row] = await getDb()
       .select({
         id: visitRequests.id,
+        recipientName: visitRequests.recipientName,
+        recipientSam: visitRequests.recipientSam,
+        isUnavailable: visitRequests.isUnavailable,
         requesterName: users.displayName,
         samLabel: requesterSamLabel,
         leaderName: requesterSam.leaderName,
@@ -341,6 +347,9 @@ export async function listVisitsForAdmin({
   const rows = await getDb()
     .select({
       id: visitRequests.id,
+      recipientName: visitRequests.recipientName,
+      recipientSam: visitRequests.recipientSam,
+      isUnavailable: visitRequests.isUnavailable,
       requesterName: users.displayName,
       samLabel: requesterSamLabel,
       leaderName: requesterSam.leaderName,

@@ -5,7 +5,7 @@ import { appSchema } from "./schema";
 export const prayerMenuSettings = appSchema.table("prayer_menu_settings", {
   id: integer("id").primaryKey(),
   enabled: boolean("enabled").notNull().default(true),
-  name: text("name").notNull().default("기도운동"),
+  name: text("name").notNull().default("말씀 묵상"),
   description: text("description").notNull().default(""),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

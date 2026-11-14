@@ -77,11 +77,13 @@ export function ReportDetail({ id, onClose, onChanged, admin = false }: { id: st
     <dl className="pastoral-meta"><div><dt>제출 대상</dt><dd>{report.periodLabel}</dd></div><div><dt>작성일</dt><dd>{report.writtenDate}</dd></div><div><dt>샘</dt><dd>{report.samName}</dd></div><div><dt>샘리더</dt><dd>{report.leaderName}</dd></div><div><dt>제출자</dt><dd>{report.submittedBy}</dd></div>{!admin&&<><div><dt>제출 방법</dt><dd>{methodLabel(report.method)}</dd></div><div><dt>제출일시</dt><dd>{report.submittedAt ? localDateTime(report.submittedAt) : "작성 중"}</dd></div></>}</dl>
     {report.files.map((file, slot) => <div key={slot}>{photoName(file.name) && <Photo key={`${id}:${report.version}:${slot}`} id={id} slot={slot} name={file.name} />}<DownloadFile reportId={id} file={file} slot={slot} /></div>)}
     {f && <div className="pastoral-written"><a className="pastoral-txt" href={`/api/pastoral/reports/${id}/txt`} download>입력 내용 TXT 내려받기</a>{f.noMeeting && <div className="pastoral-prewrap"><strong>이번 기간 샘모임 없음</strong><p>사유: {f.noMeetingReason}</p></div>}
-      <Rows title="샘모임" headers={["일시", "장소", "참석자(가정)"]} rows={f.meetings.map(r => [r.when, r.place, r.attendees])} />
-      <Rows title="나눔/기도제목 (예배·성경통독은혜·기도제목)" headers={["샘원", "나눔 / 기도제목"]} rows={f.sharing.map(r => [r.member, r.content])} />
-      <Rows title="샘소식 (결혼, 장례, 이사, 입원 등)" headers={["샘원", "소식"]} rows={f.news.map(r => [r.member, r.content])} />
-      <section className="pastoral-section"><h3>샘리더 기도제목</h3><p className="pastoral-prewrap">{f.leaderPrayer || "기록 없음"}</p></section>
-      <section className="pastoral-section"><h3>기타</h3><p className="pastoral-prewrap">{f.other || "기록 없음"}</p></section>
+      {f.entryKind && <p><strong>{f.entryKind === "meeting" ? "샘모임 기록" : "샘원 나눔·소식"}</strong></p>}
+      {f.entryKind !== "member" && <Rows title="샘모임" headers={["일시", "장소", "참석자"]} rows={f.meetings.map(r => [r.when, r.place, r.attendees])} />}
+      {f.entryKind !== "meeting" && <Rows title="샘원별 기록" headers={["샘원", "나눔", "기도제목", "소식"]} rows={(f.memberNotes ?? []).map(r => [r.member, r.sharing, r.prayer, r.news])} />}
+      {f.sharing.length > 0 && <Rows title="별도 나눔·기도제목" headers={["샘원", "나눔 / 기도제목"]} rows={f.sharing.map(r => [r.member, r.content])} />}
+      {f.news.length > 0 && <Rows title="별도 샘소식" headers={["샘원", "소식"]} rows={f.news.map(r => [r.member, r.content])} />}
+      {(!f.entryKind || f.leaderPrayer) && <section className="pastoral-section"><h3>샘리더 기도제목</h3><p className="pastoral-prewrap">{f.leaderPrayer || "기록 없음"}</p></section>}
+      {(!f.entryKind || f.other) && <section className="pastoral-section"><h3>기타</h3><p className="pastoral-prewrap">{f.other || "기록 없음"}</p></section>}
     </div>}
   </>}</article>;
 }

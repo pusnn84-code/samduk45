@@ -26,3 +26,27 @@ test('invalid public destinations fail closed without trying protected URL alter
    assert.throws(()=>probe.publicVerificationOrigin('https://app-deploy.vercel.app',undefined,value));
  assert.throws(()=>probe.publicVerificationOrigin('https://app-deploy.vercel.app','http://church.example','https://app.vercel.app'));
 });
+
+const origin='https://community45.example';
+const contactText='45공동체 운영 담당자에게 문의해 주세요.';
+const aboutBody=(canonical=origin+'/about',contact=contactText)=>`<link rel="canonical" href="${canonical}"><h1>삼덕사오</h1>Google Calendar <a href="/privacy">개인정보처리방침</a>${contact}`;
+const privacyBody=(canonical=origin+'/privacy',contact=contactText)=>`<link href="${canonical}" rel="canonical"><h1>개인정보처리방침</h1>calendar.calendarlist.readonly gmail.send Limited Use ${contact}`;
+test('public readiness verifies both new branding and the actual installation canonical',()=>{
+ assert.equal(probe.publicPageMatches('public-about',aboutBody(),origin,{}),true);
+ assert.equal(probe.publicPageMatches('public-privacy',privacyBody(),origin,{}),true);
+ assert.equal(probe.publicPageMatches('public-about',aboutBody().replace('삼덕사오','56사랑'),origin,{}),false);
+ assert.equal(probe.publicPageMatches('public-about',aboutBody('https://other.example/about'),origin,{}),false);
+ assert.equal(probe.publicPageMatches('public-about',aboutBody().replace(/<link[^>]+>/,''),origin,{}),false);
+ assert.equal(probe.publicPageMatches('public-privacy',privacyBody().replace('gmail.send',''),origin,{}),false);
+});
+test('public readiness accepts unconfigured contact guidance and checks configured email consistently',()=>{
+ const configured={supportEmail:'care45@example.org'};
+ const email='<a href="mailto:care45@example.org">운영 담당자</a>';
+ for(const [kind,body] of [['public-about',aboutBody],['public-privacy',privacyBody]]){
+   const canonical=origin+(kind==='public-about'?'/about':'/privacy');
+   assert.equal(probe.publicPageMatches(kind,body(canonical,email),origin,configured),true);
+   assert.equal(probe.publicPageMatches(kind,body(),origin,configured),false);
+   assert.equal(probe.publicPageMatches(kind,body(canonical,email),origin,{}),false);
+   assert.equal(probe.publicPageMatches(kind,body(canonical,email+'<a href="mailto:old-operator@example.org">다른 담당자</a>'),origin,configured),false);
+ }
+});

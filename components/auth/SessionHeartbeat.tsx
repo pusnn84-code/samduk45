@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 export function SessionHeartbeat() {
   const pathname = usePathname();
-  if (pathname === "/about" || pathname === "/privacy") return null;
+  if (pathname === "/about" || pathname === "/privacy" || pathname === "/2027") return null;
   return <ActiveSessionHeartbeat />;
 }
 

@@ -81,7 +81,7 @@ export function AdminPrayerManagement({ initial }: { initial: AdminDashboardData
     const challenge = data.challenge;
     if (!challenge?.isActive || removingId || refreshing) return;
     if (!window.confirm(
-      `${member.name}님을 “${challenge.title}” (${challenge.startDate} ~ ${challenge.endDate}) 참여자 명단에서 삭제할까요?\n해당 도전의 명단과 통계에서만 제외됩니다. 로그인, 회원정보, 개인 기도 체크 기록은 유지됩니다.`,
+      `${member.name}님을 “${challenge.title}” (${challenge.startDate} ~ ${challenge.endDate}) 참여자 명단에서 삭제할까요?\n해당 도전의 명단과 통계에서만 제외됩니다. 로그인, 회원정보, 개인 묵상 체크 기록은 유지됩니다.`,
     )) return;
 
     setRemovingId(member.userId);
@@ -140,7 +140,7 @@ export function AdminPrayerManagement({ initial }: { initial: AdminDashboardData
     <div className="admin-feature-page">
       <div className="section-heading">
         <section className="admin-page-heading">
-          <p className="eyebrow">운동 관리</p>
+          <p className="eyebrow">활동 관리</p>
           <h1>{name} 관리</h1>
           {description && <p className="activity-description">{description}</p>}
           <p>

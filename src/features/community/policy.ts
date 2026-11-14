@@ -1,8 +1,11 @@
 /** Shared validation only: safe to import into both browser and server. */
+// Legacy stored attachments remain readable at their original chunk size.
 export const MAX_FILE_BYTES = 6 * 1024 * 1024;
+export const MAX_PHOTO_UPLOAD_BYTES = 1024 * 1024;
 export const CHUNK_BYTES = 512 * 1024;
 export const PAGE_SIZE = 20;
-export type Actor = { id: string; role: string };
+export const UNTITLED_POST_LABEL = "도란도란 글";
+export type Actor = { id: string; role: string; isDeputyAdmin?: boolean };
 export type FileInput = { name: string; size: number; sha256: string };
 export class CommunityError extends Error {
   constructor(public code: string, public status = 400) { super(code); }
@@ -25,7 +28,7 @@ export function parsePostBody(value: unknown): string {
   if (body.length > 20000) throw new CommunityError("INVALID_INPUT");
   return body;
 }
-export const isPhotoName = (name: string) => /\.(jpe?g|png|webp|gif|avif|tiff?|heic|heif)$/i.test(name);
+export const isPhotoName = (name: string) => /\.(jpe?g|jpe|jfif|png|webp|gif|avif|tiff?|heic|heif)$/i.test(name);
 export function hasPostContent(body: string, files: ReadonlyArray<{ name: string }>): boolean {
   return Boolean(body.trim()) || files.some(file => isPhotoName(file.name));
 }
@@ -44,8 +47,9 @@ export function validateFiles(value: unknown): FileInput[] {
     const name = text(file.name, 180);
     if (/[\\/\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u.test(name) || name.startsWith(".") || name.endsWith(".")) throw new CommunityError("INVALID_FILENAME");
     if (/\.(exe|dll|msi|bat|cmd|com|scr|ps1|vbs|js|mjs|html?|svg|sh|jar|apk|lnk|url|reg)$/i.test(name)) throw new CommunityError("UNSUPPORTED_FILE");
+    if (!isPhotoName(name)) throw new CommunityError("UNSUPPORTED_POST_PHOTO");
     if (typeof file.size !== "number" || !Number.isSafeInteger(file.size) || file.size < 1) throw new CommunityError("INVALID_FILE_SIZE");
-    if (file.size > MAX_FILE_BYTES) throw new CommunityError("FILE_TOO_LARGE", 413);
+    if (file.size > MAX_PHOTO_UPLOAD_BYTES) throw new CommunityError("FILE_TOO_LARGE", 413);
     if (typeof file.sha256 !== "string" || !/^[a-f0-9]{64}$/i.test(file.sha256)) throw new CommunityError("INVALID_INPUT");
     return { name, size: file.size, sha256: file.sha256.toLowerCase() };
   });

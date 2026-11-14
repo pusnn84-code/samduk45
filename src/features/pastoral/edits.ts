@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { getDb, rows, sql, type Executor } from "./db";
-import { requireReportAccess, requireReportAdmin } from "./access";
+import { getReportSamMembers, requireReportAccess, requireReportAdmin, resolveReportMemberNotes } from "./access";
 import { lockedReport, readFile, type StoredReport } from "./reports";
 import { rasterPreview } from "./images";
-import { assertReportMutation, CHUNK_LIMIT, chunkSize, int, parseFiles, parseReportEdit, reportId, ReportError, type Actor, type Attachment, type ReportEdit } from "./policy";
+import { assertReportMutation, CHUNK_LIMIT, chunkSize, int, parseFiles, parseStoredReportEdit, reportId, ReportError, type Actor, type Attachment, type ReportEdit } from "./policy";
 
 type StoredEdit = { id: string; actorId: string; payload: ReportEdit; applied: boolean; expired: boolean };
 const hash = (value: Buffer | string) => createHash("sha256").update(value).digest("hex");
@@ -29,11 +29,12 @@ function combinedFiles(report: StoredReport, input: ReportEdit): Attachment[] {
   return parseFiles([...retained, ...input.files], input.method);
 }
 export async function beginReportEdit(actor: Actor, id: string, value: unknown, admin = false) {
-  reportId(id); const input = parseReportEdit(value); const fingerprint = hash(JSON.stringify(input));
+  reportId(id);
   return getDb().transaction(async tx => {
     await tx.execute(sql`select id from prayer_app.users where id=${actor.id} for update`);
     await access(actor, admin, tx);
     const report = await lockedReport(tx, id); assertReportMutation(actor, report, admin);
+    const input = parseStoredReportEdit(value, report, admin); const fingerprint = hash(JSON.stringify(input));
     const [existing] = await rows<{ actorId: string; reportId: string; fingerprint: string; applied: boolean }>(tx, sql`select actor_id as "actorId",report_id as "reportId",fingerprint,(applied_at is not null) as applied from prayer_app.pastoral_report_edits where id=${input.id}`);
     if (existing) {
       if (existing.actorId !== actor.id || existing.reportId !== id || existing.fingerprint !== fingerprint) throw new ReportError("ID_CONFLICT", 409);
@@ -43,7 +44,8 @@ export async function beginReportEdit(actor: Actor, id: string, value: unknown, 
     await tx.execute(sql`delete from prayer_app.pastoral_report_edits where actor_id=${actor.id} and created_at<now()-interval '24 hours' and applied_at is null`);
     const [quota] = await rows<{ count: number }>(tx, sql`select count(*)::int as count from prayer_app.pastoral_report_edits where actor_id=${actor.id} and applied_at is null`);
     if (quota.count >= 3) throw new ReportError("DRAFT_LIMIT", 429);
-    await tx.execute(sql`insert into prayer_app.pastoral_report_edits(id,report_id,actor_id,expected_version,payload,fingerprint) values(${input.id},${id},${actor.id},${input.expectedVersion},${JSON.stringify(input)}::jsonb,${fingerprint})`);
+    const form = await resolveReportMemberNotes(input.form, report.form, () => getReportSamMembers(actor, report.samId, tx));
+    await tx.execute(sql`insert into prayer_app.pastoral_report_edits(id,report_id,actor_id,expected_version,payload,fingerprint) values(${input.id},${id},${actor.id},${input.expectedVersion},${JSON.stringify({ ...input, form })}::jsonb,${fingerprint})`);
     return { id: input.id, applied: false };
   });
 }
@@ -74,7 +76,7 @@ export async function publishReportEdit(actor: Actor, id: string, editId: string
     await access(actor, admin, tx); const report=await lockedReport(tx,id);
     const edit=await editFor(tx,actor,report,editId,admin);
     if(edit.applied)return; // A lost response must not apply this revision again.
-    const input=edit.payload; validateVersion(report,input.expectedVersion);
+    const input=parseStoredReportEdit(edit.payload,report,admin); validateVersion(report,input.expectedVersion);
     const files=combinedFiles(report,input); const bytes:Buffer[]=[];
     for(const slot of input.keepSlots) bytes.push(await readFile(tx,report,slot));
     for(let slot=0;slot<input.files.length;slot++) bytes.push(await stagedFile(tx,edit,slot));

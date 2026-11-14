@@ -12,7 +12,7 @@ async function jsonRequest(url: string, init: RequestInit = {}) {
     headers: { "content-type": "application/json", ...(init.headers ?? {}) },
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.code ?? "REQUEST_FAILED");
+  if (!response.ok) throw new Error(body.code === "PASSWORD_IS_PHONE" ? "전화번호와 다른 비밀번호를 입력해 주세요." : body.code === "PHONE_RESET_DISABLED" ? "연락처가 공개될 수 있는 계정입니다. 전화번호와 다른 새 비밀번호를 설정해 주세요." : body.code ?? "REQUEST_FAILED");
   return body;
 }
 
@@ -160,6 +160,7 @@ export function AdminUserManagement({ initial }: { initial: AdminRosterPage }) {
       sam: String(formData.get("sam") ?? "") || null,
       isActive: formData.get("isActive") === "on",
       isAdmin: formData.get("isAdmin") === "on",
+      isNoticeOfficer: formData.get("isNoticeOfficer") === "on",
     };
 
     setBusy(true);
@@ -203,18 +204,19 @@ export function AdminUserManagement({ initial }: { initial: AdminRosterPage }) {
       <section className="card admin-section">
         <form className="roster-import-form" onSubmit={submitImport}>
           <div>
-            <strong>56공동체 명단 가져오기</strong>
-            <p className="helper-text">.xls 또는 .xlsx 파일을 가져옵니다. 예제의 이름 · 교회직분 · 핸드폰 · 마을 · 샘 열을 유지하고, 현재 관리자도 명단에 포함해 주세요. 기존 기도기록은 유지됩니다.</p>
-            <a className="text-button" href="/templates/community-roster-example.xlsx" download="56공동체-명단-예제.xlsx">56공동체 명단 엑셀 예제 다운로드</a>
+            <strong>45공동체 명단 가져오기</strong>
+            <p className="helper-text">교회에서 내려받은 성도 명단과 아래 예제 양식의 .xls·.xlsx 파일을 가져옵니다. 이름과 전화번호가 일치하는 기존 회원의 비밀번호·권한과 현재 관리자 계정은 유지됩니다.</p>
+            <a className="text-button" href="/templates/community-roster-example.xlsx" download="45공동체-명단-예제.xlsx">45공동체 명단 엑셀 예제 다운로드</a>
           </div>
           <input
             name="file"
             type="file"
             accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            aria-label="56공동체 엑셀 파일"
+            aria-label="45공동체 엑셀 파일"
             required
             disabled={importBusy}
           />
+          <label>마을·샘 배정표 (선택)<input name="groupAssignments" type="file" accept=".json,application/json" aria-label="마을·샘 배정표" disabled={importBusy} /><small>교회 명단을 처음 연결할 때 준비한 배정표를 선택합니다. 이후에는 등록된 샘리더 정보로 소속을 연결합니다.</small></label>
           <button className="text-button" type="submit" disabled={importBusy}>
             {importBusy ? "가져오는 중..." : "명단 가져오기"}
           </button>
@@ -223,7 +225,7 @@ export function AdminUserManagement({ initial }: { initial: AdminRosterPage }) {
 
         <details className="roster-disclosure">
         <summary>사용자 명단 · 현재 {rows.length}명 표시</summary>
-        <p className="helper-text">활성은 한 번 이상 로그인한 사용자, 비활성은 아직 로그인하지 않은 사용자입니다. 기도운동 참여와 로그인 허용 여부는 별도입니다.</p>
+        <p className="helper-text">활성은 한 번 이상 로그인한 사용자, 비활성은 아직 로그인하지 않은 사용자입니다. 로그인 허용 여부는 각 사용자 수정 화면에서 설정합니다.</p>
         <form className="admin-filters roster-filters" onSubmit={search}>
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="이름, 전화번호 또는 샘" aria-label="허용 명단 검색" />
           <select value={participation} onChange={(event) => setParticipation(event.target.value as typeof participation)}>
@@ -257,7 +259,7 @@ export function AdminUserManagement({ initial }: { initial: AdminRosterPage }) {
               <span className="roster-select-cell">
                 <input type="checkbox" checked={selectedIds.has(row.id)} onChange={(event) => toggle(row.id, event.target.checked)} aria-label={row.name + " 선택"} />
               </span>
-              <span><strong>{row.name}</strong>{row.isAdmin && <small>관리자</small>}</span>
+              <span><strong>{row.name}</strong>{row.isAdmin && <small>관리자</small>}{row.isNoticeOfficer && <small>공지 확인 임원</small>}</span>
               <span>{row.position ?? "미지정"}</span>
               <span>{row.phone ?? "미등록"}</span>
               <span>{row.samLabel ?? "미지정"}</span>
@@ -296,9 +298,10 @@ export function AdminUserManagement({ initial }: { initial: AdminRosterPage }) {
                         : "초기 비밀번호 사용 중 · 전화번호 미등록"
                       : "변경됨 · 원문은 보안상 저장하지 않습니다."}
                   </span>
-                  <button className="text-button" type="button" disabled={busy} onClick={() => void resetToInitialPassword()}>
+                  <button className="text-button" type="button" disabled={busy || selectedRoster.passwordMode === "custom"} onClick={() => void resetToInitialPassword()}>
                     전화번호로 초기화
                   </button>
+                  {selectedRoster.passwordMode === "custom" && <small>변경된 비밀번호는 전화번호로 되돌릴 수 없습니다. 아래에서 새 비밀번호를 설정해 주세요.</small>}
                 </div>
               )}
 
@@ -308,6 +311,8 @@ export function AdminUserManagement({ initial }: { initial: AdminRosterPage }) {
               </label>
               <label className="checkbox-row"><input name="isActive" type="checkbox" defaultChecked={selectedRoster?.isActive ?? true} /> 로그인 허용</label>
               <label className="checkbox-row"><input name="isAdmin" type="checkbox" defaultChecked={selectedRoster?.isAdmin ?? false} /> 관리자</label>
+              <label className="checkbox-row"><input name="isNoticeOfficer" type="checkbox" defaultChecked={selectedRoster?.isNoticeOfficer ?? false} /> 공지 확인 임원</label>
+              <p className="helper-text">샘리더·마을리더는 등록된 리더 명단에서 자동으로 포함됩니다. 그 외 임원은 ‘공지 확인 임원’을 선택해 주세요. 공지 확인 현황만 공유하며 관리자 권한이나 목양지 열람 권한은 부여하지 않습니다.</p>
               <button className="primary-button" type="submit" disabled={busy}>저장</button>
             </form>
           </div>

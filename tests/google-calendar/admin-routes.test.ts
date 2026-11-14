@@ -47,28 +47,21 @@ describe.each([null, { id: "member", role: "member" } as SessionUser])("Calendar
 describe("Calendar administrator error handling", () => {
   beforeEach(() => vi.mocked(getCurrentSessionUser).mockResolvedValue({ id: "admin", role: "admin" } as SessionUser));
 
-  it("connect reports missing configuration as 503", async () => {
-    vi.mocked(createGoogleOAuthClient).mockImplementation(() => { throw new Error("MISSING_GOOGLE_CALENDAR_CONFIG"); });
-    const response = await connect(request());
-    expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ code: "GOOGLE_CALENDAR_NOT_CONFIGURED" });
-  });
-
-  it.each([["status", status], ["disconnect", disconnect]] as const)("%s preserves DomainError status", async (_name, handler) => {
-    vi.mocked(getGoogleCalendarConnection).mockRejectedValue(new DomainError("CALENDAR_UNAVAILABLE", 503));
+  it.each([["connect", () => connect(request())], ["status", status], ["calendars", calendars], ["selection", () => selection(request())], ["callback", () => callback(request())]] as const)("%s is retired without accessing Google", async (_name, handler) => {
     const response = await handler();
-    expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ code: "CALENDAR_UNAVAILABLE" });
+    expect(response.status).toBe(410);
+    expect(await response.json()).toEqual({ code: "GOOGLE_CALENDAR_RETIRED" });
+    expect(createGoogleOAuthClient).not.toHaveBeenCalled();
+    expect(getGoogleCalendarConnection).not.toHaveBeenCalled();
   });
-
+  it("disconnect preserves DomainError status for old connections", async () => {
+    vi.mocked(getGoogleCalendarConnection).mockRejectedValue(new DomainError("CALENDAR_UNAVAILABLE", 503));
+    expect((await disconnect()).status).toBe(503);
+  });
   it("does not report a failed local disconnect as success", async () => {
     vi.mocked(getGoogleCalendarConnection).mockResolvedValue(null);
     vi.mocked(deleteGoogleCalendarConnection).mockRejectedValue(new Error("database unavailable"));
     await expect(disconnect()).rejects.toThrow("database unavailable");
   });
 
-  it("returns only safe disconnected status fields", async () => {
-    vi.mocked(getGoogleCalendarConnection).mockResolvedValue(null);
-    expect(await (await status()).json()).toEqual({ connected: false, accountEmail: null, selectedCalendarId: null, selectedCalendarName: null });
-  });
 });

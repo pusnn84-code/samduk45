@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { MAX_FILE_BYTES, CHUNK_BYTES, validateFiles, expectedChunkSize, assertEditor, assertManager, parsePostInput, parseFolderName, parseCommentBody, parseLikeInput, pageNumber } from "../../src/features/community/policy";
+import { MAX_FILE_BYTES, MAX_PHOTO_UPLOAD_BYTES, CHUNK_BYTES, validateFiles, expectedChunkSize, assertEditor, assertManager, parsePostInput, parseFolderName, parseCommentBody, parseLikeInput, pageNumber } from "../../src/features/community/policy";
 import { assertSameOrigin, readBytes, readJson } from "../../src/features/community/http";
-const file=(size=MAX_FILE_BYTES)=>({name:"자료.pdf",size,sha256:"a".repeat(64)});
+const file=(size=MAX_PHOTO_UPLOAD_BYTES)=>({name:"사진.jpg",size,sha256:"a".repeat(64)});
 const id="10000000-0000-4000-8000-000000000001";
 describe("community limits and authorization",()=>{
-  it("accepts two files at exactly six MB, never three",()=>{expect(MAX_FILE_BYTES).toBe(6291456);expect(validateFiles([file(),file()])).toHaveLength(2);expect(()=>validateFiles([file(),file(),file()])).toThrow("TOO_MANY_FILES");});
+  it("accepts two optimized photos at one MB each, never three",()=>{expect(MAX_PHOTO_UPLOAD_BYTES).toBe(1048576);expect(validateFiles([file(),file()])).toHaveLength(2);expect(()=>validateFiles([file(),file(),file()])).toThrow("TOO_MANY_FILES");});
   it("rejects oversize and invalid file sizes",()=>{expect(()=>validateFiles([file(MAX_FILE_BYTES+1)])).toThrow("FILE_TOO_LARGE");for(const size of [0,-1,1.5,NaN])expect(()=>validateFiles([file(size)])).toThrow();});
   it("rejects unsafe file names without trusting a client MIME type",()=>{for(const name of ["../file.pdf","a\\b.pdf","bad\nname.txt","a.exe","a.HTML","a.svg"])expect(()=>validateFiles([{...file(),name}])).toThrow();});
   it("pins chunk limits and short final chunk",()=>{expect(expectedChunkSize(MAX_FILE_BYTES,11)).toBe(CHUNK_BYTES);expect(expectedChunkSize(CHUNK_BYTES+1,1)).toBe(1);for(const i of [-1,12,1.5])expect(()=>expectedChunkSize(MAX_FILE_BYTES,i)).toThrow();});
@@ -14,7 +14,8 @@ describe("community limits and authorization",()=>{
     const post={id,folderId:id,title:"사진만 올리기",body:" \n ",files:[{...file(),name:"사진.JPG"}]};
     expect(parsePostInput(post).body).toBe("");
     expect(parsePostInput({...post,body:"본문만",files:[]}).body).toBe("본문만");
-    for(const files of [[],[file()]]) expect(()=>parsePostInput({...post,files})).toThrow("POST_CONTENT_REQUIRED");
+    expect(()=>parsePostInput({...post,files:[]})).toThrow("POST_CONTENT_REQUIRED");
+    expect(()=>parsePostInput({...post,body:"본문",files:[{...file(),name:"자료.pdf"}]})).toThrow("UNSUPPORTED_POST_PHOTO");
     for(const body of [null,123,"\0","x".repeat(20001)])expect(()=>parsePostInput({...post,body})).toThrow("INVALID_INPUT");
     expect(()=>parseCommentBody(" ")).toThrow("INVALID_INPUT");
   });

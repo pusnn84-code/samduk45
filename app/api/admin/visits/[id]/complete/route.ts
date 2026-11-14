@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAdmin } from "../../../../../../src/features/admin/service";
 import { getCurrentSessionUser } from "../../../../../../src/features/auth/http-session";
-import { completeVisit } from "../../../../../../src/features/visits/admin-service";
+import { transitionInternalVisit } from "../../../../../../src/features/visits/internal-calendar";
 import { DomainError } from "../../../../../../src/lib/http";
 
 export async function POST(
@@ -11,7 +12,8 @@ export async function POST(
   try {
     requireAdmin(await getCurrentSessionUser());
     const { id } = await context.params;
-    await completeVisit(id);
+    if (!z.uuid().safeParse(id).success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400 });
+    await transitionInternalVisit(id, "completed");
     return NextResponse.json({ status: "ok" });
   } catch (error) {
     if (error instanceof DomainError) {

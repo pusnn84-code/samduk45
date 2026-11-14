@@ -12,7 +12,7 @@ const PrayerDashboardClient = dynamic(
     ssr: false,
     loading: () => (
       <section className="card empty-state" aria-live="polite">
-        <strong>기도 달력을 불러오는 중입니다.</strong>
+        <strong>묵상 달력을 불러오는 중입니다.</strong>
       </section>
     ),
   },

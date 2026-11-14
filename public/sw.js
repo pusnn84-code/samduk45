@@ -1,10 +1,10 @@
 self.addEventListener("push", (event) => {
   const data = event.data ? event.data.json() : {};
   event.waitUntil(
-    self.registration.showNotification(data.title || "56사랑", {
+    self.registration.showNotification(data.title || "삼덕사오", {
       body: data.body || "",
-      icon: "/icons/56-heart-192.png",
-      badge: "/icons/56-heart-192.png",
+      icon: "/icons/45-logo-192.png",
+      badge: "/icons/45-logo-192.png",
       tag: data.tag,
       data: { url: data.url || "/notices" },
     }),

@@ -17,9 +17,9 @@ test("admin edits the activity name and description; members see them without lo
     const challenges = await (await page.request.get("/api/admin/challenge")).json();
     expect((await member.request.put(endpoint, { data: { enabled: true, name, description } })).status()).toBe(403);
     await page.goto("/admin/prayer");
-    const section = page.getByRole("region", { name: "운동 이름·설명 및 탭 설정" });
-    await section.getByLabel("운동 이름", { exact: true }).fill(name);
-    await section.getByLabel("운동 설명", { exact: true }).fill(description);
+    const section = page.getByRole("region", { name: "활동 이름·설명 및 탭 설정" });
+    await section.getByLabel("활동 이름", { exact: true }).fill(name);
+    await section.getByLabel("활동 설명", { exact: true }).fill(description);
     await section.getByRole("button", { name: "저장", exact: true }).click();
     await expect(section.getByRole("status")).toContainText("저장했습니다");
     await expect(page.getByRole("heading", { name: `${name} 관리`, exact: true })).toBeVisible();
@@ -31,22 +31,22 @@ test("admin edits the activity name and description; members see them without lo
     await expect(member.locator(".activity-description script")).toHaveCount(0);
     await expect(member.getByRole("region", { name: "참여 완료 달력" })).toBeVisible();
     await member.getByRole("button", { name: "메뉴 열기", exact: true }).click();
-    await expect(member.getByRole("navigation", { name: "56사랑 메뉴" }).getByRole("link", { name, exact: true })).toBeVisible();
+    await expect(member.getByRole("navigation", { name: "삼덕사오 메뉴" }).getByRole("link", { name, exact: true })).toBeVisible();
     await expectNoOverflow(member);
-    await member.getByRole("navigation", { name: "56사랑 메뉴" }).getByRole("link", { name, exact: true }).click({ timeout: 10_000 });
+    await member.getByRole("navigation", { name: "삼덕사오 메뉴" }).getByRole("link", { name, exact: true }).click({ timeout: 10_000 });
     await expect.poll(() => member.locator(".community-sidebar").evaluate((element) => element.getBoundingClientRect().right)).toBeLessThanOrEqual(0);
     await expectNoOverflow(member);
     expect(await member.locator(".activity-description").evaluate((element) => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= window.innerWidth)).toBe(true);
     await member.screenshot({ path: testInfo.outputPath("member-activity-mobile.png"), fullPage: true });
     await page.reload();
-    await expect(section.getByLabel("운동 이름", { exact: true })).toHaveValue(name);
-    await expect(section.getByLabel("운동 설명", { exact: true })).toHaveValue(description);
+    await expect(section.getByLabel("활동 이름", { exact: true })).toHaveValue(name);
+    await expect(section.getByLabel("활동 설명", { exact: true })).toHaveValue(description);
     expect(await (await member.request.get("/api/checkins")).json()).toEqual(records);
     expect(await (await page.request.get("/api/admin/challenge")).json()).toEqual(challenges);
     await page.screenshot({ path: testInfo.outputPath("admin-activity-desktop.png"), fullPage: true });
 
     // Blank descriptions are intentionally removable; failed saves keep the draft and saved value.
-    await section.getByLabel("운동 설명", { exact: true }).fill("");
+    await section.getByLabel("활동 설명", { exact: true }).fill("");
     await page.route(`**${endpoint}`, async (route) => {
       if (route.request().method() === "PUT") await route.fulfill({ status: 503, json: { code: "UNAVAILABLE" } });
       else await route.continue();
@@ -54,7 +54,7 @@ test("admin edits the activity name and description; members see them without lo
     await section.getByRole("button", { name: "저장", exact: true }).click();
     await expect(section.getByRole("alert")).toBeVisible();
     expect((await (await page.request.get(endpoint)).json()).description).toBe(description);
-    await expect(section.getByLabel("운동 설명", { exact: true })).toHaveValue("");
+    await expect(section.getByLabel("활동 설명", { exact: true })).toHaveValue("");
     await page.unroute(`**${endpoint}`);
     await section.getByRole("button", { name: "저장", exact: true }).click();
     await expect(section.getByRole("status")).toContainText("저장했습니다");

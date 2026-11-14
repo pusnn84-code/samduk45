@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { getDb } from "../../db/client";
 import { noticeImages, noticeReads, notices, users } from "../../db/schema";
 import { DomainError } from "../../lib/http";
+import { noticeRevisionSql } from "./revision";
 import type {
   AdminNoticeInput,
   AdminNoticeRow,
@@ -96,6 +97,7 @@ export async function getPublishedNoticeForUser(
       id: notices.id,
       title: notices.title,
       body: notices.body,
+      revision: noticeRevisionSql,
       imageVersion: noticeImages.version,
       imageWidth: noticeImages.width,
       imageHeight: noticeImages.height,
@@ -123,6 +125,7 @@ export async function getPublishedNoticeForUser(
   return {
     ...memberSummary(row),
     body: row.body,
+    revision: row.revision,
     image: imageSummary(row.id, row.imageVersion, row.imageWidth, row.imageHeight),
   };
 }

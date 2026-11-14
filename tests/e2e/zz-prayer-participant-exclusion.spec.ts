@@ -63,7 +63,7 @@ test.describe("challenge-only participant exclusion", () => {
 
       await admin.setViewportSize({ width: 360, height: 800 });
       await admin.goto("/admin/prayer");
-      const remove = admin.getByRole("button", { name: `${participant!.name} 기도운동 명단에서 삭제`, exact: true });
+      const remove = admin.getByRole("button", { name: `${participant!.name} 말씀 묵상 명단에서 삭제`, exact: true });
       await expect(remove).toBeEnabled();
       await expectNoOverflow(admin);
       admin.once("dialog", (dialog) => dialog.dismiss());
@@ -75,7 +75,7 @@ test.describe("challenge-only participant exclusion", () => {
         expect(dialog.message()).toContain(participant!.name);
         expect(dialog.message()).toContain(before.challenge!.title);
         expect(dialog.message()).toContain(before.challenge!.startDate);
-        expect(dialog.message()).toContain("로그인, 회원정보, 개인 기도 체크 기록은 유지됩니다");
+        expect(dialog.message()).toContain("로그인, 회원정보, 개인 묵상 체크 기록은 유지됩니다");
         await dialog.accept();
       });
       const removal = admin.waitForResponse((response) => response.url().endsWith(endpoint) && response.request().method() === "DELETE");
@@ -111,7 +111,7 @@ test.describe("challenge-only participant exclusion", () => {
       expect(await (await admin.request.get("/api/admin/prayer")).json()).toEqual(after);
       await admin.reload();
       await expect(admin.getByRole("heading", { name: "참여자 명단", exact: true })).toBeVisible();
-      await expect(admin.getByRole("button", { name: `${participant!.name} 기도운동 명단에서 삭제`, exact: true })).toHaveCount(0);
+      await expect(admin.getByRole("button", { name: `${participant!.name} 말씀 묵상 명단에서 삭제`, exact: true })).toHaveCount(0);
 
       const personalResponse = await page.request.get("/api/checkins");
       expect(personalResponse.status()).toBe(200);
@@ -121,7 +121,7 @@ test.describe("challenge-only participant exclusion", () => {
         data: { prayerDate, challengeId: e2eChallengeId, checked: true },
       })).status()).toBe(200);
       await page.reload();
-      await expect(page.getByRole("heading", { name: "56공동체", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "45공동체", exact: true })).toBeVisible();
       await expect(page.getByText(e2eAccounts.member.name, { exact: true })).toBeVisible();
     } finally {
       try {

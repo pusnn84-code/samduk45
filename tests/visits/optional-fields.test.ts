@@ -1,3 +1,4 @@
+vi.mock("../../src/features/visits/shared-calendar", () => ({ recipientForVisit: vi.fn(async () => ({recipientName:"검증대상",recipientSam:"1-2샘"})) }));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -6,7 +7,9 @@ import { VisitRequestPanel } from "../../components/visits/VisitRequestPanel";
 const boundary = vi.hoisted(() => ({ session: vi.fn(), provider: vi.fn(), submit: vi.fn(), update: vi.fn() }));
 vi.mock("../../src/features/auth/http-session", () => ({ getCurrentSessionUser: boundary.session }));
 vi.mock("../../src/features/visits/provider-factory", () => ({ getSelectedCalendarProvider: boundary.provider }));
-vi.mock("../../src/features/visits/service", () => ({ submitVisitRequest: boundary.submit }));
+vi.mock("../../src/features/visits/internal-calendar", async importOriginal => ({
+  ...await importOriginal<typeof import("../../src/features/visits/internal-calendar")>(), submitInternalVisit: boundary.submit, updateInternalVisit: boundary.update,
+}));
 vi.mock("../../src/features/visits/admin-service", () => ({ updateVisitDetails: boundary.update, deleteVisit: vi.fn(), dbVisitAdminRepository: {} }));
 import { POST } from "../../app/api/visits/route";
 import { PATCH } from "../../app/api/admin/visits/[id]/route";
@@ -25,6 +28,15 @@ beforeEach(() => {
 });
 
 describe("optional visit details", () => {
+  it("explains immediate confirmation for the logged-in administrator", () => {
+    const html = renderToStaticMarkup(createElement(VisitRequestPanel, {
+      visitDate: booking.visitDate, requesterName: "검증", dateAvailable: true, isAdmin: true,
+      onClose() {}, onSuccess() {}, onDateUnavailable() {},
+    }));
+    expect(html).toContain("확정 일정 저장");
+    expect(html).toContain("수락 대기 없이");
+    expect(html).not.toContain("목사님이 신청을 수락하면");
+  });
   it("offers an enabled 신청 action with no required text inputs", () => {
     const html = renderToStaticMarkup(createElement(VisitRequestPanel, {
       visitDate: booking.visitDate, requesterName: "검증", dateAvailable: true,
@@ -40,7 +52,7 @@ describe("optional visit details", () => {
     "accepts missing or blank details and passes normalized strings to booking", async (details) => {
       const response = await POST(request({ ...booking, ...details }));
       expect(response.status).toBe(201);
-      expect(boundary.submit).toHaveBeenCalledWith({ ...booking, ...emptyFields, requesterUserId: "member" }, {});
+      expect(boundary.submit).toHaveBeenCalledWith({ ...booking, ...emptyFields, recipientName:"검증대상",recipientSam:"1-2샘", requesterUserId: "member" });
     },
   );
 
@@ -62,6 +74,6 @@ describe("optional visit details", () => {
     const patch = { ...emptyFields, location: " 교회 " };
     const response = await PATCH(request(patch), { params: Promise.resolve({ id: "00000000-0000-4000-8000-000000000501" }) });
     expect(response.status).toBe(200);
-    expect(boundary.update).toHaveBeenCalledWith(expect.any(String), { ...emptyFields, location: "교회" }, {});
+    expect(boundary.update).toHaveBeenCalledWith(expect.any(String), { ...emptyFields, location: "교회" });
   });
 });
