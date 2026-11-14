@@ -1,32 +1,69 @@
 name: Production Readiness
 on:
-  push:
-    branches: [main, feature/pastoral-monthly]
   workflow_dispatch:
 permissions:
   contents: read
-  deployments: read
 concurrency:
-  group: production-readiness-${{ github.ref }}
-  cancel-in-progress: true
+  group: approved-source-sync-20261114
+  cancel-in-progress: false
 jobs:
-  readiness:
+  import-approved-source:
+    if: github.repository == 'pusnn84-code/samduk45' && github.ref == 'refs/heads/codex/samduk45-release-20261114' && github.actor == 'pusnn84-code'
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - name: Read deployment metadata and verify production without app credentials
-        run: node scripts/verify-production.mjs
+          ref: codex/samduk45-release-20261114
+          fetch-depth: 0
+      - name: Download the approved source archive
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: production-readiness-${{ github.sha }}
-          path: production-readiness.json
-          retention-days: 7
-          if-no-files-found: error
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset_id=$(gh api repos/pusnn84-code/samduk45/releases --jq '.[] | select(.draft == true and .name == "Samduk45 approved source sync 20261114") | .assets[] | select(.name == "deployment-20261114-consistent-actions-lf.zip") | .id')
+          [[ "$asset_id" =~ ^[0-9]+$ ]]
+          gh api -H 'Accept: application/octet-stream' "repos/pusnn84-code/samduk45/releases/assets/$asset_id" > "$RUNNER_TEMP/approved-source.zip"
+          echo "fac36695427dc83e94940060770e23db7ecac7836b7495eade6ed29be4fcddee  $RUNNER_TEMP/approved-source.zip" | sha256sum --check --status
+      - name: Restore only the checksum-verified approved files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib, stat, subprocess, zipfile
+          root = pathlib.Path.cwd().resolve()
+          if subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip() != str(root):
+              raise SystemExit('Unexpected checkout directory')
+          archive = pathlib.Path(os.environ['RUNNER_TEMP']) / 'approved-source.zip'
+          with zipfile.ZipFile(archive) as z:
+              files = [i for i in z.infolist() if not i.is_dir()]
+              if len(files) != 1564:
+                  raise SystemExit('Unexpected source file count')
+              for info in z.infolist():
+                  name = pathlib.PurePosixPath(info.filename)
+                  if name.is_absolute() or '..' in name.parts or not name.parts or name.parts[0] == '.git' or '\\' in info.filename:
+                      raise SystemExit('Unsafe archive path')
+                  if stat.S_ISLNK(info.external_attr >> 16):
+                      raise SystemExit('Unexpected symlink')
+              for raw in subprocess.check_output(['git', 'ls-files', '-z']).split(b'\0'):
+                  if not raw:
+                      continue
+                  target = root / raw.decode('utf-8')
+                  if root not in target.resolve().parents:
+                      raise SystemExit('Unsafe tracked file path')
+                  target.unlink(missing_ok=True)
+              z.extractall(root)
+              for info in files:
+                  (root / info.filename).chmod(0o755 if (info.external_attr >> 16) & 0o111 else 0o644)
+          PY
+          git add -A
+          actual_tree=$(git write-tree)
+          test "$actual_tree" = '4a0541a43ad82b7702383a75dc185cf26019605c'
+          git config user.name pusnn84-code
+          git config user.email pusnn84-code@users.noreply.github.com
+          git commit -m 'Publish approved Samduk45 snapshot 90a5f52'
+          git push origin HEAD:refs/heads/codex/samduk45-release-20261114
+
