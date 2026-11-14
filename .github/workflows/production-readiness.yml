@@ -62,6 +62,7 @@ jobs:
           git add -A
           actual_tree=$(git write-tree)
           test "$actual_tree" = '4a0541a43ad82b7702383a75dc185cf26019605c'
+          git restore --source=HEAD --staged --worktree -- .github/workflows
           git config user.name pusnn84-code
           git config user.email pusnn84-code@users.noreply.github.com
           git commit -m 'Publish approved Samduk45 snapshot 90a5f52'
