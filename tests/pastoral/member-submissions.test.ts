@@ -20,7 +20,7 @@ function storage(options: { role?: Actor["role"]; bound?: boolean; headOnly?: bo
   const statements: { sql: string; params: unknown[] }[] = [];
   const saved = new Map<string,{ id:string; authorId:string; fingerprint:string; submitted:boolean }>();
   const targets = options.bound === false ? [{...sam,leaderRosterId:id(9)}] : options.ambiguous ? [sam,{...sam,id:id(8)}] : [sam];
-  let at = new Date("2026-12-31T15:01:00Z");
+  let at: Date | string = new Date("2026-12-31T15:01:00Z");
   const execute = vi.fn(async (query: SQL) => {
     const statement = decode(query); statements.push(statement);
     if (statement.sql.includes("insert into prayer_app.pastoral_reports")) {
@@ -45,11 +45,18 @@ function storage(options: { role?: Actor["role"]; bound?: boolean; headOnly?: bo
     if (text.includes('select id from prayer_app.pastoral_requests')) return [{id:id(11)}];
     throw new Error("UNEXPECTED_TEST_QUERY");
   });
-  return { statements, saved, transaction, actor:{...actor,role:options.role??actor.role}, setTime:(value:Date)=>{at=value;} };
+  return { statements, saved, transaction, actor:{...actor,role:options.role??actor.role}, setTime:(value:Date|string)=>{at=value;} };
 }
 
 beforeEach(() => vi.resetAllMocks());
 describe("atomic leader-only member pastoral submission", () => {
+  it("accepts the raw timestamp strings returned by the real PostgreSQL driver", async () => {
+    const state=storage(); state.setTime("2026-12-31 15:01:00+00");
+    await expect(submitMemberReport(actor,input())).resolves.toEqual({id:id(5),submitted:true});
+    const report=state.statements.find(statement=>statement.sql.includes("insert into prayer_app.pastoral_reports"))!;
+    expect(report.params[8]).toBe("2027-01-01");
+    expect(state.statements.find(statement=>statement.sql.includes("set submitted_at"))!.params[0]).toEqual(new Date("2026-12-31T15:01:00Z"));
+  });
   it("stores and retries meeting-only and person-only submissions as independent reports", async () => {
     const state=storage();
     const meeting={id:id(5),form:{entryKind:"meeting",meetings:input().form.meetings,attendeeIds:[member.id],memberNotes:[]}};

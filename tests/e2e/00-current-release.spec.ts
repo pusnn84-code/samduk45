@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { login, expectNoOverflow } from "./helpers";
+import postgres from "postgres";
+import {randomUUID} from "node:crypto";
+import {e2eAccounts} from "../fixtures/e2e-data";
 
 test.describe("current approved member experience", () => {
   test.skip(process.env.E2E_DATABASE_READY !== "1", "Disposable database only");
@@ -96,5 +99,43 @@ test.describe("current approved member experience", () => {
     await verse.click();
     await expect(page.getByRole("button",{name:"복사하기",exact:true})).toBeVisible();
     await expect(verse).toHaveAttribute("aria-pressed","true");
+  });
+  test("a bound leader submits meeting and individual notes separately to the real database",async({page})=>{
+    const url=new URL(process.env.DATABASE_URL??"");
+    if(process.env.CI!=="true"||!["127.0.0.1","localhost"].includes(url.hostname)||url.pathname!=="/prayer_e2e")throw new Error("DISPOSABLE_DATABASE_REQUIRED");
+    const db=postgres(url.toString(),{ssl:"require",max:1});
+    const samId=randomUUID(),member=e2eAccounts.member;
+    const [old]=await db`select village,sam,sam_label from prayer_app.member_roster where id=${member.rosterId}`;
+    try{
+      await db`update prayer_app.member_roster set village='1',sam='1',sam_label='1-1' where id=${member.rosterId}`;
+      await db`insert into prayer_app.sams(id,name,leader_name,leader_roster_id,leader_binding_locked) values(${samId},'1-1',${member.name},${member.rosterId},true)`;
+      await login(page);
+      await page.goto("/pastoral-reports");
+      await page.getByLabel("샘모임 날짜",{exact:true}).fill(new Date().toISOString().slice(0,10));
+      await page.getByLabel("샘모임 시간",{exact:true}).fill("14:00");
+      await page.getByLabel("샘모임 장소",{exact:true}).fill("테스트 장소");
+      await page.getByRole("button",{name:"샘모임 참석자",exact:true}).click();
+      await page.getByRole("button",{name:member.name,exact:true}).click();
+      await page.getByRole("button",{name:"선택 완료",exact:true}).click();
+      let saved=page.waitForResponse(r=>r.url().endsWith("/api/pastoral/submit")&&r.request().method()==="POST");
+      await page.getByRole("button",{name:"샘모임 제출",exact:true}).click();
+      let response=await saved;expect(response.status(),await response.text()).toBe(201);
+      await page.goto("/pastoral-reports");
+      await page.getByRole("tab",{name:"샘원 나눔·소식",exact:true}).click();
+      await page.getByRole("button",{name:"이름을 선택하세요",exact:true}).click();
+      await page.getByRole("button",{name:member.name,exact:true}).click();
+      await page.getByLabel(`${member.name} 나눔`,{exact:true}).fill("감사한 하루를 나눕니다.");
+      saved=page.waitForResponse(r=>r.url().endsWith("/api/pastoral/submit")&&r.request().method()==="POST");
+      await page.getByRole("button",{name:"나눔·소식 제출",exact:true}).click();
+      response=await saved;expect(response.status(),await response.text()).toBe(201);
+      const reports=await db`select form->>'entryKind' as kind,submitted_by,author_user_id,submitted_at from prayer_app.pastoral_reports where sam_id=${samId}`;
+      expect(reports.map(r=>r.kind).sort()).toEqual(["meeting","member"]);
+      expect(reports.every(r=>r.submitted_by===member.name&&r.author_user_id===member.userId&&r.submitted_at)).toBe(true);
+    }finally{
+      await db`delete from prayer_app.pastoral_reports where sam_id=${samId}`;
+      await db`delete from prayer_app.sams where id=${samId}`;
+      await db`update prayer_app.member_roster set village=${old.village},sam=${old.sam},sam_label=${old.sam_label} where id=${member.rosterId}`;
+      await db.end();
+    }
   });
 });
