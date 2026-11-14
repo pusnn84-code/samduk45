@@ -17,7 +17,11 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     services:
       postgres:
         image: postgres:17
@@ -38,7 +42,7 @@ jobs:
         run: git archive --format=tar.gz HEAD -o "${RUNNER_TEMP}/verification-source.tar.gz"
       - uses: actions/upload-artifact@v4
         with:
-          name: verification-source-${{ github.sha }}
+          name: verification-source-${{ matrix.browser }}-${{ github.sha }}
           path: ${{ runner.temp }}/verification-source.tar.gz
           retention-days: 1
           if-no-files-found: error
@@ -52,7 +56,7 @@ jobs:
       - run: npm run test:bootstrap
       - run: npm run lint
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: Enable TLS on the disposable database
         run: bash scripts/ci-postgres-tls.sh
         env:
@@ -66,14 +70,14 @@ jobs:
           echo "E2E_DATABASE_READY=1" >> "$GITHUB_ENV"
       - run: npx tsx scripts/seed-e2e.ts
       - run: npm test -- tests/db/connection-resilience.test.ts
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --project=${{ matrix.browser }}
         env:
           CI: "true"
       - name: Upload browser verification artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: browser-verification-${{ github.sha }}
+          name: browser-verification-${{ matrix.browser }}-${{ github.sha }}
           path: |
             playwright-report/
             test-results/
