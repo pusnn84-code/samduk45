@@ -65,7 +65,6 @@ export function AppInstallButton() {
   const [guide, setGuide] = useState(() => installGuide(""));
   const [copyStatus, setCopyStatus] = useState("");
   const [manualCopy, setManualCopy] = useState(false);
-  useEffect(() => { setGuide(installGuide(navigator.userAgent, navigator.platform, navigator.maxTouchPoints)); }, []);
   if (installer?.installed) return null;
 
   async function copyAddress() {
@@ -74,6 +73,7 @@ export function AppInstallButton() {
   }
 
   async function handleInstall() {
+    setGuide(installGuide(navigator.userAgent, navigator.platform, navigator.maxTouchPoints));
     setBusy(true);
     try {
       if (await installer?.install()) return;

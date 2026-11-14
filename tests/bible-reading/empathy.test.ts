@@ -18,7 +18,7 @@ function storage(missing=false){
   if(statement.sql.includes("count(*)"))return {rows:[{count:reacted.size,reacted:reacted.has(String(statement.params[0]))}]};
   throw new Error("UNEXPECTED_QUERY");
  });
- const tx={execute};mocks.db.mockReturnValue({transaction:async(fn:(tx:typeof tx)=>unknown)=>fn(tx)});
+ const tx={execute};mocks.db.mockReturnValue({transaction:async(fn:(transaction:typeof tx)=>unknown)=>fn(tx)});
  return {reacted,statements};
 }
 beforeEach(()=>vi.resetAllMocks());

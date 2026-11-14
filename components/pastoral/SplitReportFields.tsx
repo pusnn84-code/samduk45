@@ -45,13 +45,28 @@ export function SplitReportFields({form, onChange, people, error, retry, savedMe
   form: ReportForm; onChange: (value: ReportForm) => void; people: SamPerson[] | null; error: boolean; retry: () => void; savedMember?: {id:string; version:number};
 }) {
   const [picker, setPicker] = useState(false);
-  const draftNotes = useRef(new Map<string, MemberNote>());
-  useEffect(() => {if (savedMember) draftNotes.current.delete(savedMember.id);}, [savedMember]);
+  const [draftNotes, setDraftNotes] = useState(() => new Map<string, MemberNote>());
+  const savedKey = savedMember ? `${savedMember.id}:${savedMember.version}` : "";
+  const [lastSavedKey, setLastSavedKey] = useState(savedKey);
+  if (savedKey !== lastSavedKey) {
+    setLastSavedKey(savedKey);
+    if (savedMember) setDraftNotes(notes => {
+      const next = new Map(notes);
+      next.delete(savedMember.id);
+      return next;
+    });
+  }
   const current = form.memberNotes?.[0];
   const kind = form.entryKind;
   const meeting = form.meetings[0] ?? {when:"",place:"",attendees:""};
   const updateMeeting = (patch: Partial<typeof meeting>) => onChange({...form, meetings:[{...meeting,...patch}]});
   const canPick = people !== null && !error;
+  function updateNote(key: "sharing" | "prayer" | "news", value: string) {
+    if (!current) return;
+    const note = {...current, [key]: value};
+    setDraftNotes(notes => new Map(notes).set(note.rosterId, note));
+    onChange({...form, memberNotes: [note]});
+  }
   return <section className="pastoral-split-fields">
     {error ? <p role="alert">샘 명단을 불러오지 못했습니다. <button type="button" onClick={retry}>다시 불러오기</button></p> : people === null ? <p role="status">샘 명단을 불러오는 중입니다.</p> : !people.length && <p>등록된 샘원이 없습니다. 관리자에게 확인해 주세요.</p>}
     {kind === "meeting" ? <>
@@ -61,13 +76,13 @@ export function SplitReportFields({form, onChange, people, error, retry, savedMe
       <div className="pastoral-name-chips">{(form.attendeeIds ?? []).map(id => <span key={id}>{people?.find(person => person.rosterId === id)?.member ?? "기존 참석자"}</span>)}</div></div>
     </> : <>
       <div><p className="pastoral-field-label">기록할 샘원</p><button type="button" className="pastoral-name-trigger" disabled={!canPick} onClick={() => setPicker(true)}>{current?.member || "이름을 선택하세요"}<span aria-hidden="true">⌄</span></button></div>
-      {current && ([['sharing','나눔'],['prayer','기도제목'],['news','소식']] as const).map(([key,label]) => <label key={key}>{label}<textarea aria-label={`${current.member} ${label}`} rows={3} maxLength={2000} value={current[key]} onChange={event => {const note={...current,[key]:event.target.value};draftNotes.current.set(note.rosterId,note);onChange({...form,memberNotes:[note]});}}/></label>)}
+      {current && ([['sharing','나눔'],['prayer','기도제목'],['news','소식']] as const).map(([key,label]) => <label key={key}>{label}<textarea aria-label={`${current.member} ${label}`} rows={3} maxLength={2000} value={current[key]} onChange={event => updateNote(key, event.target.value)}/></label>)}
     </>}
     {picker && people && <NamePicker people={people} multiple={kind === "meeting"} selected={kind === "meeting" ? form.attendeeIds ?? [] : current ? [current.rosterId] : []} onClose={() => setPicker(false)} onSelect={ids => {
       if (kind === "meeting") {onChange({...form,attendeeIds:ids,meetings:[{...meeting,attendees:ids.map(id => people.find(person => person.rosterId === id)!.member).join(", ")}]});return;}
-      if (current) draftNotes.current.set(current.rosterId,current);
+      if (current) setDraftNotes(notes => new Map(notes).set(current.rosterId,current));
       const person=people.find(person => person.rosterId === ids[0]);
-      if (person) onChange({...form,memberNotes:[draftNotes.current.get(person.rosterId) ?? {...person,sharing:"",prayer:"",news:""}]});
+      if (person) onChange({...form,memberNotes:[draftNotes.get(person.rosterId) ?? {...person,sharing:"",prayer:"",news:""}]});
     }}/>}
   </section>;
 }
