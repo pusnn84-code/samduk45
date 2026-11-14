@@ -17,7 +17,7 @@ describe("삼덕사오 member shell", () => {
   it("provides a page for every member tab", () => {
     const pages = [
       ["app/(member)/page.tsx", "MenuHome"],
-      ["app/(member)/visits/page.tsx", "심방신청"],
+      ["app/(member)/visits/page.tsx", "심방·목회일정"],
       ["app/(member)/prayer-requests/page.tsx", "기도요청"],
       ["app/(member)/notices/page.tsx", "공지"],
     ] as const;

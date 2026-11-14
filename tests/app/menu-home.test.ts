@@ -17,7 +17,7 @@ describe("compact login landing menu", () => {
     expect(links).toEqual(memberLinks);
     expect(html.match(/class="menu-home-card"/g)).toHaveLength(11);
     expect(html).toContain('aria-label="메뉴 선택"');
-    expect(html).toContain("앱 설치하기</button>");
+    expect(html).toContain("홈 화면에 추가</button>");
     for (const label of ["공지", "성경통독", "기도요청", "심방요청", "도란도란", "마을과 샘", "샘목양지", "2027 사역안내"]) expect(html).toContain(`<strong>${label}</strong>`);
     expect(html).not.toContain("menu-home-description");
   });

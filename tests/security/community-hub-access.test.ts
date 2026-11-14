@@ -30,7 +30,9 @@ describe("삼덕사오 community hub access boundaries", () => {
 
     for (const path of routes) {
       const source = readFileSync(path, "utf8");
-      expect(source, path).toContain("requireAdmin");
+      // Shared-calendar mutations also have runtime authorization coverage in
+      // tests/visits/shared-calendar-routes.test.ts and use an explicit guard.
+      expect(source, path).toMatch(/requireAdmin|if\s*\(\s*!user\s*\|\|\s*user\.role\s*!==\s*"admin"\s*\)\s*return NextResponse\.json\(\{code:"FORBIDDEN"\},\{status:403/);
     }
   });
 
