@@ -1,0 +1,32 @@
+.pin-auth-page { width: min(100% - 36px, 390px); margin: 0 auto; padding: 42px 0 28px; text-align: center; color: #141414; }
+.pin-auth-logo { display: block; width: 104px; height: auto; margin: 0 auto 24px; }
+.pin-auth-page h1, .pin-auth-page h2 { font-size: clamp(1.4rem, 6vw, 1.8rem); line-height: 1.4; margin: 0 0 12px; word-break: keep-all; }
+.pin-auth-page p { color: #626262; line-height: 1.7; font-size: .94rem; }
+.pin-auth-page .auth-card { border: 0; box-shadow: none; padding: 0; margin: 26px 0 0; background: transparent; text-align: left; }
+.pin-auth-page .auth-card label { display: block; margin: 16px 0; }
+.pin-auth-page input { width: 100%; }
+.pin-auth-page .primary-button { display: block; width: 100%; background: #111; color: #fff; border-color: #111; min-height: 48px; }
+.pin-auth-page .helper-text { font-size: .8rem; color: #777; }
+.pin-brand-colors { display: flex; width: 100px; height: 6px; margin: 24px auto; }
+.pin-brand-colors i { flex: 1; background: #e70c25; }
+.pin-brand-colors i:nth-child(2) { background: #ffa600; }
+.pin-brand-colors i:nth-child(3) { background: #00a8e9; }
+.pin-brand-colors i:nth-child(4) { background: #f0008d; }
+.pin-entry { position: relative; min-height: 70px; display: flex; align-items: center; margin: 12px 0 22px; border-radius: 10px; }
+.pin-entry:focus-within { outline: 2px solid #079caf; outline-offset: 3px; }
+.pin-entry input { position: absolute; inset: 0; height: 100%; opacity: .01; font-size: 16px; cursor: text; }
+.pin-dots { display: flex; justify-content: space-evenly; align-items: center; width: 100%; pointer-events: none; }
+.pin-dots i { width: 22px; height: 22px; border: 2px solid #bfc3c6; border-radius: 50%; background: #fff; }
+.pin-dots i[data-filled="true"] { border-color: #00b6c9; background: #00b6c9; }
+.pin-keypad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.pin-keypad button { min-height: 58px; border: 1px solid #e1e2e3; border-radius: 11px; background: #fafafa; color: #111; font-size: 1.6rem; font-weight: 650; touch-action: manipulation; cursor: pointer; }
+.pin-keypad button:active { background: #dff7f8; }
+.pin-keypad button:focus-visible { outline: 2px solid #079caf; outline-offset: 2px; }
+.pin-keypad button:disabled { opacity: .5; cursor: default; }
+.pin-text-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px; margin: 14px auto 0; color: #068c9e; text-decoration: underline; background: transparent; border: 0; font-weight: 650; cursor: pointer; }
+.pin-submit { margin-top: 16px; }
+.pin-auth-links { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; margin-top: 28px; font-size: .8rem; color: #777; }
+.pin-auth-page .error-text { color: #ae1c34; }
+.pin-auth-theme { margin-top: 26px; color: #777; font-size: .8rem; }
+.pin-auth-theme p { font-size: .75rem; margin-top: 6px; }
+@media (max-height: 740px) { .pin-auth-page { padding-top: 22px; } .pin-auth-logo { width: 80px; margin-bottom: 16px; } .pin-keypad button { min-height: 50px; } .pin-brand-colors { margin: 16px auto; } .pin-entry { margin-bottom: 14px; min-height: 56px; } }

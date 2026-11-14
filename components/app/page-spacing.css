@@ -1,0 +1,33 @@
+/* One outer gutter for every member page, including feature-specific layouts. */
+.community-content,
+.admin-hub-content {
+  --page-gutter: clamp(20px, 3vw, 32px);
+  padding-inline: max(var(--page-gutter), env(safe-area-inset-left)) max(var(--page-gutter), env(safe-area-inset-right));
+}
+
+.community-app .community-content > :is(.shell, .menu-home, .bible-reading, .birthdays-page, .community-directory, .plan2027-member-page, .scripture-library, .pastoral) {
+  width: min(100%, var(--page-max-width, 1080px));
+  min-width: 0;
+  margin-inline: auto;
+}
+.community-content > .menu-home,
+.community-content > .birthdays-page { --page-max-width: 920px; }
+.community-content > .community-directory,
+.community-content > .plan2027-member-page { --page-max-width: 1120px; }
+.community-content > .scripture-library { --page-max-width: 800px; }
+.community-app .community-content > .pastoral { padding-block: 28px 48px; }
+.community-content a.primary-button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 18px; line-height: 1.5; text-align: center; text-decoration: none; }
+.admin-hub .admin-hub-content > .admin-shell { width: min(100%, 1260px); }
+
+@media (max-width: 860px) {
+  .community-content,
+  .admin-hub-content { --page-gutter: 20px; }
+  .community-app .community-content > .pastoral { padding-block: 20px 36px; }
+  .community-sidebar:not(.is-open) { visibility: hidden; pointer-events: none; box-shadow: none; }
+}
+@media (max-width: 900px) {
+  .admin-hub-sidebar:not(.is-open) { visibility: hidden; pointer-events: none; box-shadow: none; }
+}
+.visit-day small{display:block;min-width:0;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.visit-day.is-unavailable{background:#fff;color:var(--ink);cursor:default}.visit-day.is-past,.internal-visit-day.is-past{background:rgba(0,0,0,.10)}
+.community-content>.autumn-light{width:100%;max-width:900px}

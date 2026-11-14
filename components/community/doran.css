@@ -1,0 +1,72 @@
+.community.doran { max-width: 800px; padding-bottom: 48px; color: var(--ink); }
+.doran-heading { margin: 8px 0 22px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.doran .doran-eyebrow { color: #73736c; font-size: .75rem; letter-spacing: .1em; font-weight: 750; margin: 0 0 8px; }
+.doran-heading h2 { margin: 0; font-size: clamp(2.3rem, 5vw, 3.3rem); letter-spacing: -.065em; line-height: 1.2; }
+.doran-heading h2 > span { color: var(--pink); }
+.doran-heading > p:last-child { margin: 12px 0 0; font-size: 1.05rem; color: #64645b; }
+.doran-intro { padding: 16px 20px; border: 1px solid #eee3ca; background: #fff9ec; border-radius: 12px; margin-bottom: 30px; }
+.doran-intro summary { cursor: pointer; font-weight: 650; font-size: .9375rem; }
+.doran-intro p { color: #5e5b50; font-size: .9375rem; line-height: 1.85; margin: 16px 0 0; }
+.doran-feed { max-width: 640px; margin-inline: auto; }
+.doran-feed-toolbar { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.doran-feed-toolbar h3 { margin: 0; font-size: 1.3rem; letter-spacing: -.04em; }
+.doran-feed-toolbar .community-actions { margin: 0; }
+.doran-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 24px; }
+.doran-filters a { display: inline-flex; align-items: center; min-height: 42px; max-width: 100%; padding: 8px 14px; border: 1px solid #e0e0d8; border-radius: 999px; font-size: .875rem; text-decoration: none; background: #fff; overflow-wrap: anywhere; }
+.doran-filters a[aria-current="page"] { border-color: #171717; background: #171717; color: white; }
+.doran-post { border: 1px solid #dfdfd8; border-radius: 16px; overflow: hidden; background: white; margin-bottom: 24px; }
+.doran-post-heading { display: flex; align-items: center; gap: 12px; padding: 16px 18px; }
+.doran-avatar { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; border: 2px solid #efa837; outline: 2px solid #fff; background: #faf0de; color: #5c4c29; font-size: 1rem; font-weight: 750; }
+.doran-post-heading > div { min-width: 0; display: grid; gap: 2px; }
+.doran-post-heading strong { font-size: .9375rem; overflow-wrap: anywhere; }
+.doran-post-heading > div > span { color: #79796f; font-size: .75rem; overflow-wrap: anywhere; }
+.doran-post-more { margin-left: auto; display: grid; place-items: center; width: 44px; min-height: 44px; text-decoration: none; font-size: 1.5rem; }
+.doran-post .community-photos { display: flex; gap: 0; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; margin: 0; background: #f4f4ef; }
+.doran-post .community-photo { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; margin: 0; border-radius: 0; }
+.doran-post .community-photo img { width: 100%; height: auto; max-height: 660px; object-fit: contain; display: block; border-radius: 0; }
+.doran-post-content { padding: 0 18px 20px; }
+.doran-post-actions { display: flex; align-items: center; gap: 18px; padding: 10px 0 8px; }
+.doran-post .community-likes { padding: 0; display: block; }
+.doran-post .community-like-button, .doran-comment-toggle { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; padding: 6px 0; border: 0; background: transparent; color: #292923; font-size: .875rem; border-radius: 0; cursor: pointer; }
+.doran-post .community-like-button.is-liked { color: #e12c56; }
+.doran-caption-title { display: block; font-weight: 750; text-decoration: none; font-size: .9375rem; margin-bottom: 6px; overflow-wrap: anywhere; }
+.doran-caption { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; margin: 0; white-space: pre-wrap; line-height: 1.75; font-size: .9375rem; overflow-wrap: anywhere; }
+.doran-attachment-link { display: inline-block; font-size: .8rem; color: #747469; margin-top: 8px; }
+.doran-post .community-comments { border: 0; border-top: 1px solid #e7e7df; border-radius: 0; margin: 0; padding: 20px 18px; box-shadow: none; }
+.doran-post .community-comments h3 { font-size: 1rem; }
+.doran-empty { display: grid; justify-items: center; gap: 15px; text-align: center; padding: 50px 24px; border: 1px dashed #cfcfc4; border-radius: 16px; background: #fff; }
+.doran-empty svg { color: #868679; }
+.doran-empty h3 { margin: 0; font-size: 1.2rem; letter-spacing: -.04em; }
+.doran-empty p { margin: 0; color: #6d6d60; line-height: 1.8; font-size: .9375rem; }
+.doran-drafts { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 12px; }
+.doran-drafts summary { min-height: 44px; cursor: pointer; padding: 10px 0; font-size: .875rem; color: #6b6b60; }
+.doran .community-post, .doran .community-editor { border-color: #dfdfd8; }
+.doran-photo-button {
+  display: flex;
+  width: 100%;
+  min-height: 104px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px dashed #9c9c90;
+  border-radius: 12px;
+  background: #f6f6f3;
+  color: #292923;
+  font-weight: 700;
+  cursor: pointer;
+}
+.doran-photo-button:hover { background: #efefe9; }
+.doran-photo-button:disabled { opacity: .6; cursor: default; }
+.doran .community-file-picker { margin-bottom: 18px; }
+.doran .community-comment-form { display: flex; align-items: center; gap: 8px; padding-top: 12px; }
+.doran .community-comment-form textarea { flex: 1; min-width: 0; margin: 0; }
+.doran .community-comment-form button { flex-shrink: 0; }
+@media (max-width: 520px) {
+  .doran-feed-toolbar .community-actions { width: 100%; justify-content: space-between; }
+  .doran-heading { margin-top: 0; }
+  .doran-intro { padding: 14px 16px; }
+  .doran-post-heading { padding: 12px; }
+  .doran-post-content { padding-inline: 14px; }
+  .doran-post { border-radius: 12px; }
+}

@@ -1,0 +1,81 @@
+"use client";
+import { PrayerComments } from "../../prayer-requests/PrayerComments";
+import { prayerVisibilityLabels } from "../../../src/features/prayer-requests/visibility";
+
+import type {
+  AdminPrayerRequestDetail,
+  PrayerRequestStatus,
+} from "../../../src/features/prayer-requests/types";
+
+const actions: Array<{ status: PrayerRequestStatus; label: string }> = [
+  { status: "received", label: "접수" },
+  { status: "praying", label: "기도중" },
+  { status: "completed", label: "완료" },
+];
+
+export function AdminPrayerRequestDetail({
+  request,
+  busy,
+  onStatusChange,
+  onDelete,
+}: {
+  request: AdminPrayerRequestDetail | null;
+  busy: boolean;
+  onStatusChange: (status: PrayerRequestStatus) => void;
+  onDelete: () => void;
+}) {
+  if (!request) {
+    return (
+      <section className="card empty-state admin-request-detail">
+        <strong>기도요청을 선택해 주세요.</strong>
+      </section>
+    );
+  }
+
+  const requestedDate = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul", year: "numeric", month: "numeric", day: "numeric",
+  }).format(new Date(request.createdAt));
+
+  return (
+    <section className="card admin-request-detail" aria-busy={busy || undefined}>
+      <div>
+        <p className="eyebrow">요청자</p>
+        <p className="helper-text">{prayerVisibilityLabels[request.visibility??"private"]}{request.visibility?.includes("anonymous")?" · 목사님에게는 실제 이름이 표시됩니다.":""}</p>
+        <div className="admin-request-requester">
+          <h2>{request.requesterName}</h2>
+          <time dateTime={request.createdAt} aria-label={`요청일 ${requestedDate}`}>{requestedDate}</time>
+        </div>
+      </div>
+
+      <div className="admin-request-content">
+        <p>{request.content}</p>
+      </div>
+      {request.completedByRequester && <p className="success-text">신청자가 기도 완료로 표시했습니다.{request.completedAt ? " (" + new Date(request.completedAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }) + ")" : ""}</p>}
+
+      <div>
+        <p className="helper-text">처리 상태</p>
+        <div className="admin-request-actions">
+          {actions.map((action) => (
+            <button
+              key={action.status}
+              type="button"
+              className={
+                request.status === action.status
+                  ? "primary-button compact-button"
+                  : "text-button"
+              }
+              disabled={busy || request.status === action.status}
+              onClick={() => onStatusChange(action.status)}
+            >
+              {action.label}
+            </button>
+          ))}
+          <button type="button" className="text-button danger-button" disabled={busy} onClick={onDelete}>
+            기도요청 삭제
+          </button>
+        </div>
+      </div>
+      <PrayerComments key={request.id} requestId={request.id} />
+    </section>
+  );
+}

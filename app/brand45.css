@@ -1,0 +1,49 @@
+/* Samduk 45 brand system — loaded after feature styles. */
+:root{--ink:#141414;--paper:#f7f7f5;--line:#e5e5e2;--red:#df1227;--orange:#ffa600;--blue:#009fe3;--pink:#ec008c}
+body{background:var(--paper);color:var(--ink);letter-spacing:-.025em}h1,h2,h3,strong{color:var(--ink)}
+a,button,input,textarea,select{transition:background-color .16s,border-color .16s,box-shadow .16s;-webkit-tap-highlight-color:transparent}
+button:disabled{cursor:wait;opacity:.6}:focus-visible{outline-color:var(--blue)!important}
+.primary-button,.pastoral button.primary-button,.pastoral button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff;border-radius:10px}
+.primary-button:hover:not(:disabled){background:#353535;box-shadow:4px 4px 0 var(--orange)}
+.card,.admin-setting-card,.admin-modal{border-color:var(--line);box-shadow:0 4px 20px #14141404;border-radius:16px}
+input,select,textarea{border-color:#d9d9d5;border-radius:9px}input:focus,textarea:focus{border-color:var(--blue)}
+.eyebrow{color:#686868;letter-spacing:.05em}
+.community-sidebar{background:#fff;color:var(--ink);border-right:1px solid var(--line);padding:30px 18px 20px;overflow-y:auto;overscroll-behavior:contain}
+.sidebar-brand{display:flex;align-items:center;justify-content:flex-start;padding-bottom:24px;width:fit-content;line-height:0}.sidebar-brand img{display:block;width:104px;height:auto;max-width:100%}
+.member-nav{gap:8px;flex-shrink:0}.member-nav-link{--menu-accent:var(--blue);position:relative;color:#656565;border-radius:9px;min-height:52px}.member-nav-link:hover{color:var(--ink);background:#f4f4f1}
+.member-nav-link[data-nav-icon="book"],.member-nav-link[data-nav-icon="journal"]{--menu-accent:var(--pink)}.member-nav-link[data-nav-icon="calendar"]{--menu-accent:var(--orange)}.member-nav-link[data-nav-icon="heart"]{--menu-accent:var(--red)}
+.member-nav-link[data-nav-icon="people"]{--menu-accent:var(--orange)}
+.member-nav-link[data-nav-icon="reading"]{--menu-accent:var(--blue)}
+.sidebar-brand{text-decoration:none;color:inherit}
+.member-nav-link.is-active{color:var(--ink);background:#f1f1ee;box-shadow:none}.member-nav-link.is-active::before{content:"";position:absolute;left:-18px;width:4px;height:24px;background:var(--menu-accent)}
+.member-nav-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:22px;color:#777}.menu-icon{display:block;flex-shrink:0}.member-nav-link:hover .member-nav-icon{color:var(--ink)}.member-nav-link.is-active .member-nav-icon{color:var(--menu-accent)}.community-menu-button .menu-icon{margin:auto;width:22px;height:22px}
+.sidebar-footer{border-color:var(--line);flex-shrink:0}.sidebar-footer a,.sidebar-footer .text-button{color:#636363}
+.community-header{background:#fff;text-align:left;justify-content:flex-start;min-height:184px;border-color:var(--line);padding:34px clamp(24px,5vw,64px)}
+.community-header>div{flex:1;min-width:0;max-width:100%}
+.community-header h1{color:var(--ink);font-size:clamp(1.55rem,3vw,2.5rem);font-weight:850;letter-spacing:-.065em}
+.community-header .brand-kicker,.brand-kicker{font-size:10px;font-weight:800;letter-spacing:.18em;color:#777;margin:0 0 18px}
+.community-header .community-verse{font-size:13px;color:#777}.brand-dot{color:var(--pink)}
+.progress-card{border-top:4px solid var(--blue)}.progress-percent{color:var(--ink);font-weight:850;letter-spacing:-.07em}
+.calendar-cell.is-today{outline-color:var(--orange)}.calendar-cell.is-checked{background:#eaf7fe;border-color:#8fd6f5}.check-mark{color:#007caf}.calendar-cell.is-mutable{box-shadow:inset 0 0 0 1px #b4dcee}
+.sam-option,.bucket-grid div{background:#f4f4f1}.admin-kpis article:nth-child(3n+1){border-top:3px solid var(--blue)}.admin-kpis article:nth-child(3n+2){border-top:3px solid var(--orange)}.admin-kpis article:nth-child(3n){border-top:3px solid var(--pink)}
+.brand-login{min-height:100svh;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(380px,.85fr);background:#fff}
+.brand-welcome{position:relative;display:flex;flex-direction:column;justify-content:center;padding:72px clamp(32px,6vw,100px);background:#f5f5f2;overflow:hidden}
+.brand-wordmark{display:block;width:min(100%,520px);height:auto;mix-blend-mode:multiply;margin:32px 0 38px}
+.brand-welcome h1{font-size:clamp(36px,4.7vw,68px);line-height:1.22;letter-spacing:-.075em;margin:0 0 24px;font-weight:850}
+.brand-intro{color:#73736f;font-size:15px;line-height:1.9;margin:0;word-break:keep-all}
+.brand-color-blocks{display:flex;gap:7px;margin:40px 0 32px}.brand-color-blocks i{display:block;width:13px;height:13px;background:var(--red)}.brand-color-blocks i:nth-child(2){background:var(--orange)}.brand-color-blocks i:nth-child(3){background:var(--blue)}.brand-color-blocks i:nth-child(4){background:var(--pink)}
+.brand-scripture{font-size:13px;color:#71716e;line-height:1.8;margin:0}.brand-scripture span{display:block;color:#999;font-size:11px;margin-top:4px}
+.brand-login-panel{align-self:center;padding:64px clamp(28px,5vw,80px);max-width:600px;width:100%;justify-self:center}
+.brand-login-icon{display:block;margin-bottom:32px;border:1px solid var(--line);border-radius:17px}.brand-login-panel .brand-kicker{font-size:9px;margin-bottom:14px}
+.brand-login-panel h2{font-size:28px;letter-spacing:-.06em;margin:0 0 12px}.brand-login-description{color:#868681;font-size:14px;margin-bottom:36px}
+.brand-login-panel .auth-card{padding:0;border:0;box-shadow:none;border-radius:0;gap:21px}.brand-login-panel label span{font-size:13px;font-weight:650}
+.brand-login-panel input{height:54px;background:#fafaf8;font-size:14px}.brand-login-panel .primary-button{min-height:54px;margin-top:6px}
+.brand-login-panel .helper-text{font-size:11px;line-height:1.8;color:#90908a;margin:0}
+.brand-login-links{display:flex;gap:24px;margin:38px 0 18px;padding-top:24px;border-top:1px solid var(--line)}.brand-login-links a{font-size:11px;color:#777;text-decoration:none}.brand-login-links a:hover{text-decoration:underline}
+.brand-copyright{font-size:10px;color:#aaa;letter-spacing:.03em}
+@media(max-width:860px){.community-header{min-height:150px;padding:25px 24px 25px 70px}.community-header h1{display:block;min-height:0;font-size:23px}.community-header .brand-kicker{font-size:8px;margin-bottom:12px}.community-header .community-verse{font-size:11px;line-height:1.6}.community-menu-button{top:45px;left:14px}.brand-login{grid-template-columns:1fr}.brand-welcome{padding:40px 28px 34px}.brand-wordmark{width:230px;margin:18px 0 22px}.brand-welcome h1{font-size:38px;margin-bottom:16px}.brand-intro{font-size:13px}.brand-color-blocks{margin:24px 0 0}.brand-scripture{display:none}.brand-login-panel{padding:36px 28px;max-width:480px}.brand-login-icon{display:none}.brand-login-panel h2{font-size:25px}.brand-login-description{margin-bottom:26px}}
+@media(prefers-reduced-motion:reduce){a,button,input,textarea,select{transition:none}}
+@media(max-width:860px){.community-app.is-menu-home .community-header{height:88px;min-height:88px;padding:10px 20px 10px 66px}.community-app.is-menu-home .community-header .brand-kicker{font-size:8px;letter-spacing:.09em;margin:0 0 3px}.community-app.is-menu-home .community-header h1{font-size:20px;line-height:1.2;margin:0 0 3px}.community-app.is-menu-home .community-header .community-verse{font-size:10px;line-height:1.4}.community-app.is-menu-home .community-menu-button{top:22px;left:12px}}
+@media(max-width:860px){.community-header h1{min-width:0;max-width:100%;margin:0 0 8px}}
+.admin-hub{background:var(--paper)}.admin-hub-sidebar{background:#fff;color:var(--ink);border-right:1px solid var(--line)}.admin-hub-brand span{color:#777}.admin-hub-link{color:#666}.admin-hub-link:hover{background:#f5f5f2}.admin-hub-link.is-active{color:var(--ink);background:#f1f1ee;border-left:3px solid var(--orange)}.admin-hub-footer{border-color:var(--line)}.admin-hub-footer a,.admin-hub-footer .text-button{color:#666}.admin-hub-menu-button{background:var(--ink)}
+.public-site{background:var(--paper);color:var(--ink)}.public-site h1 span{color:var(--ink)}.public-button{background:var(--ink)}.public-callout{background:#fff8e9;border-color:#f5e7be}.public-feature,.public-toc{border-color:var(--line)}.public-eyebrow,.public-lead,.public-feature p,.public-footer,.public-policy a{color:#666}
