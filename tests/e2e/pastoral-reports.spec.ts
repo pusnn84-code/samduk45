@@ -6,7 +6,7 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 import { hashPhonePassword, normalizeName, phoneLookupHash } from "../../src/features/auth/crypto";
 import { encryptRosterPhone } from "../../src/features/roster/crypto";
 import { seoulToday, type MemberSubmission } from "../../src/features/pastoral/policy";
-import { login, expectNoOverflow } from "./helpers";
+import { login, loginIdentity, expectNoOverflow } from "./helpers";
 
 // These tests must never run against the user's Supabase project.
 test.describe("private pastoral reports", () => {
@@ -24,12 +24,7 @@ test.describe("private pastoral reports", () => {
   const digest = (data: Buffer | string) => createHash("sha256").update(data).digest("hex");
 
   async function loginAs(page: Page, kind: keyof typeof accounts) {
-    await page.goto("/login");
-    await page.getByLabel("이름 (아이디)").fill(accounts[kind].name);
-    await page.getByLabel("비밀번호", { exact: true }).fill(accounts[kind].phone);
-    await page.getByRole("button", { name: "로그인", exact: true }).click();
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole("heading", { name: "메뉴 선택", exact: true })).toBeVisible();
+    await loginIdentity(page, accounts[kind]);
   }
   function input(): MemberSubmission {
     return { id: randomUUID(), form: {

@@ -1019,7 +1019,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   gap: 16px;
   align-items: start;
 }
+.admin-notice-layout > *, .admin-notice-editor .admin-form > *, .notice-image-editor > label { min-width: 0; }
 .admin-notice-editor { position: sticky; top: 100px; }
+.admin-notice-editor .admin-form, .admin-notice-editor label { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.admin-notice-editor input, .admin-notice-editor textarea { min-width: 0; max-width: 100%; }
+.admin-notice-row > div { min-width: 0; }
+.admin-notice-title-line { flex-wrap: wrap; overflow-wrap: anywhere; }
 .admin-notice-editor h2 { margin: 0; }
 .admin-form textarea {
   width: 100%;
@@ -1064,7 +1069,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   color: #067647;
 }
 @media (max-width: 900px) {
-  .admin-notice-layout { grid-template-columns: 1fr; }
+  .admin-notice-layout { grid-template-columns: minmax(0, 1fr); }
   .admin-notice-editor { position: static; }
 }
 
@@ -1385,4 +1390,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .visit-shared-layout .visit-calendar-grid, .visit-shared-layout .visit-weekdays { gap: 4px; }
   .visit-shared-layout .visit-day { border-radius: 8px; }
   .visit-shared-layout .visit-calendar-card { padding: 12px; }
+}
+
+@media (max-width: 600px) {
+  .admin-notice-row { flex-direction: column; gap: 8px; }
+  .admin-notice-row .header-actions { flex-wrap: wrap; white-space: normal; }
 }

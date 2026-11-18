@@ -27,8 +27,11 @@ export async function submitMemberReport(actor: Actor, value: unknown) {
       if (existing.authorId !== actor.id || existing.fingerprint !== fingerprint || !existing.submitted) throw new ReportError("ID_CONFLICT", 409);
       return { id: existing.id, submitted: true };
     }
-    const [moment] = await rows<{ at: Date }>(tx, sql`select clock_timestamp() as at`);
-    const today = seoulToday(moment.at);
+    // Drizzle returns raw PostgreSQL timestamptz values as strings for SQL rows.
+    const [moment] = await rows<{ at: Date | string }>(tx, sql`select clock_timestamp() as at`);
+    const submittedAt = moment.at instanceof Date ? moment.at : new Date(moment.at);
+    if (!Number.isFinite(submittedAt.getTime())) throw new ReportError("INVALID_REPORT_TIME", 503);
+    const today = seoulToday(submittedAt);
     const year = Number(today.slice(0, 4));
     const month = Number(today.slice(5, 7));
     // This row only satisfies the historic report FK. Existing enabled flags are untouched.
@@ -40,7 +43,7 @@ export async function submitMemberReport(actor: Actor, value: unknown) {
     await tx.execute(sql`insert into prayer_app.pastoral_reports(id,request_id,sam_id,author_user_id,sam_name,village,leader_name,submitted_by,written_date,method,form,files,fingerprint)
       values(${input.id},${request.id},${sam.id},${actor.id},${sam.name},${sam.village},${identity.sourceName},${identity.sourceName},${today},'form',${JSON.stringify({ ...form, entryMode: "leader" })}::jsonb,'[]'::jsonb,${fingerprint})`);
     // Preserve the existing configured receipt-email trigger while finalizing atomically.
-    await tx.execute(sql`update prayer_app.pastoral_reports set submitted_at=${moment.at} where id=${input.id}`);
+    await tx.execute(sql`update prayer_app.pastoral_reports set submitted_at=${submittedAt} where id=${input.id}`);
     return { id: input.id, submitted: true };
   });
 }

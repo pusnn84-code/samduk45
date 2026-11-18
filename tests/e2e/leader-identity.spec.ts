@@ -5,7 +5,7 @@ import * as XLSX from "xlsx";
 import { expect, test, type Page } from "@playwright/test";
 import { encryptRosterPhone } from "../../src/features/roster/crypto";
 import { phoneLookupHash } from "../../src/features/auth/crypto";
-import { login, expectNoOverflow } from "./helpers";
+import { login, loginIdentity, expectNoOverflow } from "./helpers";
 
 const resolve="/api/admin/sams/resolve-leader", heads="/api/admin/sams/village-leaders";
 test.describe("stable leader roster identity",()=>{
@@ -16,7 +16,7 @@ test.describe("stable leader roster identity",()=>{
   const b={id:randomUUID(),source:"동명검증B",name:"동명검증",phone:"01000000802",sam:"972-1",village:"972"};
   const c={id:randomUUID(),source:"유일검증",name:"유일검증",phone:"01000000803",sam:"971-2",village:"971"};
   const original=[a,b,c];
-  async function member(page:Page,person:typeof a){await page.goto('/login');await page.getByLabel('이름 (아이디)').fill(person.name);await page.getByLabel('비밀번호',{exact:true}).fill(person.phone);await page.getByRole('button',{name:'로그인',exact:true}).click();await expect(page).toHaveURL(/\/$/);}
+  async function member(page:Page,person:typeof a){await loginIdentity(page,person);}
   test.beforeAll(async()=>{
     const url=new URL(process.env.DATABASE_URL??"");if(process.env.CI!=="true"||!["127.0.0.1","localhost"].includes(url.hostname)||url.pathname!=="/prayer_e2e")throw Error("LOCAL_DISPOSABLE_DB_ONLY");
     db=postgres(url.toString(),{ssl:"require",prepare:false,max:1});

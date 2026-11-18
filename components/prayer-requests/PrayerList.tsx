@@ -19,7 +19,7 @@ export function PrayerList({revision}:{revision:number}) {
     void load();const timer=window.setInterval(()=>void load(),30000);window.addEventListener("focus",load);document.addEventListener("visibilitychange",load);
     return()=>{controller.abort();clearInterval(timer);window.removeEventListener("focus",load);document.removeEventListener("visibilitychange",load);};
   },[page,revision]);
-  return <section className="community-prayer-list" aria-label="기도목록"><h2>기도목록</h2><p className="helper-text">공개·무명으로 나눈 기도내용입니다. 목사님 관리자에게는 비공개 글과 모든 작성자의 실제 이름도 표시됩니다.</p>
+  return <section className="community-prayer-list" aria-label="기도목록"><h2>기도목록</h2><p className="helper-text">공개로 나눈 기도내용입니다. 무명을 선택한 분의 이름은 표시되지 않습니다. 목사님은 비공개 글과 실제 이름도 확인할 수 있습니다.</p>
     {error&&<p role="alert" className="error-text">{error}</p>}
     {!data&&!error&&<p role="status">기도목록을 불러오고 있습니다.</p>}
     {data?.items.map(item=><article key={item.id} className="card public-prayer"><header><strong>{item.authorName}</strong><span>{prayerVisibilityLabels[item.visibility]}</span><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul"})}</time></header><p className="prayer-request-body">{item.content}</p></article>)}

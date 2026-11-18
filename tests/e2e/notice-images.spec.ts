@@ -47,11 +47,13 @@ test("notice images stay private, survive edits and render before two lines of s
     await page.getByRole("button", {name: "발행", exact: true}).click();
     expect((await published).status()).toBe(200);
     await member.goto(`/notices/${id}`);
-    const image = member.getByAltText(`${title} 첨부 이미지`);
+    const detail = member.locator(".notice-detail:visible");
+    await expect(detail).toHaveCount(1);
+    const image = detail.getByAltText(`${title} 첨부 이미지`);
     await expect(image).toBeVisible();
     await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.naturalWidth)).toBe(1200);
-    await expect(member.locator(".notice-body")).toHaveText("새 본문 첫 줄\n새 본문 둘째 줄");
-    const layout = await member.locator(".notice-content").evaluate(element => {
+    await expect(member.locator(".notice-detail:visible .notice-body")).toHaveText("새 본문 첫 줄\n새 본문 둘째 줄");
+    const layout = await member.locator(".notice-detail:visible .notice-content").evaluate(element => {
       const img = element.querySelector("img")!;
       const body = element.querySelector(".notice-body")!;
       return {gap: body.getBoundingClientRect().top - img.getBoundingClientRect().bottom, line: parseFloat(getComputedStyle(body).lineHeight)};
@@ -94,7 +96,7 @@ test("notice images stay private, survive edits and render before two lines of s
     expect((await page.request.get(imagePath)).status()).toBe(404);
     await member.goto(`/notices/${id}`);
     await expect(member.locator(".notice-image")).toHaveCount(0);
-    await expect(member.locator(".notice-body")).toHaveText("마지막 본문");
+    await expect(member.locator(".notice-detail:visible .notice-body")).toHaveText("마지막 본문");
     // Deleting the notice removes its attachment too.
     expect((await page.request.patch(`/api/admin/notices/${id}`, {multipart: {...payload, image: file}})).ok()).toBe(true);
     expect((await page.request.delete(`/api/admin/notices/${id}`)).ok()).toBe(true);
