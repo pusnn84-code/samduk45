@@ -23,7 +23,7 @@ export default async function BibleChapterPage({ params, searchParams }: {
   return <>
     <Link className="scripture-back" href="/scripture/bible">‹ 성경 목차</Link>
     {!hasVerse && <p className="scripture-hint">{startVerse}절은 제공된 본문에 없습니다.</p>}
-    <BibleReader key={`${book.id}-${chapter}-${startVerse}`} title={`${book.name} ${chapter}장`} abbreviation={book.short}
-      chapter={chapter} startVerse={startVerse} verses={verses} />
+    <BibleReader key={`${book.id}-${chapter}-${startVerse}-${Boolean(query.verse)}`} title={`${book.name} ${chapter}장`} abbreviation={book.short}
+      chapter={chapter} startVerse={startVerse} selectStartVerse={Boolean(query.verse) && hasVerse} verses={verses} />
   </>;
 }

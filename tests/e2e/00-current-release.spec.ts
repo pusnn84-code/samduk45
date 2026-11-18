@@ -100,6 +100,32 @@ test.describe("current approved member experience", () => {
     await expect(page.getByRole("button",{name:"복사하기",exact:true})).toBeVisible();
     await expect(verse).toHaveAttribute("aria-pressed","true");
   });
+  test("Bible lookup selects the target verse and preserves manual selection changes", async ({page}) => {
+    await page.setViewportSize({width:390,height:844});
+    await login(page);
+    await page.goto("/scripture/bible");
+    await page.getByRole("button",{name:"창세기",exact:true}).click();
+    await page.getByRole("button",{name:"5장",exact:true}).click();
+    await page.getByRole("button",{name:"4절",exact:true}).click();
+    await expect(page).toHaveURL(new RegExp("/scripture/bible/1/5[?]verse=4$"));
+    const fourth=page.locator("#scripture-verse-4"), fifth=page.locator("#scripture-verse-5");
+    await expect(fourth).toHaveAttribute("aria-pressed","true");
+    await expect(page.locator(".scripture-verse[aria-pressed='true']")).toHaveCount(1);
+    await expect(page.getByRole("button",{name:"복사하기",exact:true})).toBeVisible();
+    await expect(fourth).toBeInViewport();
+    await page.getByRole("button",{name:"글자 크게",exact:true}).click();
+    await expect(fourth).toHaveAttribute("aria-pressed","true");
+    await fifth.click();
+    await expect(page.locator(".scripture-verse[aria-pressed='true']")).toHaveCount(2);
+    await fourth.click();
+    await page.getByRole("button",{name:"글자 작게",exact:true}).click();
+    await expect(fourth).toHaveAttribute("aria-pressed","false");
+    await expect(fifth).toHaveAttribute("aria-pressed","true");
+    await page.goto("/scripture/bible/1/5?verse=1");
+    await expect(page.locator("#scripture-verse-1")).toHaveAttribute("aria-pressed","true");
+    await page.goto("/scripture/bible/1/5");
+    await expect(page.locator(".scripture-verse[aria-pressed='true']")).toHaveCount(0);
+  });
   test("a bound leader submits meeting and individual notes separately to the real database",async({page})=>{
     const url=new URL(process.env.DATABASE_URL??"");
     if(process.env.CI!=="true"||!["127.0.0.1","localhost"].includes(url.hostname)||url.pathname!=="/prayer_e2e")throw new Error("DISPOSABLE_DATABASE_REQUIRED");
