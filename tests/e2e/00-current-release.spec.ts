@@ -16,6 +16,18 @@ test.describe("current approved member experience", () => {
         await expect(page.getByText("화면을 불러오고 있습니다.", { exact: true })).toHaveCount(0);
         await expect(page.getByRole("heading", { name: /Application error|Internal Server Error/ })).toHaveCount(0);
         await expectNoOverflow(page);
+        const home=page.locator(".app-page-header").getByRole("link",{name:"첫 메뉴 화면으로",exact:true});
+        await expect(home).toBeVisible();
+        await expect(home).toHaveAttribute("href","/");
+        expect((await home.textContent())?.trim()).toBe("");
+        const homeSize=await home.boundingBox();
+        expect(homeSize!.width).toBeGreaterThanOrEqual(44);
+        expect(homeSize!.height).toBeGreaterThanOrEqual(44);
+        if(route!=="/") await expect(page.locator(".menu-home-intro")).toHaveCount(0);
+        await home.click();
+        await expect(page).toHaveURL(new RegExp("/$"));
+        await expect(page.getByRole("navigation",{name:"메뉴 선택",exact:true})).toBeVisible();
+        await expect(page.locator(".menu-home-intro")).toHaveCount(1);
     });
   }
   test("Doran primary and secondary actions have equal height and alignment", async ({ page }) => {
@@ -125,6 +137,35 @@ test.describe("current approved member experience", () => {
     await expect(page.locator("#scripture-verse-1")).toHaveAttribute("aria-pressed","true");
     await page.goto("/scripture/bible/1/5");
     await expect(page.locator(".scripture-verse[aria-pressed='true']")).toHaveCount(0);
+  });
+  for (const width of [360,1280]) test("admin pages retain the shared first-menu shortcut at "+width+"px",async({page})=>{
+    await page.setViewportSize({width,height:900});
+    await login(page,"admin");
+    for (const route of ["/admin","/admin/notices","/admin/visits","/admin/pastoral-reports"]) {
+      await page.goto(route);
+      const home=page.locator(".app-page-header").getByRole("link",{name:"첫 메뉴 화면으로",exact:true});
+      await expect(home).toBeVisible();
+      await expectNoOverflow(page);
+      await home.click();
+      await expect(page).toHaveURL(new RegExp("/$"));
+    }
+    await page.goto("/about");
+    await expect(page.getByRole("link",{name:"첫 메뉴 화면으로",exact:true})).toBeVisible();
+  });
+  test("the compact header stays visible after scrolling and keeps the searched verse below it",async({page})=>{
+    await page.setViewportSize({width:390,height:844});
+    await login(page);
+    await page.goto("/scripture/bible/1/5?verse=4");
+    const header=page.locator(".app-page-header"),target=page.locator("#scripture-verse-4");
+    await expect(target).toHaveAttribute("aria-pressed","true");
+    await expect(header.getByRole("link",{name:"첫 메뉴 화면으로",exact:true})).toBeVisible();
+    await expect.poll(async()=>{
+      const a=await header.boundingBox(),b=await target.boundingBox();
+      return Boolean(a&&b&&a.y>=-1&&a.y<2&&b.y>=a.y+a.height);
+    }).toBe(true);
+    await header.getByRole("link",{name:"첫 메뉴 화면으로",exact:true}).click();
+    await expect(page).toHaveURL(new RegExp("/$"));
+    await expect.poll(async()=>await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2)).toBe(true);
   });
   test("a bound leader submits meeting and individual notes separately to the real database",async({page})=>{
     const url=new URL(process.env.DATABASE_URL??"");

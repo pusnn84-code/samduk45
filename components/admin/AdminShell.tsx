@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { LogoutButton } from "../auth/LogoutButton";
 import { AdminSidebar } from "./AdminSidebar";
+import { AppPageHeader } from "../app/AppPageHeader";
 import { PrayerMenuProvider } from "../app/PrayerMenuProvider";
 import { defaultPrayerMenuSettings, type PrayerMenuSetting } from "../../src/features/prayer-menu/settings";
 
@@ -21,15 +22,7 @@ export function AdminShell({
   return (
     <PrayerMenuProvider initial={initialPrayerMenuSettings} menuOpen={open}>
     <div className="admin-hub">
-      <button
-        className="admin-hub-menu-button"
-        type="button"
-        aria-label="관리자 메뉴 열기"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-      >
-        ☰
-      </button>
+
 
       {open && (
         <button
@@ -40,7 +33,7 @@ export function AdminShell({
         />
       )}
 
-      <aside className={open ? "admin-hub-sidebar is-open" : "admin-hub-sidebar"}>
+      <aside id="admin-app-sidebar" className={open ? "admin-hub-sidebar is-open" : "admin-hub-sidebar"}>
         <div className="admin-hub-brand">
           <strong>삼덕사오 관리자</strong>
           <span>{displayName} 님</span>
@@ -53,12 +46,7 @@ export function AdminShell({
       </aside>
 
       <section className="admin-hub-stage">
-        <header className="admin-hub-topbar">
-          <div>
-            <p className="eyebrow">45공동체</p>
-            <strong>관리자 센터</strong>
-          </div>
-        </header>
+        <AppPageHeader admin menuOpen={open} onToggleMenu={() => setOpen(value => !value)} onHome={() => setOpen(false)} />
         <div className="admin-hub-content">{children}</div>
       </section>
     </div>

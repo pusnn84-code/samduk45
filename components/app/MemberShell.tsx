@@ -9,7 +9,7 @@ import type { SessionUser } from "../../src/features/auth/session";
 import { LogoutButton } from "../auth/LogoutButton";
 
 import { MemberSidebar } from "./MemberSidebar";
-import { MenuIcon } from "./MenuIcon";
+import { AppPageHeader } from "./AppPageHeader";
 import { MenuActivityProvider, useMenuActivity } from "./MenuActivityProvider";
 import { MenuUpdateBadge } from "./MenuUpdateBadge";
 
@@ -40,7 +40,7 @@ function MemberShellContent({ user, menuOpen, setMenuOpen, children }: {
 
   return (
     <div className={`community-app${isMenuHome ? " is-menu-home" : ""}`}>
-      <aside className={`community-sidebar${menuOpen ? " is-open" : ""}`}>
+      <aside id="member-app-sidebar" className={`community-sidebar${menuOpen ? " is-open" : ""}`}>
         <Link href="/" className="sidebar-brand" onClick={() => setMenuOpen(false)} aria-label="삼덕사오 메뉴 선택">
           <img src="/brand/samduk45-logo-v3.png" alt="삼덕사오" width={104} height={101} />
         </Link>
@@ -67,21 +67,13 @@ function MemberShellContent({ user, menuOpen, setMenuOpen, children }: {
       )}
 
       <div className="community-main">
-        <header className="community-header">
-          <button
-            className="community-menu-button"
-            type="button"
-            aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
-            onClick={() => setMenuOpen((value) => !value)}
-          >
-            <MenuIcon name="menu" />
-            {<MenuUpdateBadge count={counts.notices + counts.community + (counts.reading ?? 0)} label="새 소식" />}
-          </button>
-          <div>
-            <p className="brand-kicker">삼덕교회 45공동체 · {COMMUNITY_2027.year}년</p><h1>{COMMUNITY_2027.motto}</h1>
-            <p className="community-verse">{COMMUNITY_2027.verseExcerpt} ({COMMUNITY_2027.verseRef})</p>
-          </div>
-        </header>
+        <AppPageHeader menuOpen={menuOpen} onToggleMenu={() => setMenuOpen(value => !value)} onHome={() => setMenuOpen(false)}>
+          <MenuUpdateBadge count={counts.notices + counts.community + (counts.reading ?? 0)} label="새 소식" />
+        </AppPageHeader>
+        {isMenuHome && <section className="menu-home-intro" aria-label="45공동체 목회표어">
+          <h1>{COMMUNITY_2027.motto}</h1>
+          <p>{COMMUNITY_2027.verseExcerpt} ({COMMUNITY_2027.verseRef})</p>
+        </section>}
         <div className="community-content">{children}</div>
       </div>
     </div>

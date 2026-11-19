@@ -1,6 +1,6 @@
 import * as React from "react";
 
-export type MenuIconName = "compass" | "people" | "bell" | "book" | "reading" | "calendar" | "heart" | "messages" | "journal" | "menu" | "birthday" | "install" | "leaf";
+export type MenuIconName = "compass" | "people" | "bell" | "book" | "reading" | "calendar" | "heart" | "messages" | "journal" | "home" | "menu" | "birthday" | "install" | "leaf";
 
 const shapes: Record<MenuIconName, React.ReactNode> = {
   leaf: <><path d="M20 3C9 2 3 7 4 14c1 5 8 7 12 3s4-9 4-14Z"/><path d="M3 22 16 9M8 17l-1-6M11 14h5"/></>,
@@ -14,6 +14,7 @@ const shapes: Record<MenuIconName, React.ReactNode> = {
   heart: <path d="M20.5 5.5a5.1 5.1 0 0 0-7.2 0L12 6.8l-1.3-1.3a5.1 5.1 0 0 0-7.2 7.2L12 21l8.5-8.3a5.1 5.1 0 0 0 0-7.2Z" />,
   messages: <><path d="M14 15H7l-4 4V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v6" /><path d="M12 9h7a2 2 0 0 1 2 2v10l-4-3h-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z" /></>,
   journal: <><rect x="5" y="3" width="15" height="18" rx="2" /><path d="M3 7h4M3 12h4M3 17h4M10 8h6M10 12h6M10 16h3" /></>,
+  home: <path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-8h6v8" />,
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   install: <path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4" />,
 };

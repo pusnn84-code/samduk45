@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { APP_NAME, COMMUNITY_NAME, CONTACT_INSTRUCTION, getBranding } from "../../src/lib/branding";
 import "./public.css";
+import { AppHomeLink } from "../../components/app/AppHomeLink";
 
 export default function PublicLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const { supportEmail } = getBranding();
@@ -9,6 +10,7 @@ export default function PublicLayout({ children }: Readonly<{ children: React.Re
     <div className="public-site">
       <a className="public-skip" href="#public-main">본문으로 바로가기</a>
       <header className="public-header">
+        <AppHomeLink />
         <Link className="public-brand" href="/about">
           <Image src="/icons/45-logo-192.png" alt="" width={48} height={48} unoptimized />
           <span><strong>{APP_NAME}</strong><small>{COMMUNITY_NAME}</small></span>
