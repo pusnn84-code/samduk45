@@ -1,5 +1,6 @@
+body:has(.pin-auth-page) { background: #fff; }
 .pin-auth-page { width: min(100% - 36px, 390px); margin: 0 auto; padding: 42px 0 28px; text-align: center; color: #141414; }
-.pin-auth-logo { display: block; width: 104px; height: auto; margin: 0 auto 24px; }
+.pin-auth-logo { display: block; width: 104px; height: auto; margin: 0 auto 24px; border: 0; border-radius: 0; box-shadow: none; background: #fff; }
 .pin-auth-page h1, .pin-auth-page h2 { font-size: clamp(1.4rem, 6vw, 1.8rem); line-height: 1.4; margin: 0 0 12px; word-break: keep-all; }
 .pin-auth-page p { color: #626262; line-height: 1.7; font-size: .94rem; }
 .pin-auth-page .auth-card { border: 0; box-shadow: none; padding: 0; margin: 26px 0 0; background: transparent; text-align: left; }

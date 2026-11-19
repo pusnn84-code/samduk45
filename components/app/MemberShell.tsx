@@ -42,7 +42,7 @@ function MemberShellContent({ user, menuOpen, setMenuOpen, children }: {
     <div className={`community-app${isMenuHome ? " is-menu-home" : ""}`}>
       <aside id="member-app-sidebar" className={`community-sidebar${menuOpen ? " is-open" : ""}`}>
         <Link href="/" className="sidebar-brand" onClick={() => setMenuOpen(false)} aria-label="삼덕사오 메뉴 선택">
-          <img src="/brand/samduk45-logo-v3.png" alt="삼덕사오" width={104} height={101} />
+          <img src="/brand/samduk45-logo-v4.png" alt="삼덕사오" width={104} height={101} />
         </Link>
 
         <MemberSidebar unreadCount={counts.notices} communityCount={counts.community} readingCount={counts.reading} memberCount={counts.members} onNavigate={() => setMenuOpen(false)} />

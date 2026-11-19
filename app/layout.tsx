@@ -19,10 +19,10 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "삼덕사오", statusBarStyle: "default" },
   icons: {
     icon: [
-      { url: "/icons/45-logo-v3-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/45-logo-v3-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icons/45-logo-v4-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/45-logo-v4-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/45-logo-v3-apple-180.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/icons/45-logo-v4-apple-180.png", sizes: "180x180", type: "image/png" }],
   },
 };
 

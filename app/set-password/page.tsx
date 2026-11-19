@@ -10,7 +10,7 @@ export default async function PasswordSetupPage() {
   if (await getCurrentSessionUser()) redirect("/");
   if (!await getCurrentPasswordSetupSession()) redirect("/login");
   return <main className="pin-auth-page">
-    <img className="pin-auth-logo" src="/brand/samduk45-logo-v3.png" alt="삼덕사오" width={104} height={101} />
+    <img className="pin-auth-logo" src="/brand/samduk45-logo-v4.png" alt="삼덕사오" width={104} height={101} />
     <h1 className="sr-only">6자리 비밀번호 설정</h1>
     <PasswordSetupForm />
   </main>;
