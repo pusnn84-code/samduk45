@@ -24,9 +24,9 @@ describe("compact login landing menu", () => {
 
   it("budgets the phone grid against the compact shell and retains usable touch targets", () => {
     const css = readFileSync("components/app/menu-home.css", "utf8");
-    expect(css).toContain("100svh - var(--menu-home-shell-height, 88px)");
-    expect(css).toContain("repeat(4, minmax(72px, 1fr))");
-    expect(css).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
+    expect(css).toContain("100svh - var(--menu-home-shell-height, 148px)");
+    expect(css).toContain("repeat(4, minmax(88px, 1fr))");
+    expect(css).toContain("grid-template-columns: repeat(3, minmax(0, 1fr))");
     expect(css).not.toContain("min-height: 190px");
     expect(css).not.toContain("overflow: hidden");
   });

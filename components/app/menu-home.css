@@ -1,11 +1,16 @@
 .menu-home {
-  width: min(100% - 48px, 920px);
+  width: min(100% - 40px, 920px);
+  height: calc(100vh - var(--menu-home-shell-height, 148px));
+  height: calc(100svh - var(--menu-home-shell-height, 148px));
   margin: 0 auto;
-  padding: 30px 0 36px;
+  padding: 24px 0 max(24px, env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
   color: var(--ink);
 }
-.menu-home-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
-.menu-home h2 { margin: 0; font-size: 1.6rem; font-weight: 800; line-height: 1.25; letter-spacing: -.055em; }
+.menu-home-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.menu-home h2 { margin: 0; font-size: 1.4rem; font-weight: 800; line-height: 1.25; letter-spacing: -.055em; }
 .menu-home h2 > span { color: var(--pink); }
 .menu-home-install-button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding-inline: 12px; font-size: .875rem; white-space: nowrap; }
 .menu-home-install-button .menu-icon { width: 18px; height: 18px; }
@@ -23,85 +28,48 @@
 .install-guide-action { display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px; text-align: center; text-decoration: none; }
 .install-guide-address { font-size: .875rem; }
 @media (display-mode: standalone) { .menu-home-install { display: none; } }
-.menu-home-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+
+.menu-home-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(88px, 1fr)); gap: 12px; min-height: 0; }
 .menu-home-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  min-width: 0;
-  min-height: 140px;
-  padding: 18px 12px;
-  border: 1px solid #deded7;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: none;
-  text-decoration: none;
-  text-align: center;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0; min-height: 88px; padding: 12px 8px;
+  border: 1px solid #deded7; border-radius: 16px; background: #fff;
+  box-shadow: none; text-decoration: none; text-align: center;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   transition: border-color .15s, background .15s, transform .15s;
 }
 .menu-home-card:hover { border-color: #a0a094; background: #fdfdf9; transform: translateY(-1px); }
-.menu-home-card:active { transform: translateY(2px); box-shadow: none; }
+.menu-home-card:active { transform: translateY(1px); }
 .menu-home-card:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
 .menu-home-card-content { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 0; max-width: 100%; }
-.menu-home-icon { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; border-radius: 14px; background: #f2f2ef; color: var(--ink); }
+.menu-home-icon { width: 40px; height: 40px; display: grid; place-items: center; flex-shrink: 0; border-radius: 14px; }
 .menu-home-icon .menu-icon { width: 26px; height: 26px; }
-.menu-home-card[data-tone="teal"] .menu-home-icon { color: #008d79; background: #e5f5f1; }
-.menu-home-card[data-tone="amber"] .menu-home-icon { color: #a86708; background: #fff4e4; }
-.menu-home-card[data-tone="blue"] .menu-home-icon { color: #007caa; background: #e8f7fc; }
-.menu-home-card[data-tone="rose"] .menu-home-icon { color: #b25760; background: #fceff0; }
-.menu-home-card strong { font-size: 1rem; font-weight: 750; line-height: 1.4; letter-spacing: -.035em; word-break: keep-all; overflow-wrap: anywhere; }
-.menu-home-label { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; }
-
+.menu-home-card[data-tone="red"] .menu-home-icon { color: #b85050; background: #fbefef; }
+.menu-home-card[data-tone="amber"] .menu-home-icon { color: #aa781f; background: #fff5e3; }
+.menu-home-card[data-tone="blue"] .menu-home-icon { color: #147f9f; background: #eaf6fb; }
+.menu-home-card[data-tone="pink"] .menu-home-icon { color: #b34b7a; background: #fbeff5; }
+.menu-home-card strong { font-size: 1rem; font-weight: 750; line-height: 1.35; letter-spacing: -.035em; word-break: keep-all; overflow-wrap: anywhere; }
+.menu-home-label { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; }
 @media (max-width: 860px) {
-  .menu-home {
-    width: calc(100% - 32px);
-    min-height: calc(100svh - var(--menu-home-shell-height, 88px));
-    align-content: start;
-    padding: 18px 0 max(20px, env(safe-area-inset-bottom));
-    display: grid;
-    grid-template-rows: auto auto;
-    gap: 16px;
-  }
-  .menu-home-heading { margin-bottom: 0; }
+  .menu-home { width: calc(100% - 36px); padding-top: 16px; padding-bottom: max(18px, env(safe-area-inset-bottom)); gap: 14px; }
   .menu-home h2 { font-size: 1.25rem; }
-  .menu-home-grid { grid-template-rows: repeat(2, minmax(88px, auto)); gap: 10px;  }
-  .menu-home-grid.is-extended { grid-template-rows: repeat(3, minmax(72px, 1fr)); }
-  .menu-home-card { min-height: 88px; padding: 12px 8px; gap: 0; border-radius: 14px; }
-  .menu-home-icon { width: 34px; height: 34px; border-radius: 12px; }
-  .menu-home-icon .menu-icon { width: 26px; height: 26px; }
-  .menu-home-card strong { font-size: .9375rem; }
+  .menu-home-grid { gap: 10px; }
+  .menu-home-card { border-radius: 14px; padding: 10px 6px; }
+  .menu-home-icon { width: 36px; height: 36px; border-radius: 12px; }
+  .menu-home-icon .menu-icon { width: 25px; height: 25px; }
+  .menu-home-card strong { font-size: .875rem; }
 }
-@media (max-width: 600px) {
-  .menu-home-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(4, minmax(72px, 1fr));  }
-  .menu-home-grid > :last-child:nth-child(odd) { grid-column: auto; }
-  .menu-home-grid.is-extended { grid-template-rows: repeat(5, minmax(72px, 1fr)); }
-  .menu-home-grid.is-tall { grid-template-rows: repeat(6, minmax(88px, auto)); }
-}
-@media (max-width: 600px) and (max-height: 760px) {
-  .menu-home-grid.is-tall { grid-template-rows: repeat(6, minmax(80px, auto)); }
-  .menu-home-card { min-height: 80px; }
-}
-@media (max-width: 600px) and (max-height: 620px) {
-  .menu-home { padding-top: 12px; padding-bottom: max(14px, env(safe-area-inset-bottom)); gap: 10px; }
-  .menu-home-card { padding: 8px; gap: 5px; }
-  .menu-home-icon { width: 34px; height: 34px; border-radius: 10px; }
+@media (max-width: 360px), (max-height: 650px) {
+  .menu-home { padding-top: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); gap: 10px; }
+  .menu-home h2 { font-size: 1.15rem; }
+  .menu-home-grid { gap: 8px; }
+  .menu-home-card { padding: 8px 5px; }
+  .menu-home-card-content { gap: 6px; }
+  .menu-home-icon { width: 30px; height: 30px; border-radius: 10px; }
   .menu-home-icon .menu-icon { width: 23px; height: 23px; }
-  .menu-home-card strong { font-size: .875rem; }
-  .menu-home-grid.is-tall { grid-template-rows: repeat(6, minmax(72px, auto)); }
-  .menu-home-grid.is-tall .menu-home-card { min-height:72px; }
+  .menu-home-card strong { font-size: .8125rem; }
 }
-@media (min-width: 520px) and (max-width: 860px) and (max-height: 520px) {
-  .menu-home { padding-block: 10px; gap: 10px; }
-  .menu-home-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(72px, 1fr)); }
-  .menu-home-grid.is-extended { grid-template-rows: repeat(3, minmax(72px, 1fr)); }
-  .menu-home-grid > :last-child:nth-child(odd) { grid-column: auto; }
-  .menu-home-card { gap: 5px; padding: 7px; }
-  .menu-home-icon { width: 32px; height: 32px; }
-  .menu-home-icon .menu-icon { width: 22px; height: 22px; }
-  .menu-home-card strong { font-size: .875rem; }
+@media (min-width: 520px) and (max-height: 520px) {
+  .menu-home-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(88px, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .menu-home-card { transition: none; } }

@@ -71,8 +71,8 @@ function MemberShellContent({ user, menuOpen, setMenuOpen, children }: {
           <MenuUpdateBadge count={counts.notices + counts.community + (counts.reading ?? 0)} label="새 소식" />
         </AppPageHeader>
         {isMenuHome && <section className="menu-home-intro" aria-label="45공동체 목회표어">
+          <p>삼덕교회 45공동체 · {COMMUNITY_2027.year}년</p>
           <h1>{COMMUNITY_2027.motto}</h1>
-          <p>{COMMUNITY_2027.verseExcerpt} ({COMMUNITY_2027.verseRef})</p>
         </section>}
         <div className="community-content">{children}</div>
       </div>

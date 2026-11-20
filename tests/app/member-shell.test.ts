@@ -37,7 +37,8 @@ describe("삼덕사오 member shell", () => {
       verseRef: "에스겔 47:9",
       verseExcerpt: "이 강이 이르는 각처에 모든 것이 살 것이며",
     });
-    for (const page of [source, login]) {
+    expect(source).toContain("COMMUNITY_2027.motto");
+    for (const page of [login]) {
       expect(page).toContain("COMMUNITY_2027.motto");
       expect(page).toContain("COMMUNITY_2027.verseExcerpt");
       expect(page).toContain("COMMUNITY_2027.verseRef");
