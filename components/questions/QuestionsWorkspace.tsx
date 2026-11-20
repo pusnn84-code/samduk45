@@ -64,7 +64,7 @@ export function QuestionsWorkspace(){
   catch(e){setError(errorText(e));}finally{setBusy(false);}
  }
  return <section className="questions-workspace">
-  <header className="questions-intro"><h2>질문있습니다</h2><p>신앙과 삶의 궁금한 점을 목사님과 나눠 보세요.</p><p className="questions-privacy">무명 · 비공개 대화입니다. 작성자와 담당 목사님만 볼 수 있습니다.</p></header>
+  <header className="questions-intro"><h2>질문있어요</h2><p>신앙과 삶의 궁금한 점을 목사님과 나눠 보세요.</p><p className="questions-privacy">무명 · 비공개 대화입니다. 작성자와 담당 목사님만 볼 수 있습니다.</p></header>
   {error&&<p role="alert" className="questions-error">{error}</p>}
   {selected?<>
    <button type="button" className="questions-secondary" onClick={()=>open(null)}>대화 목록</button>

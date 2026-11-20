@@ -7,8 +7,8 @@ test.describe('private anonymous pastor conversations',()=>{
  test('member sends, pastor answers, identity stays private and unrelated accounts are excluded',async({page,browser})=>{
   test.setTimeout(120000);
   await page.setViewportSize({width:390,height:844});await login(page);
-  await page.getByRole('link',{name:'질문있습니다',exact:true}).first().click();
-  await expect(page.getByRole('heading',{name:'질문있습니다',exact:true})).toBeVisible();
+  await page.getByRole('link',{name:'질문있어요',exact:true}).first().click();
+  await expect(page.getByRole('heading',{name:'질문있어요',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'질문하기',exact:true}).click();
   await page.getByLabel('제목',{exact:true}).fill('검증용 비공개 질문');
   await page.getByLabel('나누고 싶은 이야기').fill('신앙과 삶에 대해 궁금합니다.');
