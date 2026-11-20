@@ -6,6 +6,7 @@ import {
   lt,
   ne,
   isNull,
+  sql,
 } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import {
@@ -347,7 +348,7 @@ export async function listVisitsForAdmin({
 } = {}): Promise<AdminVisitRecord[]> {
   const conditions = [];
   if (status) conditions.push(eq(visitRequests.status, status));
-  if (from) conditions.push(gte(visitRequests.visitDate, from));
+  if (from) conditions.push(gte(sql<string>`coalesce(${visitRequests.endDate},${visitRequests.visitDate})`, from));
   if (to) conditions.push(lt(visitRequests.visitDate, to));
 
   const rows = await getDb()
@@ -512,3 +513,4 @@ export async function replaceVisitBlockedWeekdays(input: {
     }
   });
 }
+

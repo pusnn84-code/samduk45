@@ -35,6 +35,7 @@ test('multi-day all-day schedules, typed recipient identity, and selected form b
   const month=await (await memberPage.request.get('/api/visits/calendar?month='+nextMonth)).json();
   expect(month.entries.filter((e:{id:string})=>e.id===vid)).toHaveLength(2);
   expect(month.entries.filter((e:{title:string})=>e.title==='범위검증 세미나')).toHaveLength(2);
+  const adminMonth=await (await page.request.get('/api/admin/visits?from='+nextMonth+'-01')).json();expect(adminMonth.visits.some((v:{id:string})=>v.id===vid)).toBe(true);
   expect(month.entries.filter((e:{allDay?:boolean;id:string})=>e.id===vid).every((e:{allDay?:boolean;time:string})=>e.allDay&&e.time==='')).toBe(true);
   const ordinary=await memberPage.request.post('/api/visits',{data:{visitDate:start,endDate:end,allDay:true,visitType:'sam'}});expect(ordinary.status()).toBe(201);const ordinaryId=(await ordinary.json()).id;createdVisits.push(ordinaryId);
   const detail=await (await page.request.get('/api/admin/visits/'+ordinaryId)).json();expect(detail.visit).toMatchObject({endDate:end,allDay:true,status:'requested'});
@@ -49,3 +50,4 @@ test('multi-day all-day schedules, typed recipient identity, and selected form b
   await db`delete from prayer_app.sams where id=${samId}::uuid`;await context.close();await db.end();
  }
 });
+
