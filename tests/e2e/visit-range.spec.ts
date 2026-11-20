@@ -17,7 +17,7 @@ test('multi-day all-day schedules, typed recipient identity, and selected form b
   await page.getByRole('button',{name:new RegExp('^'+start+' 일정')}).click();
   const visitTab=page.getByRole('button',{name:'심방 확정 등록',exact:true}),ministryTab=page.getByRole('button',{name:'목회일정 등록',exact:true});
   await ministryTab.click();await expect(ministryTab).toHaveAttribute('aria-pressed','true');await expect(visitTab).toHaveAttribute('aria-pressed','false');
-  expect(await ministryTab.evaluate(e=>getComputedStyle(e).backgroundColor)).not.toBe(await visitTab.evaluate(e=>getComputedStyle(e).backgroundColor));
+  await expect.poll(async()=>await ministryTab.evaluate(e=>getComputedStyle(e).backgroundColor)!==await visitTab.evaluate(e=>getComputedStyle(e).backgroundColor)).toBe(true);
   await expect(page.getByLabel('시작일',{exact:true})).toHaveValue(start);await expect(page.getByLabel('종료일',{exact:true})).toHaveValue(start);
   await page.getByLabel('일정 제목',{exact:true}).fill('범위검증 세미나');await page.getByLabel('종료일',{exact:true}).fill(end);await page.getByLabel('종일',{exact:true}).check();
   await expect(page.getByLabel('시간',{exact:true})).toBeDisabled();await expect(page.getByLabel('시간',{exact:true})).toHaveValue('종일 일정');
