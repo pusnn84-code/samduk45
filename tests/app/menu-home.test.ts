@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { MenuHome } from "../../components/app/MenuHome";
 
-const memberLinks = ["/notices", "/birthdays", "/bible-reading", "/scripture", "/prayer-requests", "/visits", "/community", "/our-community", "/pastoral-reports", "/autumn-light", "/ministry-plan"];
+const memberLinks = ["/notices", "/birthdays", "/bible-reading", "/scripture", "/prayer-requests", "/visits", "/community", "/our-community", "/pastoral-reports", "/autumn-light", "/questions", "/ministry-plan"];
 
 function renderMenu() {
   const html = renderToStaticMarkup(createElement(MenuHome));
@@ -15,7 +15,7 @@ describe("compact login landing menu", () => {
   it("renders each ordinary member destination as one labeled, full-card link", () => {
     const { html, links } = renderMenu();
     expect(links).toEqual(memberLinks);
-    expect(html.match(/class="menu-home-card"/g)).toHaveLength(11);
+    expect(html.match(/class="menu-home-card"/g)).toHaveLength(12);
     expect(html).toContain('aria-label="메뉴 선택"');
     expect(html).not.toContain("홈 화면에 추가</button>");
     for (const label of ["공지", "성경통독", "기도요청", "심방요청", "도란도란", "마을과 샘", "샘목양지", "2027 사역안내"]) expect(html).toContain(`<strong>${label}</strong>`);

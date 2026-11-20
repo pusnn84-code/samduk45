@@ -14,6 +14,7 @@ export const useMenuActivity = () => useContext(MenuActivityContext);
 export function MenuActivityProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const notices = useUnreadNoticeCount();
+  const [questions, setQuestions] = useState(0);
   const [updates, setUpdates] = useState({ community: 0, members: 0, reading: 0, readingDates: [] as string[] });
   useEffect(() => {
     let active = true;
@@ -22,6 +23,9 @@ export function MenuActivityProvider({ children }: { children: ReactNode }) {
       if (!active || document.visibilityState === "hidden") return;
       controller?.abort();
       const request = new AbortController(); controller = request;
+      void fetchJson<{ count: number }>("/api/questions/unread", { cache: "no-store", signal: request.signal }, 8000).then(body => {
+        if(active && !request.signal.aborted && Number.isInteger(body.count) && body.count >= 0) setQuestions(body.count);
+      }).catch(() => {});
       try {
         const body = await fetchJson<{ community: number; members: number; reading: number; readingDates: string[] }>("/api/menu-activity", { cache: "no-store", signal: request.signal }, 8000);
         if (active && !request.signal.aborted && [body.community, body.members, body.reading].every(value => Number.isInteger(value) && value >= 0)) setUpdates(body);
@@ -36,7 +40,7 @@ export function MenuActivityProvider({ children }: { children: ReactNode }) {
     await fetchJson("/api/menu-activity", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, observedAt, ...(date ? { date } : {}) }) }, 8000);
     window.dispatchEvent(new Event(activityChanged));
   }, []);
-  return <MenuActivityContext.Provider value={{ counts: { ...updates, notices }, markViewed }}>{children}</MenuActivityContext.Provider>;
+  return <MenuActivityContext.Provider value={{ counts: { ...updates, notices, questions }, markViewed }}>{children}</MenuActivityContext.Provider>;
 }
 
 /** Mount only beside successfully loaded content. Prefetched server routes never acknowledge a menu. */

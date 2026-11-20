@@ -35,6 +35,7 @@ async function main() {
               ${lookup}, ${await hashPhonePassword(account.phone)}, ${role})`;
         }
       }
+      await tx`update prayer_app.question_settings set pastor_user_id=${e2eAccounts.admin.userId}::uuid where id=1`;
       const start = addDays(todayInSeoul(), -3);
       await tx`insert into prayer_app.challenges (id, title, start_date, end_date, is_active)
         values (${e2eChallengeId}, '기도운동 1달 도전', ${start}, ${defaultEndDate(start)}, true)`;
