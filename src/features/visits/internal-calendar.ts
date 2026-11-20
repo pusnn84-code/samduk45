@@ -10,9 +10,12 @@ import { evaluateVisitDate } from "./date-policy";
 import { dbVisitRepository, type SubmitVisitInput, type VisitRepository } from "./service";
 import type { VisitStatus } from "./types";
 import { recipientForVisit } from "./shared-calendar";
+import { visitRange,validateRange,shiftDate } from "./schedule-range";
 
 export const VisitDetailsInput = z.object({
   visitDate: z.iso.date(),
+  endDate: z.iso.date().nullable().optional(),
+  allDay: z.boolean().optional(),
   visitType: z.enum(["personal", "sam"]),
   attendees: z.string().trim().max(3000).default(""),
   location: z.string().trim().max(500).default(""),
@@ -57,11 +60,18 @@ export const dbInternalVisits: InternalVisitRepository = {
     });
   },
   async update(id, patch) {
-    const [current] = patch.recipientName !== undefined ? await getDb().select({recipientName:visitRequests.recipientName})
-      .from(visitRequests).where(eq(visitRequests.id,id)).limit(1) : [];
-    const recipient = patch.recipientName !== undefined && patch.recipientName !== current?.recipientName
-      ? await recipientForVisit({id:"",role:"admin",displayName:""},{attendees:"",recipientName:patch.recipientName}) : {};
-    const rows = await getDb().update(visitRequests).set({ ...patch, ...recipient, updatedAt: new Date() })
+    const [current] = await getDb().select({recipientName:visitRequests.recipientName,visitDate:visitRequests.visitDate,endDate:visitRequests.endDate,allDay:visitRequests.allDay,preferredTime:visitRequests.preferredTime})
+      .from(visitRequests).where(eq(visitRequests.id,id)).limit(1);
+    if(!current)return false;
+    const start=patch.visitDate??current.visitDate;
+    const end=patch.endDate!==undefined?patch.endDate:patch.visitDate&&(current.endDate??current.visitDate)===current.visitDate?start:current.endDate;
+    validateRange(start,end??start);
+    const allDay=patch.allDay??current.allDay;
+    const timing={...(patch.visitDate?{endDate:end??start}:{}),...(patch.endDate!==undefined?{endDate:patch.endDate}:{}),...(allDay?{preferredTime:''}:{})};
+    const changedName=patch.recipientName !== undefined && patch.recipientName !== current.recipientName;
+    const resolved=changedName?await recipientForVisit({id:"",role:"admin",displayName:""},{attendees:"",recipientName:patch.recipientName}):null;
+    const recipient=resolved?{...resolved,recipientLeaderName:'recipientLeaderName' in resolved?resolved.recipientLeaderName:null}:{};
+    const rows = await getDb().update(visitRequests).set({ ...patch, ...recipient, ...timing, updatedAt: new Date() })
       .where(and(eq(visitRequests.id, id), inArray(visitRequests.status, ["requested", "confirmed"])))
       .returning({ id: visitRequests.id });
     return rows.length > 0;
@@ -95,18 +105,27 @@ export async function getInternalMonthAvailability(month: string, repository: Vi
 
 export async function submitInternalVisit(input: SubmitVisitInput, repository: VisitRepository = dbVisitRepository,
   writer: InternalVisitRepository = dbInternalVisits, today = todayInSeoul()) {
+  input=visitRange(input);
   if (input.visitDate < today) throw new DomainError("VISIT_DATE_UNAVAILABLE", 409);
-  if (!withinBookingPeriod(input.visitDate, await repository.getBookingPeriod())) throw new DomainError("VISIT_OUTSIDE_BOOKING_PERIOD", 409);
+  const period=await repository.getBookingPeriod();
+  const last=input.endDate??input.visitDate;
+  if (!withinBookingPeriod(input.visitDate, period)||!withinBookingPeriod(last,period)) throw new DomainError("VISIT_OUTSIDE_BOOKING_PERIOD", 409);
   const enabled = await repository.isDateEnabled(input.visitDate);
   const weekday = new Date(input.visitDate + "T00:00:00Z").getUTCDay();
   if (!enabled && (await repository.isDateBlocked(input.visitDate) || await repository.isWeekdayBlocked(weekday)))
     throw new DomainError("VISIT_DATE_UNAVAILABLE", 409);
+  if(last>input.visitDate){
+    const [blocked,enabledDates,weekdays]=await Promise.all([repository.listBlockedDates(input.visitDate,shiftDate(last,1)),repository.listEnabledDates(input.visitDate,shiftDate(last,1)),repository.listBlockedWeekdays()]);
+    for(let date=shiftDate(input.visitDate,1);date<=last;date=shiftDate(date,1)){
+      if(!enabledDates.includes(date)&&(blocked.includes(date)||weekdays.includes(new Date(date+'T00:00:00Z').getUTCDay())))throw new DomainError("VISIT_DATE_UNAVAILABLE",409);
+    }
+  }
   return writer.insert(input, "requested");
 }
 
 /** Route handlers must verify the authenticated admin role before direct confirmation. */
 export async function createInternalAppointment(input: SubmitVisitInput, writer: InternalVisitRepository = dbInternalVisits) {
-  return writer.insert(input, "confirmed");
+  return writer.insert(visitRange(input), "confirmed");
 }
 
 export async function updateInternalVisit(id: string, patch: InternalVisitPatch, writer: InternalVisitRepository = dbInternalVisits) {
@@ -122,6 +141,7 @@ export async function transitionInternalVisit(id: string, to: "confirmed" | "com
 
 export async function listOwnVisits(userId: string) {
   return getDb().select({ id: visitRequests.id, visitDate: visitRequests.visitDate, status: visitRequests.status,
+    endDate:visitRequests.endDate,allDay:visitRequests.allDay,
     preferredTime: visitRequests.preferredTime, location: visitRequests.location })
     .from(visitRequests).where(eq(visitRequests.requesterUserId, userId)).orderBy(asc(visitRequests.visitDate));
 }

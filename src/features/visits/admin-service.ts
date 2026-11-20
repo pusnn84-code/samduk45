@@ -28,6 +28,9 @@ import type {
 import { requesterSam, requesterSamJoin, requesterSamLabel } from "./requester-identity";
 
 export type AdminVisitRecord = {
+  endDate?: string | null;
+  allDay?: boolean;
+  recipientLeaderName?: string | null;
   recipientName?: string | null;
   recipientSam?: string | null;
   isUnavailable?: boolean;
@@ -115,6 +118,9 @@ export const dbVisitAdminRepository: VisitAdminRepository & VisitDeleteRepositor
         id: visitRequests.id,
         recipientName: visitRequests.recipientName,
         recipientSam: visitRequests.recipientSam,
+        recipientLeaderName: visitRequests.recipientLeaderName,
+        endDate: visitRequests.endDate,
+        allDay: visitRequests.allDay,
         isUnavailable: visitRequests.isUnavailable,
         requesterName: users.displayName,
         samLabel: requesterSamLabel,
@@ -349,6 +355,9 @@ export async function listVisitsForAdmin({
       id: visitRequests.id,
       recipientName: visitRequests.recipientName,
       recipientSam: visitRequests.recipientSam,
+        recipientLeaderName: visitRequests.recipientLeaderName,
+        endDate: visitRequests.endDate,
+        allDay: visitRequests.allDay,
       isUnavailable: visitRequests.isUnavailable,
       requesterName: users.displayName,
       samLabel: requesterSamLabel,

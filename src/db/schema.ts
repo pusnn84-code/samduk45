@@ -16,7 +16,6 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-
 export const appSchema = pgSchema("prayer_app");
 export const visitBookingSettings = appSchema.table("visit_booking_settings", {
   id: integer("id").primaryKey(),
@@ -324,6 +323,9 @@ export const visitRequests = appSchema.table(
       .notNull()
       .references(() => users.id),
     visitDate: date("visit_date").notNull(),
+    endDate: date("end_date"),
+    allDay: boolean("all_day").notNull().default(false),
+    recipientLeaderName: varchar("recipient_leader_name", {length:100}),
     visitType: varchar("visit_type", { length: 20 }).notNull(),
     attendees: text("attendees").notNull(),
     recipientName: varchar("recipient_name", { length: 120 }),
@@ -356,6 +358,8 @@ export const ministrySchedules = appSchema.table("ministry_schedules", {
   title: varchar("title", { length: 120 }).notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
+  eventEndDate: date("event_end_date"),
+  allDay: boolean("all_day").notNull().default(false),
   time: varchar("time", { length: 5 }).notNull(),
   location: varchar("location", { length: 500 }).notNull().default(""),
   repeat: varchar("repeat", { length: 10 }).notNull().default("none"),

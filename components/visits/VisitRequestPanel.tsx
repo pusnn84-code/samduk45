@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { fetchJson } from "../../src/lib/fetch-json";
 import type { VisitStartTimes } from "../../src/features/visits/types";
 import { VisitRecipientInput } from "./VisitRecipientInput";
+import { ScheduleDates, ScheduleTime } from "./ScheduleFields";
 
 export function VisitRequestPanel({
   visitDate,
@@ -28,6 +29,9 @@ export function VisitRequestPanel({
   const [location, setLocation] = useState("");
   const [preferredTime, setPreferredTime] = useState("");
   const [reason, setReason] = useState("");
+  const [startDate,setStartDate]=useState(visitDate);
+  const [endDate,setEndDate]=useState(visitDate);
+  const [allDay,setAllDay]=useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [recipient,setRecipient]=useState<{recipientRosterId?:string;recipientName:string}>({recipientName:""});
@@ -43,11 +47,13 @@ export function VisitRequestPanel({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          visitDate,
+          visitDate:startDate,
+          endDate,
+          allDay,
           visitType,
           attendees,
           location,
-          preferredTime,
+          preferredTime:allDay?"":preferredTime,
           reason,
           ...(isAdmin ? recipient : {}),
         }),
@@ -116,6 +122,7 @@ export function VisitRequestPanel({
         </fieldset>
 
         {isAdmin && <VisitRecipientInput onChange={setRecipient} disabled={busy}/>}
+        <ScheduleDates start={startDate} end={endDate} onStart={setStartDate} onEnd={setEndDate} disabled={busy}/>
         <label>
           신청자
           <input value={requesterName} readOnly />
@@ -141,16 +148,7 @@ export function VisitRequestPanel({
           />
         </label>
 
-        <label>
-          희망 시간 (선택)
-          <input
-            aria-describedby={dateAvailable ? "visit-start-time-guidance" : undefined}
-            maxLength={200}
-            value={preferredTime}
-            onChange={(event) => setPreferredTime(event.target.value)}
-            placeholder="예: 오후 3시 이후"
-          />
-        </label>
+        <ScheduleTime label={isAdmin?"시간":"희망 시간 (선택)"} value={preferredTime} onChange={setPreferredTime} allDay={allDay} onAllDay={setAllDay} disabled={busy}/>
 
         {dateAvailable && (
           <div className="visit-start-time-guidance" id="visit-start-time-guidance" aria-live="polite">
