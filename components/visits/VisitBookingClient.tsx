@@ -40,11 +40,12 @@ export function VisitBookingClient({requesterName,isAdmin=false,onSelectVisit,on
    {!entries.some(entry=>entry.date===selectedDate)&&<p className="helper-text">등록된 일정이 없습니다.</p>}
    {error&&<p role="alert" className="error-text">{error}</p>}
    <div className="visit-register-actions">
-    {(available||isAdmin)&&<button type="button" className="visit-form-switch" aria-pressed={form==="visit"} onClick={()=>setForm(form==="visit"?null:"visit")}>{isAdmin?"심방 확정 등록":"심방 신청"}</button>}
-    {isAdmin&&<button type="button" className="visit-form-switch" aria-pressed={form==="ministry"} onClick={()=>setForm(form==="ministry"?null:"ministry")}>목회일정 등록</button>}
+    {(available||isAdmin)&&<button type="button" className="visit-form-switch" aria-pressed={form==="visit"} onClick={()=>setForm(form==="visit"?null:"visit")}>{form==="visit"&&<span className="visit-form-check" aria-hidden="true">✓</span>}{isAdmin?"심방 확정 등록":"심방 신청"}</button>}
+    {isAdmin&&<button type="button" className="visit-form-switch" aria-pressed={form==="ministry"} onClick={()=>setForm(form==="ministry"?null:"ministry")}>{form==="ministry"&&<span className="visit-form-check" aria-hidden="true">✓</span>}목회일정 등록</button>}
    </div>
    {form==="visit"&&<VisitRequestPanel key={selectedDate} visitDate={selectedDate} requesterName={requesterName} isAdmin={isAdmin} dateAvailable={available||isAdmin} onClose={()=>setForm(null)} onSuccess={changed} onDateUnavailable={()=>setRefreshKey(value=>value+1)}/>}
    {form==="ministry"&&isAdmin&&<MinistryScheduleForm key={selectedDate} date={selectedDate} onSuccess={changed} onClose={()=>setForm(null)}/>}
   </section>}
  </div>;
 }
+
