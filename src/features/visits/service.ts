@@ -27,6 +27,9 @@ import type {
 } from "./types";
 
 export type SubmitVisitInput = {
+  endDate?: string | null;
+  allDay?: boolean;
+  recipientLeaderName?: string | null;
   recipientName?: string;
   recipientSam?: string | null;
   requesterUserId: string;

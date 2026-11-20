@@ -100,9 +100,9 @@ export function AdminVisitList({
                   {visit.visitType === "sam" ? "샘심방" : "개인심방"}
                 </small>
               </span>
-              <span>{visit.visitDate}</span>
+              <span>{visit.visitDate}{visit.endDate&&visit.endDate!==visit.visitDate?` ~ ${visit.endDate}`:""}</span>
               <span>{visit.isUnavailable ? "불가" : statusLabel(visit.status)}</span>
-              <span>{visit.preferredTime || "시간 미정"}</span>
+              <span>{visit.allDay?"종일":visit.preferredTime || "시간 미정"}</span>
             </button>
           ))}
         </div>

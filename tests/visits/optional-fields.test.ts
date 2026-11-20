@@ -45,7 +45,8 @@ describe("optional visit details", () => {
     const submit = html.match(/<button\b(?=[^>]*type="submit")([^>]*)>신청<\/button>/);
     expect(submit).not.toBeNull();
     expect(submit?.[1]).not.toContain("disabled");
-    expect(html).not.toMatch(/<(input|textarea)[^>]*\brequired=/);
+    const textFields=[...html.matchAll(/<(?:input|textarea)\b[^>]*>/g)].map(match=>match[0]).filter(tag=>!tag.includes('type="date"'));
+    expect(textFields.every(tag=>!tag.includes('required='))).toBe(true);
   });
 
   it.each([{}, emptyFields, { attendees: "  ", location: "\n", preferredTime: " ", reason: " " }])(

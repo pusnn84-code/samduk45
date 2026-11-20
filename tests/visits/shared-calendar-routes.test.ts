@@ -38,9 +38,9 @@ describe("shared calendar authorization",()=>{
  it("blocks cross-site writes",async()=>{
   boundary.session.mockResolvedValue({id:"pastor",role:"admin"});expect((await ministry(post(input,"https://other.test"))).status).toBe(403);expect(boundary.create).not.toHaveBeenCalled();
  });
- it("exposes only name and known sam in the pastor's recipient picker",async()=>{
+ it("exposes only identity and leader needed for the pastor's name lookup",async()=>{
   boundary.session.mockResolvedValue({id:"member",role:"member"});expect((await people()).status).toBe(403);expect(boundary.people).not.toHaveBeenCalled();
-  boundary.session.mockResolvedValue({id:"pastor",role:"admin"});boundary.people.mockResolvedValue([{id:"person",name:"김믿음",sam:"1-2샘",sourceName:"internal"}]);
-  expect(await (await people()).json()).toEqual({people:[{id:"person",name:"김믿음",sam:"1-2샘"}]});
+  boundary.session.mockResolvedValue({id:"pastor",role:"admin"});boundary.people.mockResolvedValue([{id:"person",name:"김믿음",sam:"1-2샘",leaderName:"가상리더",sourceName:"internal",phoneCiphertext:"private"}]);
+  expect(await (await people()).json()).toEqual({people:[{id:"person",name:"김믿음",sam:"1-2샘",leaderName:"가상리더"}]});
  });
 });

@@ -1,7 +1,9 @@
 "use client";
 import type { InternalVisitPatch } from "../../../src/features/visits/internal-calendar";
 
-import { useState } from "react";
+import { useState,useCallback } from "react";
+import { ScheduleDates,ScheduleTime } from "../../visits/ScheduleFields";
+import { VisitRecipientInput } from "../../visits/VisitRecipientInput";
 import type {
   AdminVisitRecord,
 } from "../../../src/features/visits/admin-service";
@@ -18,6 +20,8 @@ export function AdminVisitDetail({
   onAction: (action: "confirm" | "complete" | "cancel" | "delete" | "decline") => Promise<void>;
 }) {
   const [visitDate, setVisitDate] = useState(visit?.visitDate ?? "");
+  const [endDate,setEndDate]=useState(visit?.endDate??visit?.visitDate??"");
+  const [allDay,setAllDay]=useState(Boolean(visit?.allDay));
   const [visitType, setVisitType] = useState<"personal" | "sam">(
     visit?.visitType ?? "personal",
   );
@@ -26,6 +30,7 @@ export function AdminVisitDetail({
   const [preferredTime, setPreferredTime] = useState(visit?.preferredTime ?? "");
   const [reason, setReason] = useState(visit?.reason ?? "");
   const [recipientName,setRecipientName]=useState(visit?.recipientName || visit?.attendees || visit?.requesterName || "");
+  const updateRecipient=useCallback((value:{recipientName:string})=>setRecipientName(value.recipientName),[]);
 
   if (!visit) {
     return (
@@ -46,13 +51,15 @@ export function AdminVisitDetail({
       </div>
 
       <dl className="admin-visit-summary">
-        <div><dt>신청 날짜</dt><dd>{visit.visitDate}</dd></div>
+        <div><dt>신청 날짜</dt><dd>{visit.visitDate}{visit.endDate&&visit.endDate!==visit.visitDate?` ~ ${visit.endDate}`:""}</dd></div>
+        {visit.recipientSam&&<div><dt>소속 샘</dt><dd>{visit.recipientSam}</dd></div>}
+        {visit.recipientLeaderName&&<div><dt>샘리더</dt><dd>{visit.recipientLeaderName}</dd></div>}
         <div><dt>상태</dt><dd>{visit.isUnavailable ? "불가" : visit.status === "requested" ? "수락 대기" : visit.status === "confirmed" ? "확정" : visit.status === "completed" ? "완료" : "취소"}</dd></div>
       </dl>
 
       <div className="admin-form">
-        <label>심방 대상자 이름<input maxLength={120} value={recipientName} onChange={event=>setRecipientName(event.target.value)} disabled={busy || visit.status === "cancelled" || visit.status === "completed"}/></label>
-        <label>심방 날짜<input type="date" value={visitDate} onChange={event => setVisitDate(event.target.value)} disabled={busy || visit.status === "cancelled" || visit.status === "completed"} /></label>
+        <VisitRecipientInput initialName={visit.recipientName||visit.attendees||visit.requesterName} onChange={updateRecipient} disabled={busy||visit.status==="cancelled"||visit.status==="completed"}/>
+        <ScheduleDates start={visitDate} end={endDate} onStart={setVisitDate} onEnd={setEndDate} disabled={busy||visit.status==="cancelled"||visit.status==="completed"}/>
         <label>
           심방 유형
           <select
@@ -82,14 +89,7 @@ export function AdminVisitDetail({
             disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
           />
         </label>
-        <label>
-          희망 시간
-          <input
-            value={preferredTime}
-            onChange={(event) => setPreferredTime(event.target.value)}
-            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
-          />
-        </label>
+        <ScheduleTime label="희망 시간" value={preferredTime} onChange={setPreferredTime} allDay={allDay} onAllDay={setAllDay} disabled={busy||visit.status==="cancelled"||visit.status==="completed"}/>
         <label>
           심방 요청 이유
           <textarea
@@ -108,10 +108,12 @@ export function AdminVisitDetail({
           onClick={() =>
             void onSave({
               visitDate,
+              endDate,
+              allDay,
               visitType,
               attendees,
               location,
-              preferredTime,
+              preferredTime:allDay?"":preferredTime,
               reason,
               recipientName,
             })

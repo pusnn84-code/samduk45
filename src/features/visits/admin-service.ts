@@ -6,6 +6,7 @@ import {
   lt,
   ne,
   isNull,
+  sql,
 } from "drizzle-orm";
 import { getDb } from "../../db/client";
 import {
@@ -28,6 +29,9 @@ import type {
 import { requesterSam, requesterSamJoin, requesterSamLabel } from "./requester-identity";
 
 export type AdminVisitRecord = {
+  endDate?: string | null;
+  allDay?: boolean;
+  recipientLeaderName?: string | null;
   recipientName?: string | null;
   recipientSam?: string | null;
   isUnavailable?: boolean;
@@ -115,6 +119,9 @@ export const dbVisitAdminRepository: VisitAdminRepository & VisitDeleteRepositor
         id: visitRequests.id,
         recipientName: visitRequests.recipientName,
         recipientSam: visitRequests.recipientSam,
+        recipientLeaderName: visitRequests.recipientLeaderName,
+        endDate: visitRequests.endDate,
+        allDay: visitRequests.allDay,
         isUnavailable: visitRequests.isUnavailable,
         requesterName: users.displayName,
         samLabel: requesterSamLabel,
@@ -341,7 +348,7 @@ export async function listVisitsForAdmin({
 } = {}): Promise<AdminVisitRecord[]> {
   const conditions = [];
   if (status) conditions.push(eq(visitRequests.status, status));
-  if (from) conditions.push(gte(visitRequests.visitDate, from));
+  if (from) conditions.push(gte(sql<string>`coalesce(${visitRequests.endDate},${visitRequests.visitDate})`, from));
   if (to) conditions.push(lt(visitRequests.visitDate, to));
 
   const rows = await getDb()
@@ -349,6 +356,9 @@ export async function listVisitsForAdmin({
       id: visitRequests.id,
       recipientName: visitRequests.recipientName,
       recipientSam: visitRequests.recipientSam,
+        recipientLeaderName: visitRequests.recipientLeaderName,
+        endDate: visitRequests.endDate,
+        allDay: visitRequests.allDay,
       isUnavailable: visitRequests.isUnavailable,
       requesterName: users.displayName,
       samLabel: requesterSamLabel,
@@ -503,3 +513,4 @@ export async function replaceVisitBlockedWeekdays(input: {
     }
   });
 }
+
