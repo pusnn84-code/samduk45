@@ -14,7 +14,8 @@ function renderMenu() {
 describe("compact login landing menu", () => {
   it("renders each ordinary member destination as one labeled, full-card link", () => {
     const { html, links } = renderMenu();
-    expect(links).toEqual(memberLinks);
+    expect(links.filter(link => link !== "/profile#push-settings-title")).toEqual(memberLinks);
+    expect(links.filter(link => link === "/profile#push-settings-title")).toHaveLength(1);
     expect(html.match(/class="menu-home-card"/g)).toHaveLength(12);
     expect(html).toContain('aria-label="메뉴 선택"');
     expect(html).not.toContain("홈 화면에 추가</button>");
