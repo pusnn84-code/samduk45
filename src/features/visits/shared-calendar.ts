@@ -5,6 +5,7 @@ import {memberRoster,ministrySchedules,sams,users,visitRequests} from "../../db/
 import {DomainError} from "../../lib/http";
 import {expandMinistry,legacyRecipient,samSuffix,timeSortKey,type CalendarEntry} from "./shared-calendar-policy";
 import {dateDistance,monthDates,validDate} from "./schedule-range";
+import {canEditVisit,type VisitEditor} from "./edit-policy";
 export const CalendarMonth=z.string().regex(/^(20\d{2}|21\d{2})-(0[1-9]|1[0-2])$/);
 export const MinistryInput=z.object({
  title:z.string().trim().min(1).max(120),startDate:z.iso.date(),endDate:z.iso.date().nullable().default(null),
@@ -40,11 +41,11 @@ export async function recipientForVisit(user:{id:string;role:string;displayName:
   .from(memberRoster).leftJoin(sams,samJoin).where(and(eq(memberRoster.isActive,true),or(eq(memberRoster.canonicalName,name),eq(memberRoster.sourceName,name)))).limit(2);
  return matches.length===1?identity({...matches[0],name}):{recipientName:name,recipientSam:null};
 }
-export async function sharedMonth(month:string):Promise<CalendarEntry[]>{
+export async function sharedMonth(month:string,viewer?:VisitEditor):Promise<CalendarEntry[]>{
  if(!CalendarMonth.safeParse(month).success)throw new DomainError("INVALID_VISIT_MONTH",400);
  const start=month+"-01",[year,number]=month.split("-").map(Number),end=new Date(Date.UTC(year,number,1)).toISOString().slice(0,10);
  const [visits,series,people]=await Promise.all([
-  getDb().select({id:visitRequests.id,date:visitRequests.visitDate,endDate:visitRequests.endDate,allDay:visitRequests.allDay,
+  getDb().select({id:visitRequests.id,requesterUserId:visitRequests.requesterUserId,date:visitRequests.visitDate,endDate:visitRequests.endDate,allDay:visitRequests.allDay,
    recipientName:visitRequests.recipientName,recipientSam:visitRequests.recipientSam,attendees:visitRequests.attendees,time:visitRequests.preferredTime,
    location:visitRequests.location,status:visitRequests.status,isUnavailable:visitRequests.isUnavailable,
    requesterName:users.displayName,requesterRole:users.role,requesterSam:memberRoster.samLabel})
@@ -58,6 +59,7 @@ export async function sharedMonth(month:string):Promise<CalendarEntry[]>{
  const entries:CalendarEntry[]=visits.flatMap(row=>monthDates(row.date,row.endDate??row.date,month).map(date=>({
   id:row.id,date,startDate:row.date,endDate:row.endDate??row.date,...legacyRecipient(row,people),
   time:row.allDay?"":row.time,...(row.allDay?{allDay:true}:{}),location:row.location,kind:"visit" as const,
+  ...(viewer?{canEdit:canEditVisit(viewer,row)}:{}),
   status:row.isUnavailable?"unavailable" as const:row.status==="completed"?"completed" as const:row.status==="confirmed"?"confirmed" as const:"requested" as const
  })));
  return [...entries,...expandMinistry(series,month)].sort((a,b)=>a.date.localeCompare(b.date)||Number(Boolean(b.allDay))-Number(Boolean(a.allDay))||timeSortKey(a.time)-timeSortKey(b.time)||a.title.localeCompare(b.title,"ko"));

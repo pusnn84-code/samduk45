@@ -16,7 +16,7 @@ describe("shared calendar authorization",()=>{
   boundary.session.mockResolvedValue(null);expect((await calendar(new Request("https://example.test/api/visits/calendar?month=2026-11"))).status).toBe(401);expect(boundary.month).not.toHaveBeenCalled();
   boundary.session.mockResolvedValue({id:"member",role:"member"});
   const response=await calendar(new Request("https://example.test/api/visits/calendar?month=2026-11"));
-  expect(response.status).toBe(200);expect(response.headers.get("cache-control")).toBe("private, no-store");expect(boundary.month).toHaveBeenCalledWith("2026-11");
+  expect(response.status).toBe(200);expect(response.headers.get("cache-control")).toBe("private, no-store");expect(boundary.month).toHaveBeenCalledWith("2026-11",{id:"member",role:"member"});
  });
  it("rejects invalid month values before querying storage",async()=>{
   boundary.session.mockResolvedValue({id:"member",role:"member"});

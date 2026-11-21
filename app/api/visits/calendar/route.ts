@@ -4,8 +4,9 @@ import { CalendarMonth, sharedMonth } from "../../../../src/features/visits/shar
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };
 export async function GET(request: Request) {
-  if (!await getCurrentSessionUser()) return NextResponse.json({code:"UNAUTHORIZED"},{status:401,headers});
+  const user=await getCurrentSessionUser();
+  if (!user) return NextResponse.json({code:"UNAUTHORIZED"},{status:401,headers});
   const month = new URL(request.url).searchParams.get("month");
   if (!CalendarMonth.safeParse(month).success) return NextResponse.json({code:"INVALID_INPUT"},{status:400,headers});
-  return NextResponse.json({ entries: await sharedMonth(month!) }, {headers});
+  return NextResponse.json({ entries: await sharedMonth(month!,user) }, {headers});
 }

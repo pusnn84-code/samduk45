@@ -6,6 +6,7 @@ import { fetchJson } from "../../src/lib/fetch-json";
 import { VisitCalendar } from "./VisitCalendar";
 import { VisitRequestPanel } from "./VisitRequestPanel";
 import { MinistryScheduleForm } from "./MinistryScheduleForm";
+import { VisitEditForm } from "./VisitEditForm";
 import "./schedule-fields.css";
 
 const statusNames={confirmed:"확정",requested:"대기",unavailable:"불가",completed:"완료"};
@@ -15,10 +16,11 @@ export function VisitBookingClient({requesterName,isAdmin=false,onSelectVisit,on
  const [availability,setAvailability]=useState<VisitDateAvailability[]>([]);
  const [entries,setEntries]=useState<CalendarEntry[]>([]);
  const [form,setForm]=useState<"visit"|"ministry"|null>(null);
+ const [editingId,setEditingId]=useState<string|null>(null);
  const [busy,setBusy]=useState(false);const [error,setError]=useState("");
  const available=availability.find(day=>day.date===selectedDate)?.available===true;
- function select(date:string){setSelectedDate(date);setForm(null);setError("");}
- function changed(){setRefreshKey(value=>value+1);setForm(null);onChanged?.();}
+ function select(date:string){setSelectedDate(date);setForm(null);setEditingId(null);setError("");}
+ function changed(){setRefreshKey(value=>value+1);setForm(null);setEditingId(null);onChanged?.();}
  async function remove(entry:CalendarEntry) {
   if(busy||!entry.seriesId||!window.confirm(entry.repeat==="weekly"?"이 반복 일정 전체를 삭제할까요?":"이 일정을 삭제할까요?"))return;
   setBusy(true);setError("");
@@ -34,11 +36,12 @@ export function VisitBookingClient({requesterName,isAdmin=false,onSelectVisit,on
     <p>{displayTime(entry.time,entry.allDay)}{entry.kind==="visit"?" · 심방":entry.repeat==="weekly"?" · 매주 "+new Intl.DateTimeFormat("ko-KR",{weekday:"long",timeZone:"Asia/Seoul"}).format(new Date(entry.startDate+"T00:00:00+09:00")):""}</p>
     {entry.startDate&&entry.endDate&&entry.endDate!==entry.startDate&&<p className="schedule-date-range">{entry.startDate} ~ {entry.endDate}</p>}
     {entry.location&&<p>{entry.location}</p>}
-    {isAdmin&&entry.kind==="visit"&&onSelectVisit&&<button className="text-button" type="button" onClick={()=>onSelectVisit(entry.id)}>신청 관리</button>}
+    {entry.kind==="visit"&&(isAdmin||entry.canEdit)&&<button className="text-button" type="button" onClick={()=>{setForm(null);if(isAdmin&&onSelectVisit)onSelectVisit(entry.id);else setEditingId(entry.id);}}>{isAdmin&&onSelectVisit?"신청 관리":"수정"}</button>}
     {isAdmin&&entry.kind==="ministry"&&<button type="button" className="text-button" disabled={busy} onClick={()=>void remove(entry)}>{entry.repeat==="weekly"?"반복 일정 삭제":"일정 삭제"}</button>}
    </article>)}
    {!entries.some(entry=>entry.date===selectedDate)&&<p className="helper-text">등록된 일정이 없습니다.</p>}
    {error&&<p role="alert" className="error-text">{error}</p>}
+   {editingId&&<VisitEditForm key={editingId} visitId={editingId} isAdmin={isAdmin} onSaved={changed} onClose={()=>setEditingId(null)}/>}
    <div className="visit-register-actions">
     {(available||isAdmin)&&<button type="button" className="visit-form-switch" aria-pressed={form==="visit"} onClick={()=>setForm(form==="visit"?null:"visit")}>{form==="visit"&&<span className="visit-form-check" aria-hidden="true">✓</span>}{isAdmin?"심방 확정 등록":"심방 신청"}</button>}
     {isAdmin&&<button type="button" className="visit-form-switch" aria-pressed={form==="ministry"} onClick={()=>setForm(form==="ministry"?null:"ministry")}>{form==="ministry"&&<span className="visit-form-check" aria-hidden="true">✓</span>}목회일정 등록</button>}
@@ -48,4 +51,3 @@ export function VisitBookingClient({requesterName,isAdmin=false,onSelectVisit,on
   </section>}
  </div>;
 }
-

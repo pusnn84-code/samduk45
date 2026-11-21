@@ -58,8 +58,8 @@ export function AdminVisitDetail({
       </dl>
 
       <div className="admin-form">
-        <VisitRecipientInput initialName={visit.recipientName||visit.attendees||visit.requesterName} onChange={updateRecipient} disabled={busy||visit.status==="cancelled"||visit.status==="completed"}/>
-        <ScheduleDates start={visitDate} end={endDate} onStart={setVisitDate} onEnd={setEndDate} disabled={busy||visit.status==="cancelled"||visit.status==="completed"}/>
+        <VisitRecipientInput initialName={visit.recipientName||visit.attendees||visit.requesterName} onChange={updateRecipient} disabled={busy}/>
+        <ScheduleDates start={visitDate} end={endDate} onStart={setVisitDate} onEnd={setEndDate} disabled={busy}/>
         <label>
           심방 유형
           <select
@@ -67,7 +67,7 @@ export function AdminVisitDetail({
             onChange={(event) =>
               setVisitType(event.target.value as "personal" | "sam")
             }
-            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
+            disabled={busy}
           >
             <option value="personal">개인심방</option>
             <option value="sam">샘심방</option>
@@ -78,7 +78,7 @@ export function AdminVisitDetail({
           <textarea
             value={attendees}
             onChange={(event) => setAttendees(event.target.value)}
-            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
+            disabled={busy}
           />
         </label>
         <label>
@@ -86,22 +86,21 @@ export function AdminVisitDetail({
           <input
             value={location}
             onChange={(event) => setLocation(event.target.value)}
-            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
+            disabled={busy}
           />
         </label>
-        <ScheduleTime label="희망 시간" value={preferredTime} onChange={setPreferredTime} allDay={allDay} onAllDay={setAllDay} disabled={busy||visit.status==="cancelled"||visit.status==="completed"}/>
+        <ScheduleTime label="희망 시간" value={preferredTime} onChange={setPreferredTime} allDay={allDay} onAllDay={setAllDay} disabled={busy}/>
         <label>
           심방 요청 이유
           <textarea
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            disabled={busy || visit.status === "cancelled" || visit.status === "completed"}
+            disabled={busy}
           />
         </label>
       </div>
 
-      {(visit.status === "requested" || visit.status === "confirmed") && (
-        <button
+      <button
           className="text-button"
           type="button"
           disabled={busy}
@@ -121,8 +120,6 @@ export function AdminVisitDetail({
         >
           수정 내용 저장
         </button>
-      )}
-
       <div className="admin-visit-actions">
         {visit.status === "requested" && <button type="button" className="text-button danger-button" disabled={busy} onClick={()=>void onAction("decline")}>불가</button>}
         <button className="text-button danger-button" type="button"

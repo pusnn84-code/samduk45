@@ -4,6 +4,7 @@ export type CalendarEntry = {
   status: "confirmed" | "requested" | "unavailable" | "completed";
   repeat?: "none" | "weekly";
   allDay?: boolean; startDate?: string; endDate?: string;
+  canEdit?: boolean;
 };
 export type MinistrySeries = {
   id: string; title: string; startDate: string; endDate: string | null;

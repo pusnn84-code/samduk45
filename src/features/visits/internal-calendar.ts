@@ -12,23 +12,29 @@ import type { VisitStatus } from "./types";
 import { recipientForVisit } from "./shared-calendar";
 import { visitRange,validateRange,shiftDate } from "./schedule-range";
 
-export const VisitDetailsInput = z.object({
+export const VisitEditableFields = z.object({
   visitDate: z.iso.date(),
   endDate: z.iso.date().nullable().optional(),
   allDay: z.boolean().optional(),
   visitType: z.enum(["personal", "sam"]),
-  attendees: z.string().trim().max(3000).default(""),
-  location: z.string().trim().max(500).default(""),
-  preferredTime: z.string().trim().max(200).default(""),
-  reason: z.string().trim().max(10000).default(""),
+  attendees: z.string().trim().max(3000),
+  location: z.string().trim().max(500),
+  preferredTime: z.string().trim().max(200),
+  reason: z.string().trim().max(10000),
 });
-export const VisitDetailsPatch = VisitDetailsInput.extend({recipientName:z.string().trim().min(1).max(120).optional()}).partial().strict()
+export const VisitDetailsInput = VisitEditableFields.extend({
+  attendees: VisitEditableFields.shape.attendees.default(""),
+  location: VisitEditableFields.shape.location.default(""),
+  preferredTime: VisitEditableFields.shape.preferredTime.default(""),
+  reason: VisitEditableFields.shape.reason.default(""),
+});
+export const VisitDetailsPatch = VisitEditableFields.extend({recipientName:z.string().trim().min(1).max(120).optional()}).partial().strict()
   .refine(value => Object.keys(value).length > 0);
 export type InternalVisitPatch = z.infer<typeof VisitDetailsPatch>;
 
 export type InternalVisitRepository = {
   insert(input: SubmitVisitInput, status: "requested" | "confirmed"): Promise<{ id: string }>;
-  update(id: string, patch: InternalVisitPatch): Promise<boolean>;
+  update(id: string, patch: InternalVisitPatch, requesterUserId?: string): Promise<boolean>;
   transition(id: string, from: VisitStatus[], to: VisitStatus, adminId?: string): Promise<boolean>;
   delete(id: string): Promise<void>;
 };
@@ -59,7 +65,7 @@ export const dbInternalVisits: InternalVisitRepository = {
       return row;
     });
   },
-  async update(id, patch) {
+  async update(id, patch, requesterUserId) {
     const [current] = await getDb().select({recipientName:visitRequests.recipientName,visitDate:visitRequests.visitDate,endDate:visitRequests.endDate,allDay:visitRequests.allDay,preferredTime:visitRequests.preferredTime})
       .from(visitRequests).where(eq(visitRequests.id,id)).limit(1);
     if(!current)return false;
@@ -72,7 +78,11 @@ export const dbInternalVisits: InternalVisitRepository = {
     const resolved=changedName?await recipientForVisit({id:"",role:"admin",displayName:""},{attendees:"",recipientName:patch.recipientName}):null;
     const recipient=resolved?{...resolved,recipientLeaderName:'recipientLeaderName' in resolved?resolved.recipientLeaderName:null}:{};
     const rows = await getDb().update(visitRequests).set({ ...patch, ...recipient, ...timing, updatedAt: new Date() })
-      .where(and(eq(visitRequests.id, id), inArray(visitRequests.status, ["requested", "confirmed"])))
+      .where(and(eq(visitRequests.id, id), ...(requesterUserId ? [
+        eq(visitRequests.requesterUserId, requesterUserId),
+        eq(visitRequests.status, "requested"),
+        eq(visitRequests.isUnavailable, false),
+      ] : [])))
       .returning({ id: visitRequests.id });
     return rows.length > 0;
   },
@@ -103,8 +113,8 @@ export async function getInternalMonthAvailability(month: string, repository: Vi
       activeVisitDates: new Set(), enabledDates: new Set(enabled), bookingPeriod }));
 }
 
-export async function submitInternalVisit(input: SubmitVisitInput, repository: VisitRepository = dbVisitRepository,
-  writer: InternalVisitRepository = dbInternalVisits, today = todayInSeoul()) {
+export async function validateMemberVisitSchedule(input: SubmitVisitInput, repository: VisitRepository = dbVisitRepository,
+  today = todayInSeoul()) {
   input=visitRange(input);
   if (input.visitDate < today) throw new DomainError("VISIT_DATE_UNAVAILABLE", 409);
   const period=await repository.getBookingPeriod();
@@ -120,7 +130,12 @@ export async function submitInternalVisit(input: SubmitVisitInput, repository: V
       if(!enabledDates.includes(date)&&(blocked.includes(date)||weekdays.includes(new Date(date+'T00:00:00Z').getUTCDay())))throw new DomainError("VISIT_DATE_UNAVAILABLE",409);
     }
   }
-  return writer.insert(input, "requested");
+  return input;
+}
+
+export async function submitInternalVisit(input: SubmitVisitInput, repository: VisitRepository = dbVisitRepository,
+  writer: InternalVisitRepository = dbInternalVisits, today = todayInSeoul()) {
+  return writer.insert(await validateMemberVisitSchedule(input, repository, today), "requested");
 }
 
 /** Route handlers must verify the authenticated admin role before direct confirmation. */
