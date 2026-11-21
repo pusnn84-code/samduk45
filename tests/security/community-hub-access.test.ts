@@ -3,7 +3,7 @@ import {
   readFileSync,
   statSync,
 } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   projectPrayerRequestActivity,
@@ -29,7 +29,17 @@ describe("삼덕사오 community hub access boundaries", () => {
     expect(routes.length).toBeGreaterThan(0);
 
     for (const path of routes) {
-      const source = readFileSync(path, "utf8");
+      let source = readFileSync(path, "utf8");
+      // Calendar routes delegate to a shared handler. Inspect the actual
+      // exported function, rather than treating a re-export as authorization.
+      // Runtime guest/member checks also cover each calendar endpoint.
+      const delegated = source.match(/export \{ (\w+) as (?:GET|POST|DELETE) \} from "([^"]+)"/);
+      if (delegated) {
+        const handlerSource = readFileSync(resolve(dirname(path), delegated[2] + ".ts"), "utf8");
+        const handler = handlerSource.split("export async function " + delegated[1] + "(")[1];
+        expect(handler, path).toBeDefined();
+        source = handler.split("export async function ")[0];
+      }
       // Shared-calendar mutations also have runtime authorization coverage in
       // tests/visits/shared-calendar-routes.test.ts and use an explicit guard.
       expect(source, path).toMatch(/requireAdmin|if\s*\(\s*!user\s*\|\|\s*user\.role\s*!==\s*"admin"\s*\)\s*return NextResponse\.json\(\{code:"FORBIDDEN"\},\{status:403/);
