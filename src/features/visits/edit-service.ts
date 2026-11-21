@@ -53,7 +53,10 @@ export async function saveVisitEdit(actor: VisitEditor, id: string, patch: Inter
     const end = patch.endDate !== undefined ? patch.endDate :
       patch.visitDate && (visit.endDate ?? visit.visitDate) === visit.visitDate ? start : visit.endDate;
     if (start !== visit.visitDate || (end ?? start) !== (visit.endDate ?? visit.visitDate)) {
-      await validateSchedule({ ...visit, ...patch, visitDate: start, endDate: end, requesterUserId: actor.id });
+      await validateSchedule({ requesterUserId: actor.id, visitDate: start, endDate: end,
+        allDay: patch.allDay ?? visit.allDay, visitType: patch.visitType ?? visit.visitType,
+        attendees: patch.attendees ?? visit.attendees, location: patch.location ?? visit.location,
+        preferredTime: patch.preferredTime ?? visit.preferredTime, reason: patch.reason ?? visit.reason });
     }
   }
   // Ownership and waiting status are checked again in the UPDATE itself. A concurrent

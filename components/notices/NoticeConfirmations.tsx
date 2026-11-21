@@ -56,6 +56,6 @@ export function NoticeConfirmations({ noticeId, readRevision, initial }: { notic
       <section aria-label="확인한 리더"><h4>확인한 리더 <span>{state.confirmed.length}명</span></h4><People people={state.confirmed} empty="아직 확인한 리더가 없습니다." /></section>
       <section aria-label="미확인 리더"><h4>미확인 리더 <span>{state.unconfirmed.length}명</span></h4><People people={state.unconfirmed} empty="미확인 리더가 없습니다." /></section>
     </div>
-    {state.confirmed.length + state.unconfirmed.length === 0 && <p className="helper-text">현재 등록된 확인 대상 리더가 없습니다. 샘리더·마을장와 공지 확인 임원 등록 상태를 확인해 주세요.</p>}
+    {state.confirmed.length + state.unconfirmed.length === 0 && <p className="helper-text">현재 등록된 확인 대상 리더가 없습니다. 샘리더·마을장과 공지 확인 임원 등록 상태를 확인해 주세요.</p>}
   </section>;
 }
