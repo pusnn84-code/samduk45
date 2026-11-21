@@ -7,7 +7,7 @@ import {
   updateNotice,
 } from "../../../../../src/features/notices/service";
 import { DomainError } from "../../../../../src/lib/http";
-import { sendNoticePush } from "../../../../../src/features/push/service";
+import { schedulePushDelivery } from "../../../../../src/features/push/wakeup";
 
 function errorResponse(error: unknown) {
   if (error instanceof DomainError) {
@@ -25,17 +25,7 @@ export async function PATCH(
     const input = await parseNoticeRequest(request);
     const { id } = await context.params;
     const result = await updateNotice(id, input);
-    if (result.didPublish) {
-      try {
-        await sendNoticePush({
-          id: result.notice.id,
-          title: result.notice.title,
-          body: result.notice.body,
-        });
-      } catch {
-        // Notice edit/publish remains successful if push delivery fails.
-      }
-    }
+    if (result.didPublish) schedulePushDelivery();
     return NextResponse.json({
       status: "ok",
       notice: result.notice,

@@ -1,3 +1,4 @@
+import {schedulePushDelivery} from "../../../src/features/push/wakeup";
 import { z } from "zod";
 import { getCurrentSessionUser } from "../../../src/features/auth/http-session";
 import { acknowledgeMenuActivity, getMenuActivityCounts } from "../../../src/features/menu-activity/service";
@@ -14,6 +15,7 @@ export async function GET() {
   try {
     const user = await getCurrentSessionUser();
     if (!user) return json({ code: "UNAUTHORIZED" }, 401);
+    schedulePushDelivery();
     return json(await getMenuActivityCounts(user.id));
   } catch (error) { return failure(error); }
 }

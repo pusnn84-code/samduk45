@@ -12,6 +12,7 @@ export function MenuHome() {
   return <main className="menu-home" aria-labelledby="menu-home-title">
     <header className="menu-home-heading">
       <h2 id="menu-home-title">메뉴 선택<span aria-hidden="true">.</span></h2>
+      <Link href="/profile#push-settings-title" className="text-button" style={{fontSize:14}}>알림 설정</Link>
     </header>
     <nav className={`menu-home-grid${MEMBER_NAVIGATION.length > 8 ? " is-extended" : ""}${MEMBER_NAVIGATION.length > 10 ? " is-tall" : ""}`} aria-label="메뉴 선택">
       {MEMBER_NAVIGATION.map((item,index) =>

@@ -1,3 +1,4 @@
+import {schedulePushDelivery} from "../../../src/features/push/wakeup";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentSessionUser } from "../../../src/features/auth/http-session";
@@ -63,7 +64,9 @@ export async function PUT(request: Request) {
     const parsed = updateSchema.safeParse(await readJson(request));
     if (!parsed.success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400, headers });
 
-    return NextResponse.json(await updateBibleReadingState(user.id, parsed.data), { headers });
+    const result=await updateBibleReadingState(user.id, parsed.data);
+    schedulePushDelivery();
+    return NextResponse.json(result, { headers });
   } catch (error) {
     return errorResponse(error);
   }

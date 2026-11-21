@@ -1,3 +1,4 @@
+import {schedulePushDelivery} from "../../../../src/features/push/wakeup";
 import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "../../../../src/features/auth/http-session";
 import { CHUNK_BYTES, CommunityError, pageNumber, parseLikeInput, parseCommentBody, parsePostBody, parsePostInput, record, text, uuid } from "../../../../src/features/community/policy";
@@ -41,7 +42,7 @@ async function handle(request:Request,context:Context):Promise<Response> {
       if(path.length===2 && method==="PUT") {const input=record(await readJson(request));await updatePost(user,id,text(input.title,150),parsePostBody(input.body));return json({ok:true});}
       if(path.length===2 && method==="DELETE") {await deletePost(user,id);return json({ok:true});}
       if(path.length===3 && action==="like" && method==="PUT") return json(await setPostLike(user,id,parseLikeInput(await readJson(request))));
-      if(path.length===3 && action==="publish" && method==="POST") {await publishPost(user,id);return json({id});}
+      if(path.length===3 && action==="publish" && method==="POST") {await publishPost(user,id);schedulePushDelivery();return json({id});}
       if(path.length===3 && action==="move" && method==="PATCH") {const input=record(await readJson(request));await movePost(user,id,uuid(input.folderId));return json({ok:true});}
       if(path.length===3 && action==="comments" && method==="GET") return json(await listComments(id,pageNumber(url.searchParams.get("page"))));
       if(path.length===3 && action==="comments" && method==="POST") {const input=record(await readJson(request));return json(await addComment(user,id,uuid(input.id),parseCommentBody(input.body)),201);}

@@ -1,6 +1,8 @@
+import {schedulePushDelivery} from "../push/wakeup";
 import {after} from "next/server";
 // Only invoked AFTER the original request has been durably accepted.
 export function scheduleEmailDelivery(request:Request){
+ schedulePushDelivery();
  if(process.env.VERCEL_ENV!=="production"||process.env.NODE_ENV!=="production")return;
  const origin=new URL(request.url).origin;
  try{after(async()=>{

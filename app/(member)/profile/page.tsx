@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { PushOptIn } from '../../../components/notices/PushOptIn';
 import { ProfileForm } from "../../../components/profile/ProfileForm";
 import { getCurrentSessionUser } from "../../../src/features/auth/http-session";
 import { getProfile } from "../../../src/features/profile/service";
@@ -13,6 +14,7 @@ export default async function ProfilePage() {
     <main className="shell">
       <h1>내 정보</h1>
       <ProfileForm initial={profile} />
+      <PushOptIn isAdmin={user.role === 'admin'} />
     </main>
   );
 }

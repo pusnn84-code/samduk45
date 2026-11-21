@@ -1,3 +1,4 @@
+import {schedulePushDelivery} from "../../../src/features/push/wakeup";
 import { questionActor, boundedJson, sameOrigin, json, questionError, QuestionInput } from "../../../src/features/questions/http";
 import { createQuestion, listQuestions } from "../../../src/features/questions/service";
 import { z } from "zod";
@@ -10,6 +11,6 @@ export async function GET(request:Request) {
 export async function POST(request:Request) {
   try { sameOrigin(request); const actor=await questionActor(); const input=QuestionInput.safeParse(await boundedJson(request));
     if(!input.success)return json({code:'INVALID_INPUT'},400);
-    return json({id:await createQuestion(actor,input.data.title,input.data.content)},201);
+    const id=await createQuestion(actor,input.data.title,input.data.content);schedulePushDelivery();return json({id},201);
   } catch(e){return questionError(e);}
 }

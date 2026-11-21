@@ -1,3 +1,4 @@
+import {schedulePushDelivery} from "../../../../../../src/features/push/wakeup";
 import { scheduleCalendarExport } from "../../../../../../src/features/google-calendar/export-wakeup";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -16,7 +17,7 @@ export async function POST(
     const { id } = await context.params;
     if (!z.uuid().safeParse(id).success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400 });
     await transitionInternalVisit(id, "confirmed", user.id);
-    scheduleCalendarExport();
+    scheduleCalendarExport();schedulePushDelivery();
     return NextResponse.json({ status: "ok" });
   } catch (error) {
     if (error instanceof DomainError) {

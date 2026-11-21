@@ -1,0 +1,64 @@
+import {beforeAll,afterAll,describe,it,expect,vi} from 'vitest';
+import postgres from 'postgres';
+import {randomUUID,createECDH,randomBytes} from 'node:crypto';
+import {e2eAccounts} from '../fixtures/e2e-data';
+const sent=vi.hoisted(()=>({send:vi.fn(async()=>{})}));
+vi.mock('../../src/features/push/devices',async original=>({...await original<typeof import('../../src/features/push/devices')>(),sendDevicePush:sent.send}));
+import {dispatchPush} from '../../src/features/push/dispatcher';
+import {setupPush} from '../../src/features/push/config';
+import {savePushSubscription,updatePushPreferences,removePushSubscription} from '../../src/features/push/devices';
+const enabled=process.env.CI==='true'&&process.env.E2E_DATABASE_READY==='1'&&(()=>{try{const u=new URL(process.env.DATABASE_URL!);return ['127.0.0.1','localhost'].includes(u.hostname)&&u.pathname==='/prayer_e2e';}catch{return false;}})();
+describe.skipIf(!enabled)('disposable database notification queue',()=>{
+ const sql=postgres(process.env.DATABASE_URL!,{ssl:'require',prepare:false,max:1});
+ const admin=e2eAccounts.admin.userId!,member=e2eAccounts.member.userId!;
+ const n=randomUUID(),p=randomUUID(),v=randomUUID(),q=randomUUID(),post=randomUUID(),report=randomUUID(),sam=randomUUID(),request=randomUUID();
+ const endpoint=(role:string)=>'https://fcm.googleapis.com/fcm/send/test-'+role+'-'+n;
+ const prefs={notices:true,community:true,reading:true,pastoral:true,personal:true};
+ const ec=createECDH('prime256v1');ec.generateKeys();const keys={p256dh:ec.getPublicKey().toString('base64url'),auth:randomBytes(16).toString('base64url')};
+ beforeAll(async()=>{await setupPush();for(const [id,role] of [[admin,'admin'],[member,'member']])await savePushSubscription(id,{endpoint:endpoint(role),keys,preferences:prefs},'Synthetic CI device');});
+ afterAll(async()=>{
+  await removePushSubscription(admin,endpoint('admin'));await removePushSubscription(member,endpoint('member'));
+  await sql`delete from prayer_app.notices where id=${n}::uuid`;await sql`delete from prayer_app.prayer_requests where id=${p}::uuid`;
+  await sql`delete from prayer_app.visit_requests where id=${v}::uuid`;await sql`delete from prayer_app.questions where id=${q}::uuid`;
+  await sql`delete from prayer_app.community_posts where id=${post}::uuid`;await sql`delete from prayer_app.bible_reading_entries where user_id=${admin}::uuid and reading_date='2026-12-28'`;
+  await sql`delete from prayer_app.pastoral_reports where id=${report}::uuid`;await sql`delete from prayer_app.pastoral_requests where id=${request}::uuid`;await sql`delete from prayer_app.sams where id=${sam}::uuid`;await sql.end();
+ });
+ it('enqueues once at publication and honors device opt-ins and cancellation before send',async()=>{
+  await sql`insert into prayer_app.notices(id,title,body,status,author_user_id) values(${n}::uuid,'Synthetic','PRIVATE CONTENT','draft',${admin}::uuid)`;
+  expect(await sql`select id from prayer_app.push_delivery_queue where source_key=${n}`).toHaveLength(0);
+  await sql`update prayer_app.notices set status='published',published_at=now() where id=${n}::uuid`;
+  await sql`update prayer_app.notices set body='Changed private content' where id=${n}::uuid`;
+  const queue=await sql`select recipient_id,kind from prayer_app.push_delivery_queue where source_key=${n}`;expect(queue).toEqual([{recipient_id:member,kind:'notice'}]);
+  await updatePushPreferences(member,endpoint('member'),{...prefs,notices:false});sent.send.mockClear();await dispatchPush();expect(sent.send).not.toHaveBeenCalled();
+  expect((await sql`select state from prayer_app.push_delivery_queue where source_key=${n}`)[0].state).toBe('cancelled');await updatePushPreferences(member,endpoint('member'),prefs);
+ });
+ it('routes private requests only to the designated pastor and replies only to the owner',async()=>{
+  await sql`insert into prayer_app.prayer_requests(id,user_id,content,visibility) values(${p}::uuid,${member}::uuid,'PRIVATE PRAYER','private')`;
+  await sql`insert into prayer_app.visit_requests(id,requester_user_id,visit_date,visit_type,attendees,location,preferred_time,reason,status) values(${v}::uuid,${member}::uuid,'2099-01-01','personal','','','','PRIVATE REASON','requested')`;
+  await sql`insert into prayer_app.questions(id,owner_user_id,title) values(${q}::uuid,${member}::uuid,'PRIVATE QUESTION')`;
+  await sql`insert into prayer_app.question_messages(question_id,sender,content) values(${q}::uuid,'member','PRIVATE MESSAGE')`;
+  await sql`insert into prayer_app.sams(id,name,leader_name) values(${sam}::uuid,${'Push '+n},'Synthetic leader')`;
+  await sql`insert into prayer_app.pastoral_requests(id,year,month,enabled,created_by) values(${request}::uuid,2098,12,false,${admin}::uuid)`;
+  await sql`insert into prayer_app.pastoral_reports(id,request_id,sam_id,author_user_id,sam_name,village,leader_name,submitted_by,written_date,method,form,files,fingerprint,submitted_at) values(${report}::uuid,${request}::uuid,${sam}::uuid,${member}::uuid,'Test','1','Leader','Leader','2098-12-01','form','{}','[]',${'a'.repeat(64)},now())`;
+  const privateRows=await sql`select kind,recipient_id from prayer_app.push_delivery_queue where source_key in (${p},${v},${report}) order by kind`;
+  expect(privateRows).toEqual([{kind:'admin_prayer',recipient_id:admin},{kind:'admin_report',recipient_id:admin},{kind:'admin_visit',recipient_id:admin}]);
+  await sql`update prayer_app.visit_requests set status='confirmed',confirmed_at=now(),confirmed_by_user_id=${admin}::uuid where id=${v}::uuid`;
+  await sql`insert into prayer_app.question_messages(question_id,sender,content) values(${q}::uuid,'pastor','PRIVATE ANSWER')`;
+  sent.send.mockClear();await Promise.all([dispatchPush(),dispatchPush()]);
+  const payloads=JSON.stringify(sent.send.mock.calls);expect(payloads).not.toContain('PRIVATE');expect(payloads).not.toContain('Synthetic leader');
+  expect(sent.send.mock.calls.some(call=>JSON.stringify(call).includes('신청하신 심방이 확정'))).toBe(true);expect(sent.send.mock.calls.some(call=>JSON.stringify(call).includes('목사님의 새 답변'))).toBe(true);
+  const delivered=await sql`select id from prayer_app.push_delivery_queue where state='sent'`;expect(delivered.length).toBeGreaterThanOrEqual(5);
+  const before=sent.send.mock.calls.length;await dispatchPush();expect(sent.send.mock.calls.length).toBe(before);
+ });
+ it('captures community publication and new reading shares, never ordinary edits or completion checks',async()=>{
+  const [folder]=await sql`select id from prayer_app.community_folders limit 1`;
+  await sql`insert into prayer_app.community_posts(id,folder_id,author_user_id,title,body) values(${post}::uuid,${folder.id}::uuid,${admin}::uuid,'Synthetic','Synthetic')`;
+  expect(await sql`select id from prayer_app.push_delivery_queue where source_key=${post}`).toHaveLength(0);
+  await sql`update prayer_app.community_posts set published_at=now() where id=${post}::uuid`;
+  await sql`insert into prayer_app.bible_reading_entries(user_id,reading_date,completed) values(${admin}::uuid,'2026-12-28',true)`;
+  await sql`update prayer_app.bible_reading_entries set sharing='PRIVATE SHARE',sharing_updated_at=now() where user_id=${admin}::uuid and reading_date='2026-12-28'`;
+  await sql`update prayer_app.bible_reading_entries set sharing='EDITED PRIVATE SHARE' where user_id=${admin}::uuid and reading_date='2026-12-28'`;
+  const kinds=await sql`select kind from prayer_app.push_delivery_queue where subscription_id in(select id from prayer_app.push_subscriptions where endpoint=${endpoint('member')}) and kind in ('reading','community') order by kind`;
+  expect(kinds).toEqual([{kind:'community'},{kind:'reading'}]);sent.send.mockClear();await dispatchPush();expect(sent.send).toHaveBeenCalledTimes(2);
+ });
+});

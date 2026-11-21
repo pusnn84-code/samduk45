@@ -7,7 +7,7 @@ import {
   listNoticesForAdmin,
 } from "../../../../src/features/notices/service";
 import { DomainError } from "../../../../src/lib/http";
-import { sendNoticePush } from "../../../../src/features/push/service";
+import { schedulePushDelivery } from "../../../../src/features/push/wakeup";
 import { requireNoticePublisher } from "../../../../src/features/deputies/policy";
 
 function errorResponse(error: unknown) {
@@ -36,17 +36,7 @@ export async function POST(request: Request) {
     const input = await parseNoticeRequest(request);
     if (user.role !== "admin" && input.status !== "published") throw new DomainError("FORBIDDEN", 403);
     const result = await createNotice(user.id, input);
-    if (result.didPublish) {
-      try {
-        await sendNoticePush({
-          id: result.notice.id,
-          title: result.notice.title,
-          body: result.notice.body,
-        });
-      } catch {
-        // Notice publication succeeds even if push is unavailable.
-      }
-    }
+    if (result.didPublish) schedulePushDelivery();
     return NextResponse.json(
       {
         status: "ok",
