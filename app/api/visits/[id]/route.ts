@@ -1,3 +1,4 @@
+import { scheduleCalendarExport } from "../../../../src/features/google-calendar/export-wakeup";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentSessionUser } from "../../../../src/features/auth/http-session";
@@ -31,6 +32,7 @@ export async function PATCH(request: Request, context: Context) {
     const parsed = (user.role === "admin" ? VisitDetailsPatch : MemberVisitPatch).safeParse(await readReportJson(request));
     if (!z.uuid().safeParse(id).success || !parsed.success) return json({ code: "INVALID_INPUT" }, 400);
     await saveVisitEdit(user, id, parsed.data);
+    if (user.role === "admin") scheduleCalendarExport();
     return json({ status: "ok" });
   } catch (error) { return failure(error); }
 }

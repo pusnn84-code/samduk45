@@ -20,7 +20,7 @@ describe("public information content", () => {
   });
   it("documents the exact Google scopes and limits instead of promising no third parties", () => {
     const html = privacy();
-    for (const text of ["앱 데이터베이스", "Google Calendar 연결·조회·일정 전송 기능은 종료", "Supabase", "Vercel", "가족관계는 제공하지 않습니다"]) expect(html).toContain(text);
+    for (const text of ["앱 데이터베이스", "앱에서 Google로만", "Supabase", "Vercel", "가족관계는 제공하지 않습니다"]) expect(html).toContain(text);
     expect(html).toContain("gmail.send");
     expect(html).toContain("기존 메일 본문·목록을 읽거나 수정하는 권한은 요청하지 않습니다");
   });

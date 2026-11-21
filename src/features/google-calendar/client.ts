@@ -72,7 +72,7 @@ export async function listConnectedCalendars(): Promise<Array<{
       pageToken,
       maxResults: 250,
       showHidden: false,
-    });
+    }, { timeout: 5_000, retry: false });
 
     for (const item of response.data.items ?? []) {
       if (!item.id) continue;

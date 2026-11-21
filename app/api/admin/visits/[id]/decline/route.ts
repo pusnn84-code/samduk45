@@ -1,3 +1,4 @@
+import { scheduleCalendarExport } from "../../../../../../src/features/google-calendar/export-wakeup";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentSessionUser } from "../../../../../../src/features/auth/http-session";
@@ -12,6 +13,6 @@ export async function POST(request:Request,context:{params:Promise<{id:string}>}
   const {id}=await context.params;
   if(!z.uuid().safeParse(id).success)return NextResponse.json({code:"INVALID_INPUT"},{status:400});
   await declineVisit(id);
-  return NextResponse.json({status:"ok"});
+  scheduleCalendarExport();return NextResponse.json({status:"ok"});
  }catch(error){if(error instanceof DomainError||error instanceof ReportError)return NextResponse.json({code:error.code},{status:error.status});throw error;}
 }

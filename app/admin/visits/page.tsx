@@ -1,3 +1,4 @@
+import { GoogleCalendarExportSettings } from "../../../components/admin/settings/GoogleCalendarExportSettings";
 import type { VisitStatus } from "../../../src/features/visits/types";
 import { AdminVisitManagement } from "../../../components/admin/visits/AdminVisitManagement";
 import { VisitAvailabilitySettings } from "../../../components/admin/settings/VisitAvailabilitySettings";
@@ -23,6 +24,7 @@ export default async function AdminVisitsPage({
     <main className="admin-shell">
       <AdminVisitManagement initialStatus={parseStatus(rawStatus)} />
       <VisitAvailabilitySettings />
+      <GoogleCalendarExportSettings />
     </main>
   );
 }

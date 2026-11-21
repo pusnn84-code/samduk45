@@ -1,3 +1,4 @@
+import { scheduleCalendarExport } from "../../../src/features/google-calendar/export-wakeup";
 import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "../../../src/features/auth/http-session";
 import { DomainError } from "../../../src/lib/http";
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
       },
     );
     if (!isAdmin) scheduleEmailDelivery(request);
+    if (isAdmin) scheduleCalendarExport();
     return NextResponse.json({ status: "ok", ...result }, { status: 201 });
   } catch (error) {
     if (error instanceof DomainError) {

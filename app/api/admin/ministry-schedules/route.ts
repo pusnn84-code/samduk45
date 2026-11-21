@@ -1,3 +1,4 @@
+import { scheduleCalendarExport } from "../../../../src/features/google-calendar/export-wakeup";
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -19,11 +20,13 @@ async function mutate(request:Request, remove:boolean) {
       const rows=await getDb().update(ministrySchedules).set({isActive:false})
         .where(and(eq(ministrySchedules.id,parsed.data.id),eq(ministrySchedules.isActive,true))).returning({id:ministrySchedules.id});
       if(!rows.length)return NextResponse.json({code:"NOT_FOUND"},{status:404,headers});
+      scheduleCalendarExport();
       return NextResponse.json({status:"ok"},{headers});
     }
     const input=MinistryInput.safeParse(body);
     if(!input.success)return NextResponse.json({code:"INVALID_INPUT"},{status:400,headers});
-    return NextResponse.json(await createMinistry(user.id,input.data),{status:201,headers});
+    const created=await createMinistry(user.id,input.data);scheduleCalendarExport();
+    return NextResponse.json(created,{status:201,headers});
   } catch(error) {
     if(error instanceof ReportError)return NextResponse.json({code:error.code},{status:error.status,headers});
     throw error;

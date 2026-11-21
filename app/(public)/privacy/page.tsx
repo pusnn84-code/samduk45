@@ -23,7 +23,7 @@ export default function PrivacyPage() {
         <p className="public-eyebrow">삼덕사오 · 개인정보 안내</p>
         <h1>개인정보처리방침</h1>
         <p className="public-lead">어떤 정보를 왜 사용하는지, 어떻게 보관하고 삭제하는지 안내합니다.</p>
-        <p className="public-caption">시행일: <time dateTime="2026-11-05">2026년 11월 5일</time> · 버전 1.2</p>
+        <p className="public-caption">시행일: <time dateTime="2026-11-21">2026년 11월 21일</time> · 버전 1.3</p>
       </header>
       <nav className="public-toc" aria-label="개인정보처리방침 목차">
         <strong>목차</strong>
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
       <section id="scope">
         <h2>1. 운영 주체와 적용 범위</h2>
         <p>삼덕사오는 삼덕교회 45공동체의 성경통독, 심방신청, 기도요청, 공지, 커뮤니티와 목양지 업무를 돕는 웹앱입니다. 운영 및 개인정보 문의는 45공동체 운영 담당자가 접수합니다.</p>
-        <p>이 방침은 삼덕사오에서 처리하는 정보에 적용됩니다. 별도 승인한 Gmail 데이터에는 Google의 개인정보처리방침도 적용됩니다. 앱 소개와 이 방침은 로그인 없이 열람할 수 있습니다.</p>
+        <p>이 방침은 삼덕사오에서 처리하는 정보에 적용됩니다. 별도 승인한 Google Calendar·Gmail 데이터에는 Google의 개인정보처리방침도 적용됩니다. 앱 소개와 이 방침은 로그인 없이 열람할 수 있습니다.</p>
       </section>
       <section id="data">
         <h2>2. 처리하는 정보와 목적</h2>
@@ -47,9 +47,12 @@ export default function PrivacyPage() {
         <p>정보는 운영자가 등록하는 공동체 명단, 이용자의 직접 입력·첨부, 로그인과 기능 이용 과정, 관리자의 Google 연결 승인으로 수집됩니다. 기도·심방·목양지에는 신앙이나 건강 등 민감한 내용이 포함될 수 있으므로 필요한 내용만 작성하고, 다른 사람의 개인정보는 적절한 동의나 권한 없이 입력하지 마세요.</p>
       </section>
       <section id="google-calendar">
-        <h2>3. 심방 캘린더</h2>
-        <p>심방 신청과 일정은 앱 데이터베이스에서 처리합니다. 성도의 신청은 수락 대기로 저장되고, 목사님이 수락하거나 직접 등록한 일정만 목사님의 캘린더에 표시됩니다. 성도는 본인의 신청 상태와 신청 가능한 날짜만 확인합니다.</p>
-        <p>Google Calendar 연결·조회·일정 전송 기능은 종료했습니다. 별도로 승인한 Gmail 접수 알림은 심방 캘린더와 독립된 기능입니다.</p>
+        <h2>3. 심방 캘린더와 선택적 Google 연동</h2>
+        <p>심방 신청과 일정은 앱 데이터베이스에서 관리합니다. 로그인한 공동체 회원은 공유 캘린더의 심방 대상자·샘·날짜·시간·장소와 처리 상태를 볼 수 있습니다. 개인의 신청 사유와 수정 양식은 본인과 담당 관리자만 확인합니다.</p>
+        <p>관리자가 별도로 Google 연결을 승인하면 확정·완료된 심방과 활성 목회일정의 제목·대상자·샘·장소·일시·반복 정보를 선택한 본인 캘린더로 보냅니다. 대기 중인 신청, 기도제목, 목양지, 심방 사유·참석자 명단·연락처는 전송하지 않습니다.</p>
+        <p>연동 방향은 앱에서 Google로만 향합니다. Google의 개인 일정을 공동체 캘린더로 가져오지 않습니다. 캘린더 목록 권한은 연결할 캘린더를 고르는 데, 일정 권한은 앱이 보낸 일정의 생성·수정·삭제와 중복 방지에 사용합니다. 앱 표시가 없는 개인 일정은 변경하지 않습니다.</p>
+        <p>연결 계정, 선택한 캘린더와 암호화된 갱신 토큰을 서버 DB에 보관합니다. Google 비밀번호와 갱신 토큰의 원문을 브라우저로 보내지 않습니다. 관리자의 심방 화면에서 연결을 해제하면 앱에 저장된 Calendar 연결 정보를 삭제하고 전송을 중단합니다. 이미 Google에 보낸 일정은 연결 해제만으로 삭제하지 않습니다.</p>
+        <p>Google 정보는 이 일정 연동 기능에만 사용하며 판매, 광고 또는 범용 AI 모델 학습에 사용하지 않습니다. <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>의 제한적 사용 요건을 준수합니다. 별도로 승인한 Gmail 접수 알림과는 독립된 연결입니다.</p>
       </section>
       <section id="email-notifications">
         <h2>3-1. Gmail 접수 이메일 알림</h2>
@@ -67,7 +70,7 @@ export default function PrivacyPage() {
         <ul>
           <li><strong>Supabase:</strong> 회원·신청·게시물과 첨부파일, 암호화된 연동 토큰, 접수 알림 대기 정보 등의 데이터베이스 저장·처리.</li>
           <li><strong>Vercel:</strong> 웹페이지와 서버 기능 운영, 요청 처리 및 운영 로그.</li>
-          <li><strong>Google:</strong> 별도로 승인·활성화한 Gmail 접수 알림 발송.</li>
+          <li><strong>Google:</strong> 별도로 승인한 심방·목회일정의 단방향 캘린더 연동과 Gmail 접수 알림 발송.</li>
           <li><strong>브라우저별 푸시 서비스:</strong> 알림 수신을 허용한 기기로 공지 제목·본문 일부와 이동 주소 전달.</li>
         </ul>
         <p>클라우드의 글로벌 인프라 이용 과정에서 정보가 국외에서 처리될 수 있습니다. 구체적인 처리 위치와 로그·백업 보관 조건은 각 서비스의 계약 및 운영 설정에 따르며, 관련 문의는 아래 운영 담당자에게 접수할 수 있습니다. 새로운 제공 목적이나 처리 범위가 생기면 관련 안내와 필요한 절차를 진행합니다.</p>
@@ -81,7 +84,7 @@ export default function PrivacyPage() {
       </section>
       <section id="rights">
         <h2>6. 연결 해제와 권리 행사</h2>
-        <p>심방 캘린더는 Google 연결 없이 사용할 수 있습니다. 과거 Google 연결 권한이 남아 있다면 <a href="https://myaccount.google.com/connections" rel="noreferrer">Google 계정의 서드 파티 연결 관리</a>에서 철회할 수 있습니다. 기존에 Google에 생성한 일정은 앱에서 자동 삭제하지 않습니다.</p>
+        <p>심방 캘린더는 Google 연결 없이도 사용할 수 있습니다. Calendar 연결은 관리자의 심방 화면에서 해제할 수 있습니다. Google 계정 자체의 앱 권한을 철회하려면 <a href="https://myaccount.google.com/connections" rel="noreferrer">Google 계정의 서드 파티 연결 관리</a>에서 철회할 수 있습니다. 기존에 Google에 생성한 일정은 앱에서 자동 삭제하지 않습니다.</p>
         <p>본인 정보의 열람·정정·삭제, 처리 정지, 회원 이용 종료 또는 동의 철회는 {supportEmail ? <><a href={`mailto:${supportEmail}`}>{supportEmail}</a>으로 요청해 주세요.</> : CONTACT_INSTRUCTION} 요청 대상과 본인 확인에 필요한 최소한의 정보만 보내고, 비밀번호·인증 토큰·주민등록번호는 보내지 마세요. 담당자가 본인 및 대리 권한을 확인하고 처리 결과나 제한 사유를 안내합니다.</p>
         <p>Google Calendar에 남아 있는 일정은 캘린더 소유자가 직접 삭제하거나 담당자에게 삭제를 요청할 수 있습니다. 캘린더 연결 해제와 회원 자료 삭제는 별개의 절차입니다.</p>
       </section>

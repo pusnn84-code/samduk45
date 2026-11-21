@@ -1,3 +1,4 @@
+import { scheduleCalendarExport } from "../../../../../src/features/google-calendar/export-wakeup";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "../../../../../src/features/admin/service";
@@ -26,6 +27,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const { id } = await context.params;
     if (!parsed.success || !z.uuid().safeParse(id).success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400 });
     await updateInternalVisit(id, parsed.data);
+    scheduleCalendarExport();
     return NextResponse.json({ status: "ok" });
   } catch (error) { return errorResponse(error); }
 }
@@ -35,6 +37,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     const parsed = z.uuid().safeParse((await context.params).id);
     if (!parsed.success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400 });
     await dbInternalVisits.delete(parsed.data);
+    scheduleCalendarExport();
     return NextResponse.json({ status: "ok" });
   } catch (error) { return errorResponse(error); }
 }
