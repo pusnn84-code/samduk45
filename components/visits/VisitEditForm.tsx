@@ -41,7 +41,7 @@ export function VisitEditForm({ visitId, isAdmin = false, onSaved, onClose }: {
         body: JSON.stringify({ visitDate: visit.visitDate, endDate: visit.endDate ?? visit.visitDate,
           allDay: visit.allDay, visitType: visit.visitType, attendees: visit.attendees,
           location: visit.location, preferredTime: visit.allDay ? "" : visit.preferredTime,
-          reason: visit.reason, ...(isAdmin ? { recipientName: visit.recipientName || visit.requesterName } : {}),
+          reason: visit.reason, ...(isAdmin ? { recipientName: visit.recipientName || visit.attendees || visit.requesterName } : {}),
         }),
       });
       onSaved();
@@ -60,7 +60,7 @@ export function VisitEditForm({ visitId, isAdmin = false, onSaved, onClose }: {
     {!visit && !error && <p role="status">신청 내용을 불러오는 중입니다.</p>}
     {visit && <form className="admin-form" onSubmit={event => void save(event)}>
       <fieldset disabled={busy || locked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-        {isAdmin && <VisitRecipientInput initialName={visit.recipientName || visit.requesterName} onChange={updateRecipient} disabled={busy || locked} />}
+        {isAdmin && <VisitRecipientInput initialName={visit.recipientName || visit.attendees || visit.requesterName} onChange={updateRecipient} disabled={busy || locked} />}
         <ScheduleDates start={visit.visitDate} end={visit.endDate ?? visit.visitDate}
           onStart={value => change("visitDate", value)} onEnd={value => change("endDate", value)} disabled={busy || locked} />
         <label>심방 유형<select value={visit.visitType} onChange={event => change("visitType", event.target.value as Visit["visitType"])}>

@@ -13,8 +13,9 @@ test("visit owners edit waiting requests, confirmation locks stale forms, and ad
   const adminContext=await browser.newContext(),admin=await adminContext.newPage();
   try {
     for(const [id,owner,location] of [[own,e2eAccounts.member.userId,`수정 전 ${nonce}`],[other,e2eAccounts.admin.userId,`다른 신청 ${nonce}`]]) {
+      const attendees=id===other?"가상 이전 심방 대상":"";
       await db`insert into prayer_app.visit_requests(id,requester_user_id,visit_date,end_date,visit_type,attendees,location,preferred_time,reason,status,calendar_sync_status)
-        values(${id}::uuid,${owner}::uuid,${date}::date,${date}::date,'personal','',${location},'오후 2시','비공개 신청 사유','requested','synced')`;
+        values(${id}::uuid,${owner}::uuid,${date}::date,${date}::date,'personal',${attendees},${location},'오후 2시','비공개 신청 사유','requested','synced')`;
     }
     await page.setViewportSize({width:390,height:844});await login(page);await login(admin,"admin");
     const response=await page.request.get("/api/visits/calendar?month="+date.slice(0,7));expect(response.status()).toBe(200);
@@ -23,6 +24,9 @@ test("visit owners edit waiting requests, confirmation locks stale forms, and ad
     expect((await page.request.get("/api/visits/"+other)).status()).toBe(404);
     expect((await page.request.patch("/api/visits/"+other,{data:{location:"권한 없음"}})).status()).toBe(404);
     expect((await page.request.patch("/api/visits/"+own,{data:{status:"confirmed"}})).status()).toBe(400);
+    await admin.goto("/visits");await admin.getByRole("button",{name:"다음 달",exact:true}).click();await admin.getByRole("button",{name:new RegExp("^"+date+" 일정")}).click();
+    await admin.locator(".visit-event-card").filter({hasText:`다른 신청 ${nonce}`}).getByRole("button",{name:"수정",exact:true}).click();
+    await expect(admin.getByLabel("심방 대상자 이름",{exact:true})).toHaveValue("가상 이전 심방 대상");
     await page.goto("/visits");await page.getByRole("button",{name:"다음 달",exact:true}).click();
     await page.getByRole("button",{name:new RegExp("^"+date+" 일정")}).click();
     const event=page.locator(".visit-event-card").filter({hasText:`수정 전 ${nonce}`});await event.getByRole("button",{name:"수정",exact:true}).click();
