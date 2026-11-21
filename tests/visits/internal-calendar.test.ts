@@ -15,6 +15,11 @@ function repository(patch: Partial<VisitRepository> = {}): VisitRepository {
     cancelAfterSyncFailure: vi.fn(), ...patch };
 }
 describe("app-only visit calendar", () => {
+  it("stores a pastor's tentative appointment as requested when explicitly selected", async () => {
+    const db = writer();
+    await createInternalAppointment(input, db, "requested");
+    expect(db.insert).toHaveBeenCalledWith(input, "requested");
+  });
   it("saves member requests as waiting for approval without creating an external event", async () => {
     const db = writer();
     await expect(submitInternalVisit(input, repository(), db)).resolves.toEqual({ id: "saved" });

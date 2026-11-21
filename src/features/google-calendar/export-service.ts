@@ -17,7 +17,7 @@ export async function exportSources():Promise<CalendarExportSource[]> {
       time:visitRequests.preferredTime,location:visitRequests.location})
       .from(visitRequests).innerJoin(users,eq(users.id,visitRequests.requesterUserId)).leftJoin(memberRoster,eq(memberRoster.id,users.rosterId))
       .where(and(inArray(visitRequests.status,["confirmed","completed"]),eq(visitRequests.isUnavailable,false))).orderBy(asc(visitRequests.id)),
-    getDb().select().from(ministrySchedules).where(eq(ministrySchedules.isActive,true)).orderBy(asc(ministrySchedules.id)),
+    getDb().select().from(ministrySchedules).where(and(eq(ministrySchedules.isActive,true),eq(ministrySchedules.status,"confirmed"))).orderBy(asc(ministrySchedules.id)),
     calendarPeople(),
   ]);
   return [
@@ -83,6 +83,6 @@ export async function syncCalendarExports(){
       const [row]=await getDb().select({id:visitRequests.id}).from(visitRequests).where(and(eq(visitRequests.id,match[2]),inArray(visitRequests.status,["confirmed","completed"]),eq(visitRequests.isUnavailable,false))).limit(1);
       return Boolean(row);
     }
-    const [row]=await getDb().select({id:ministrySchedules.id}).from(ministrySchedules).where(and(eq(ministrySchedules.id,match[2]),eq(ministrySchedules.isActive,true))).limit(1);return Boolean(row);
+    const [row]=await getDb().select({id:ministrySchedules.id}).from(ministrySchedules).where(and(eq(ministrySchedules.id,match[2]),eq(ministrySchedules.isActive,true),eq(ministrySchedules.status,"confirmed"))).limit(1);return Boolean(row);
   });
 }

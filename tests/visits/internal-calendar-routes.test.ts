@@ -12,7 +12,7 @@ import { POST as submit, GET as own } from "../../app/api/visits/route";
 import { POST as confirm } from "../../app/api/admin/visits/[id]/confirm/route";
 
 const details = { visitDate: "2099-10-08", visitType: "personal", attendees: "가상대상" };
-const request = (body = details) => new Request("https://example.test/api/visits", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+const request = (body: unknown = details) => new Request("https://example.test/api/visits", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 beforeEach(() => { vi.resetAllMocks(); boundary.create.mockResolvedValue({ id: "created" }); boundary.submit.mockResolvedValue({ id: "requested" }); });
 describe("pastor-only scheduling", () => {
   it.each([null, { id: "member", role: "member" }])("denies direct creation and confirmation for non-admin %j", async user => {
@@ -30,7 +30,7 @@ describe("pastor-only scheduling", () => {
     boundary.session.mockResolvedValue({ id: "pastor", role: "admin" });
     const response = await submit(request());
     expect(response.status).toBe(201);
-    expect(boundary.create).toHaveBeenCalledWith({ ...details, recipientName:"검증대상",recipientSam:"1-2샘", requesterUserId: "pastor", location: "", preferredTime: "", reason: "" });
+    expect(boundary.create).toHaveBeenCalledWith({ ...details, recipientName:"검증대상",recipientSam:"1-2샘", requesterUserId: "pastor", location: "", preferredTime: "", reason: "" }, undefined, "confirmed");
     expect(boundary.submit).not.toHaveBeenCalled();
   });
   it("does not allow a member to forge a confirmed appointment or another requester", async () => {
@@ -38,6 +38,14 @@ describe("pastor-only scheduling", () => {
     const body = { ...details, status: "confirmed", requesterUserId: "someone-else", role: "admin" };
     expect((await submit(request(body))).status).toBe(201);
     expect(boundary.submit).toHaveBeenCalledWith({ ...details, recipientName:"검증대상",recipientSam:"1-2샘", requesterUserId: "member", location: "", preferredTime: "", reason: "" });
+    expect(boundary.create).not.toHaveBeenCalled();
+  });
+  it("accepts an admin's pending selection and rejects a member's status choice", async () => {
+    boundary.session.mockResolvedValue({id:"pastor",role:"admin"});
+    expect((await submit(request({...details,appointmentStatus:"requested"}))).status).toBe(201);
+    expect(boundary.create).toHaveBeenCalledWith(expect.objectContaining({requesterUserId:"pastor"}),undefined,"requested");
+    boundary.create.mockClear();boundary.session.mockResolvedValue({id:"member",role:"member"});
+    expect((await submit(request({...details,appointmentStatus:"confirmed"}))).status).toBe(403);
     expect(boundary.create).not.toHaveBeenCalled();
   });
   it("returns only the current user's requests with private cache headers", async () => {

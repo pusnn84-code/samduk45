@@ -356,6 +356,7 @@ export const ministrySchedules = appSchema.table("ministry_schedules", {
   id: uuid("id").defaultRandom().primaryKey(),
   ownerUserId: uuid("owner_user_id").notNull().references(() => users.id),
   title: varchar("title", { length: 120 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("confirmed"),
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
   eventEndDate: date("event_end_date"),

@@ -1,5 +1,8 @@
 "use client";
 import './schedule-fields.css';
+export function ScheduleStatus({value,onChange,disabled=false}:{value:"requested"|"confirmed";onChange:(value:"requested"|"confirmed")=>void;disabled?:boolean}){
+ return <fieldset className="schedule-status"><legend>일정 상태</legend><div>{([['requested','대기'],['confirmed','확정']] as const).map(([status,label])=><label key={status} className={value===status?'is-selected':''}><input type="radio" name="scheduleStatus" value={status} checked={value===status} disabled={disabled} onChange={()=>onChange(status)}/><span className={`visit-status-dot is-${status}`} aria-hidden="true"/>{label}</label>)}</div></fieldset>;
+}
 export function ScheduleDates({start,end,onStart,onEnd,disabled=false}:{start:string;end:string;onStart:(value:string)=>void;onEnd:(value:string)=>void;disabled?:boolean}){
  return <div className="schedule-date-pair"><label>시작일<input aria-label="시작일" type="date" required value={start} disabled={disabled} onChange={event=>{const value=event.target.value;onStart(value);if(end===start||end<value)onEnd(value);}}/></label><label>종료일<input aria-label="종료일" type="date" required min={start} value={end} disabled={disabled} onChange={event=>onEnd(event.target.value)}/></label></div>;
 }

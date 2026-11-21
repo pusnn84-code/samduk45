@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { fetchJson } from "../../src/lib/fetch-json";
 import type { VisitStartTimes } from "../../src/features/visits/types";
 import { VisitRecipientInput } from "./VisitRecipientInput";
-import { ScheduleDates, ScheduleTime } from "./ScheduleFields";
+import { ScheduleDates, ScheduleTime, ScheduleStatus } from "./ScheduleFields";
 
 export function VisitRequestPanel({
   visitDate,
@@ -32,6 +32,7 @@ export function VisitRequestPanel({
   const [startDate,setStartDate]=useState(visitDate);
   const [endDate,setEndDate]=useState(visitDate);
   const [allDay,setAllDay]=useState(false);
+  const [appointmentStatus,setAppointmentStatus]=useState<"requested"|"confirmed">("confirmed");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [recipient,setRecipient]=useState<{recipientRosterId?:string;recipientName:string}>({recipientName:""});
@@ -55,10 +56,10 @@ export function VisitRequestPanel({
           location,
           preferredTime:allDay?"":preferredTime,
           reason,
-          ...(isAdmin ? recipient : {}),
+          ...(isAdmin ? {...recipient,appointmentStatus} : {}),
         }),
       });
-      setMessage(isAdmin ? "심방 일정이 확정되어 캘린더에 반영되었습니다." : "심방 신청이 전달되었습니다.");
+      setMessage(isAdmin ? "심방 일정이 캘린더에 반영되었습니다." : "심방 신청이 전달되었습니다.");
       onSuccess();
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : "";
@@ -122,6 +123,7 @@ export function VisitRequestPanel({
         </fieldset>
 
         {isAdmin && <VisitRecipientInput onChange={setRecipient} disabled={busy}/>}
+        {isAdmin && <ScheduleStatus value={appointmentStatus} onChange={setAppointmentStatus} disabled={busy}/>}
         <ScheduleDates start={startDate} end={endDate} onStart={setStartDate} onEnd={setEndDate} disabled={busy}/>
         <label>
           신청자
@@ -152,7 +154,7 @@ export function VisitRequestPanel({
 
         {dateAvailable && (
           <div className="visit-start-time-guidance" id="visit-start-time-guidance" aria-live="polite">
-            <p>{isAdmin ? "심방 시간을 적어주세요. 저장하면 바로 확정됩니다." : "원하시는 시간을 적어주세요. 목사님이 확인 후 일정을 확정합니다."}</p>
+            <p>{isAdmin ? "심방 시간을 적고 대기 또는 확정으로 저장해 주세요." : "원하시는 시간을 적어주세요. 목사님이 확인 후 일정을 확정합니다."}</p>
           </div>
         )}
 
@@ -168,7 +170,7 @@ export function VisitRequestPanel({
 
         <p className="helper-text">항목을 입력하지 않아도 신청할 수 있습니다.</p>
         <p className="visit-confirmation-copy">
-          {isAdmin ? "관리자가 기록한 일정은 수락 대기 없이 심방 캘린더에 바로 반영됩니다." : "목사님이 신청을 수락하면 심방 캘린더에 반영됩니다."}
+          {isAdmin ? "선택한 상태로 캘린더에 표시됩니다. 대기 일정은 나중에 확정할 수 있습니다." : "목사님이 신청을 수락하면 심방 캘린더에 반영됩니다."}
         </p>
 
         {!dateAvailable ? (
@@ -186,7 +188,7 @@ export function VisitRequestPanel({
           type="submit"
           disabled={busy || !dateAvailable}
         >
-          {busy ? (isAdmin ? "저장 중…" : "신청 중…") : (isAdmin ? "확정 일정 저장" : "신청")}
+          {busy ? (isAdmin ? "저장 중…" : "신청 중…") : (isAdmin ? (appointmentStatus==="confirmed"?"확정 일정 저장":"대기 일정 저장") : "신청")}
         </button>
       </form>
     </aside>
