@@ -27,6 +27,11 @@ export function VisitBookingClient({requesterName,isAdmin=false,onSelectVisit,on
   try{await fetchJson("/api/admin/ministry-schedules",{method:"DELETE",headers:{"content-type":"application/json"},body:JSON.stringify({id:entry.seriesId})});changed();}
   catch{setError("일정을 삭제하지 못했습니다. 다시 시도해 주세요.");}finally{setBusy(false);}
  }
+ async function changeStatus(entry:CalendarEntry){
+  if(busy||!entry.seriesId)return;setBusy(true);setError("");
+  try{await fetchJson("/api/admin/ministry-schedules",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id:entry.seriesId,status:entry.status==="requested"?"confirmed":"requested"})});changed();}
+  catch{setError("일정 상태를 변경하지 못했습니다. 다시 시도해 주세요.");}finally{setBusy(false);}
+ }
  return <div className="visit-shared-layout">
   <VisitCalendar selectedDate={selectedDate} onSelect={select} onAvailabilityChange={setAvailability} onEntriesChange={setEntries} refreshKey={refreshKey}/>
   {selectedDate&&<section className="visit-date-details" aria-label="선택한 날짜의 일정">
@@ -37,7 +42,7 @@ export function VisitBookingClient({requesterName,isAdmin=false,onSelectVisit,on
     {entry.startDate&&entry.endDate&&entry.endDate!==entry.startDate&&<p className="schedule-date-range">{entry.startDate} ~ {entry.endDate}</p>}
     {entry.location&&<p>{entry.location}</p>}
     {entry.kind==="visit"&&(isAdmin||entry.canEdit)&&<button className="text-button" type="button" onClick={()=>{setForm(null);if(isAdmin&&onSelectVisit)onSelectVisit(entry.id);else setEditingId(entry.id);}}>{isAdmin&&onSelectVisit?"신청 관리":"수정"}</button>}
-    {isAdmin&&entry.kind==="ministry"&&<button type="button" className="text-button" disabled={busy} onClick={()=>void remove(entry)}>{entry.repeat==="weekly"?"반복 일정 삭제":"일정 삭제"}</button>}
+    {isAdmin&&entry.kind==="ministry"&&<div className="visit-register-actions"><button type="button" className="text-button" disabled={busy} onClick={()=>void changeStatus(entry)}>{entry.status==="requested"?"확정으로 변경":"대기로 변경"}{entry.repeat==="weekly"?" (반복 전체)":""}</button><button type="button" className="text-button" disabled={busy} onClick={()=>void remove(entry)}>{entry.repeat==="weekly"?"반복 일정 삭제":"일정 삭제"}</button></div>}
    </article>)}
    {!entries.some(entry=>entry.date===selectedDate)&&<p className="helper-text">등록된 일정이 없습니다.</p>}
    {error&&<p role="alert" className="error-text">{error}</p>}

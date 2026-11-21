@@ -139,8 +139,8 @@ export async function submitInternalVisit(input: SubmitVisitInput, repository: V
 }
 
 /** Route handlers must verify the authenticated admin role before direct confirmation. */
-export async function createInternalAppointment(input: SubmitVisitInput, writer: InternalVisitRepository = dbInternalVisits) {
-  return writer.insert(visitRange(input), "confirmed");
+export async function createInternalAppointment(input: SubmitVisitInput, writer: InternalVisitRepository = dbInternalVisits, status: "requested" | "confirmed" = "confirmed") {
+  return writer.insert(visitRange(input), status);
 }
 
 export async function updateInternalVisit(id: string, patch: InternalVisitPatch, writer: InternalVisitRepository = dbInternalVisits) {

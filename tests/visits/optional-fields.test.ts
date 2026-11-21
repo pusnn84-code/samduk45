@@ -28,13 +28,14 @@ beforeEach(() => {
 });
 
 describe("optional visit details", () => {
-  it("explains immediate confirmation for the logged-in administrator", () => {
+  it("offers pending or confirmed registration for the logged-in administrator", () => {
     const html = renderToStaticMarkup(createElement(VisitRequestPanel, {
       visitDate: booking.visitDate, requesterName: "검증", dateAvailable: true, isAdmin: true,
       onClose() {}, onSuccess() {}, onDateUnavailable() {},
     }));
     expect(html).toContain("확정 일정 저장");
-    expect(html).toContain("수락 대기 없이");
+    expect(html).toContain("일정 상태");
+    expect(html).toContain("대기 일정은 나중에 확정할 수 있습니다.");
     expect(html).not.toContain("목사님이 신청을 수락하면");
   });
   it("offers an enabled 신청 action with no required text inputs", () => {

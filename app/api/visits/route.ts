@@ -7,7 +7,7 @@ import { scheduleEmailDelivery } from "../../../src/features/email/wakeup";
 import { z } from "zod";
 import { recipientForVisit } from "../../../src/features/visits/shared-calendar";
 import { checkOrigin, readReportJson, ReportError } from "../../../src/features/pastoral/policy";
-const Input = VisitDetailsInput.extend({ recipientRosterId: z.uuid().optional(), recipientName: z.string().trim().max(120).optional() });
+const Input = VisitDetailsInput.extend({ recipientRosterId: z.uuid().optional(), recipientName: z.string().trim().max(120).optional(), appointmentStatus:z.enum(["requested","confirmed"]).optional() });
 
 export async function POST(request: Request) {
   const user = await getCurrentSessionUser();
@@ -25,14 +25,14 @@ export async function POST(request: Request) {
 
   try {
     const isAdmin = user.role === "admin";
+    if (!isAdmin && parsed.data.appointmentStatus !== undefined) return NextResponse.json({code:"FORBIDDEN"},{status:403});
     const recipient = await recipientForVisit(user, parsed.data);
-    const { recipientRosterId: _roster, recipientName: _name, ...details } = parsed.data;
-    const result = await (isAdmin ? createInternalAppointment : submitInternalVisit)(
-      {
+    const { recipientRosterId: _roster, recipientName: _name, appointmentStatus, ...details } = parsed.data;
+    const input = {
         requesterUserId: user.id,
         ...details, ...recipient,
-      },
-    );
+      };
+    const result = isAdmin ? await createInternalAppointment(input, undefined, appointmentStatus ?? "confirmed") : await submitInternalVisit(input);
     if (!isAdmin) scheduleEmailDelivery(request);
     if (isAdmin) scheduleCalendarExport();
     return NextResponse.json({ status: "ok", ...result }, { status: 201 });

@@ -10,6 +10,7 @@ export type MinistrySeries = {
   id: string; title: string; startDate: string; endDate: string | null;
   time: string; location: string; repeat: string;
   eventEndDate?: string | null; allDay?: boolean;
+  status?: string;
 };
 export function samSuffix(value: string | null | undefined): string | null {
   const match = /^([1-5])-([1-9]\d*)(?:샘)?$/.exec((value ?? "").replace(/\s/g, ""));
@@ -33,7 +34,7 @@ export function expandMinistry(series: MinistrySeries[], month: string): Calenda
       const occurrence=shiftDate(item.startDate,offset),last=shiftDate(occurrence,duration);
       if(date>last||(item.repeat==='weekly'&&item.endDate&&occurrence>item.endDate))continue;
       entries.push({ id: `${item.id}:${date}`, seriesId: item.id, date, title: item.title,
-        sam: null, time: item.allDay?'':item.time, location: item.location, kind: "ministry", status: "confirmed",
+        sam: null, time: item.allDay?'':item.time, location: item.location, kind: "ministry", status: item.status === "requested" ? "requested" : "confirmed",
         startDate:occurrence,endDate:last,...(item.allDay?{allDay:true}:{}),
         repeat: item.repeat === "weekly" ? "weekly" : "none" });
     }

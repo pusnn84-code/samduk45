@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { displayTime, timeSortKey, entryTitle, expandMinistry, legacyRecipient, samSuffix } from "../../src/features/visits/shared-calendar-policy";
 const series={id:"series",title:"목요전도대",startDate:"2026-11-05",endDate:null,time:"14:00",location:"교회",repeat:"weekly"};
 describe("shared ministry calendar",()=>{
+ it("keeps tentative weekly ministry occurrences waiting instead of marking them confirmed",()=>{
+  const entries=expandMinistry([{...series,status:"requested"}],"2026-11");
+  expect(entries).toHaveLength(4);expect(entries.every(entry=>entry.status==="requested")).toBe(true);
+ });
  it("orders Korean preferred times with structured ministry times and formats 24-hour input",()=>{
   expect(["오후 4:00","14:00","오전 11시",""].sort((a,b)=>timeSortKey(a)-timeSortKey(b))).toEqual(["오전 11시","14:00","오후 4:00",""]);
   expect(displayTime("14:00")).toBe("오후 2:00");expect(displayTime("00:00")).toBe("오전 12:00");expect(displayTime("오후 3시 이후")).toBe("오후 3시 이후");

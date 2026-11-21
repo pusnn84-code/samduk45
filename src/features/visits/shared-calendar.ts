@@ -8,6 +8,7 @@ import {dateDistance,monthDates,validDate} from "./schedule-range";
 import {canEditVisit,type VisitEditor} from "./edit-policy";
 export const CalendarMonth=z.string().regex(/^(20\d{2}|21\d{2})-(0[1-9]|1[0-2])$/);
 export const MinistryInput=z.object({
+ status:z.enum(["requested","confirmed"]).optional(),
  title:z.string().trim().min(1).max(120),startDate:z.iso.date(),endDate:z.iso.date().nullable().default(null),
  eventEndDate:z.iso.date().nullable().optional(),allDay:z.boolean().optional(),time:z.string().max(5).default(""),
  location:z.string().trim().max(500).default(""),repeat:z.enum(["none","weekly"]).default("none")
