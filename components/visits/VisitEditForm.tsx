@@ -67,11 +67,11 @@ export function VisitEditForm({ visitId, isAdmin = false, onSaved, onClose }: {
           <option value="personal">개인심방</option><option value="sam">샘심방</option>
         </select></label>
         <label>신청자<input value={visit.requesterName} readOnly /></label>
-        <label>참석자 명단 (선택)<textarea maxLength={3000} value={visit.attendees} onChange={event => change("attendees", event.target.value)} /></label>
-        <label>장소 (선택)<input maxLength={500} value={visit.location} onChange={event => change("location", event.target.value)} /></label>
+        <label>참석자 명단 (선택)<textarea aria-label="참석자 명단 (선택)" maxLength={3000} value={visit.attendees} onChange={event => change("attendees", event.target.value)} /></label>
+        <label>장소 (선택)<input aria-label="장소 (선택)" maxLength={500} value={visit.location} onChange={event => change("location", event.target.value)} /></label>
         <ScheduleTime label={isAdmin ? "시간" : "희망 시간 (선택)"} value={visit.preferredTime}
           onChange={value => change("preferredTime", value)} allDay={visit.allDay} onAllDay={value => change("allDay", value)} disabled={busy || locked} />
-        <label>심방 요청 이유 (선택)<textarea maxLength={10000} value={visit.reason} onChange={event => change("reason", event.target.value)} /></label>
+        <label>심방 요청 이유 (선택)<textarea aria-label="심방 요청 이유 (선택)" maxLength={10000} value={visit.reason} onChange={event => change("reason", event.target.value)} /></label>
       </fieldset>
       {!isAdmin && <p className="helper-text">대기 중인 본인 신청만 수정할 수 있습니다. 확정 이후에는 목사님께 변경을 요청해 주세요.</p>}
       <div className="visit-register-actions"><button type="submit" className="primary-button" disabled={busy || locked}>{busy ? "저장 중…" : "수정 내용 저장"}</button>
