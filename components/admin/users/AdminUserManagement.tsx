@@ -312,7 +312,7 @@ export function AdminUserManagement({ initial }: { initial: AdminRosterPage }) {
               <label className="checkbox-row"><input name="isActive" type="checkbox" defaultChecked={selectedRoster?.isActive ?? true} /> 로그인 허용</label>
               <label className="checkbox-row"><input name="isAdmin" type="checkbox" defaultChecked={selectedRoster?.isAdmin ?? false} /> 관리자</label>
               <label className="checkbox-row"><input name="isNoticeOfficer" type="checkbox" defaultChecked={selectedRoster?.isNoticeOfficer ?? false} /> 공지 확인 임원</label>
-              <p className="helper-text">샘리더·마을리더는 등록된 리더 명단에서 자동으로 포함됩니다. 그 외 임원은 ‘공지 확인 임원’을 선택해 주세요. 공지 확인 현황만 공유하며 관리자 권한이나 목양지 열람 권한은 부여하지 않습니다.</p>
+              <p className="helper-text">샘리더·마을장는 등록된 리더 명단에서 자동으로 포함됩니다. 그 외 임원은 ‘공지 확인 임원’을 선택해 주세요. 공지 확인 현황만 공유하며 관리자 권한이나 목양지 열람 권한은 부여하지 않습니다.</p>
               <button className="primary-button" type="submit" disabled={busy}>저장</button>
             </form>
           </div>

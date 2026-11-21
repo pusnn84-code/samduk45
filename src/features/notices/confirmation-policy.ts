@@ -22,7 +22,7 @@ export function confirmationAudience(directory: ConfirmationDirectory) {
       const sam = directory.sams.find(sam => sam.id === leader.samId)!;
       responsibilities.push(`${sam.name.replace(/샘$/u, "")}샘 리더`);
     }
-    for (const leader of villageLeaders.filter(leader => leader.rosterId === person.id)) responsibilities.push(`${leader.village}마을 리더`);
+    for (const leader of villageLeaders.filter(leader => leader.rosterId === person.id)) responsibilities.push(`${leader.village}마을장`);
     return responsibilities.length ? [{ id: person.id, name: displayName(person), responsibilities: [...new Set(responsibilities)] }] : [];
   }).sort((a, b) => a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id));
 }

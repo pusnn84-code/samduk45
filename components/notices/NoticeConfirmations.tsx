@@ -45,7 +45,7 @@ export function NoticeConfirmations({ noticeId, readRevision, initial }: { notic
       <div><p className="eyebrow">리더 함께 확인</p><h3 id="notice-confirmation-title">공지 읽음 확인</h3></div>
       <button type="button" className="text-button" disabled={busy} onClick={() => void request(false)}>현황 새로고침</button>
     </div>
-    <p className="helper-text">샘리더·마을리더·임원과 관리자가 함께 볼 수 있습니다. ‘확인했습니다’ 버튼을 누른 기준으로 표시됩니다.</p>
+    <p className="helper-text">샘리더·마을장·임원과 관리자가 함께 볼 수 있습니다. ‘확인했습니다’ 버튼을 누른 기준으로 표시됩니다.</p>
     {changed ? <div className="notice-confirmation-action" role="status"><p>공지 내용이 변경되었습니다. 다시 읽은 뒤 확인해 주세요.</p><button type="button" className="primary-button compact-button" onClick={() => window.location.reload()}>공지 다시 읽기</button></div>
       : state.canConfirm && <div className="notice-confirmation-action">
         <button type="button" className="primary-button compact-button" disabled={busy || Boolean(state.ownConfirmedAt)} onClick={() => void request(true)}>{state.ownConfirmedAt ? "확인 완료" : busy ? "기록 중…" : "확인했습니다"}</button>
@@ -56,6 +56,6 @@ export function NoticeConfirmations({ noticeId, readRevision, initial }: { notic
       <section aria-label="확인한 리더"><h4>확인한 리더 <span>{state.confirmed.length}명</span></h4><People people={state.confirmed} empty="아직 확인한 리더가 없습니다." /></section>
       <section aria-label="미확인 리더"><h4>미확인 리더 <span>{state.unconfirmed.length}명</span></h4><People people={state.unconfirmed} empty="미확인 리더가 없습니다." /></section>
     </div>
-    {state.confirmed.length + state.unconfirmed.length === 0 && <p className="helper-text">현재 등록된 확인 대상 리더가 없습니다. 샘·마을 리더와 공지 확인 임원 등록 상태를 확인해 주세요.</p>}
+    {state.confirmed.length + state.unconfirmed.length === 0 && <p className="helper-text">현재 등록된 확인 대상 리더가 없습니다. 샘리더·마을장와 공지 확인 임원 등록 상태를 확인해 주세요.</p>}
   </section>;
 }

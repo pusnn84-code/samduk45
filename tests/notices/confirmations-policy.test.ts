@@ -14,6 +14,7 @@ function data(): ConfirmationDirectory {
 describe("leader notice confirmation audience", () => {
   it("allows sam and village leaders to see all current leadership confirmations", () => {
     const directory = data();
+    expect(confirmationAudience(directory).find(person => person.id === "head")?.responsibilities).toEqual(["1마을장"]);
     directory.roster.find(person => person.id === "not-joined")!.samLabel = "1-2";
     for (const id of ["user-leader", "user-head", "user-admin"]) expect(confirmationAccess(id, directory).visible).toBe(true);
     expect(confirmationAccess("user-leader", directory).audience.map(person => person.id)).toContain("not-joined");
