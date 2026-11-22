@@ -3,6 +3,7 @@ export const MEMBER_NAVIGATION = [
   { href: "/birthdays", label: "오늘의 생일", icon: "birthday", description: "오늘과 지난 5일의 생일 함께 축하하기" },
   { href: "/bible-reading", label: "성경통독", icon: "reading", description: "오늘의 본문, 완료 체크와 한 줄 나눔" },
   { href: "/scripture", label: "성경 찬송가", icon: "book", description: "개역개정 성경과 찬송가 악보" },
+  { href: "/samji", label: "은혜의 샘지", icon: "journal", description: "말씀과 찬송을 읽고 질문 아래에 기록하기" },
   { href: "/prayer-requests", label: "기도요청", icon: "heart", description: "함께 기도할 제목 전하기" },
   { href: "/visits", label: "심방요청", icon: "calendar", description: "만남을 위한 날짜와 장소 신청" },
   { href: "/community", label: "도란도란", icon: "messages", description: "사진과 이야기, 좋아요와 댓글" },

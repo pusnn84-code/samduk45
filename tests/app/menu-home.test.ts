@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { MenuHome } from "../../components/app/MenuHome";
 
-const memberLinks = ["/notices", "/birthdays", "/bible-reading", "/scripture", "/prayer-requests", "/visits", "/community", "/our-community", "/pastoral-reports", "/autumn-light", "/questions", "/ministry-plan"];
+const memberLinks = ["/notices", "/birthdays", "/bible-reading", "/scripture", "/samji", "/prayer-requests", "/visits", "/community", "/our-community", "/pastoral-reports", "/autumn-light", "/questions", "/ministry-plan"];
 
 function renderMenu() {
   const html = renderToStaticMarkup(createElement(MenuHome));
@@ -16,7 +16,7 @@ describe("compact login landing menu", () => {
     const { html, links } = renderMenu();
     expect(links.filter(link => link !== "/profile#push-settings-title")).toEqual(memberLinks);
     expect(links.filter(link => link === "/profile#push-settings-title")).toHaveLength(1);
-    expect(html.match(/class="menu-home-card"/g)).toHaveLength(12);
+    expect(html.match(/class="menu-home-card"/g)).toHaveLength(13);
     expect(html).toContain('aria-label="메뉴 선택"');
     expect(html).not.toContain("홈 화면에 추가</button>");
     for (const label of ["공지", "성경통독", "기도요청", "심방요청", "도란도란", "마을과 샘", "샘목양지", "2027 사역안내"]) expect(html).toContain(`<strong>${label}</strong>`);
