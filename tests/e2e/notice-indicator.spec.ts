@@ -8,6 +8,18 @@ test("new notices show ! without device notifications and clear when read", asyn
   await login(page);
   const notices = (await (await page.request.get("/api/notices")).json()).notices;
   for (const notice of notices) await page.request.get(`/api/notices/${notice.id}`);
+  await page.goto("/notices");
+  const pinned=page.locator(".notice-list").getByRole("link").first();
+  await expect(pinned).toHaveText(/고정.*2027 사역안내/);
+  await pinned.click();
+  await expect(page).toHaveURL(/\/notices\/ministry-plan$/);
+  await expect(page.getByRole("heading",{name:"2027 사역안내",exact:true})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"너른 사랑의 해.",exact:true})).toBeVisible();
+  await expectNoOverflow(page);
+  await page.getByRole("link",{name:"공지 목록",exact:true}).click();
+  await expect(page).toHaveURL(/\/notices$/);
+  await page.goto("/");
+  await expect(page.getByRole("navigation",{name:"메뉴 선택",exact:true}).getByRole("link",{name:"2027 사역안내",exact:true})).toHaveCount(0);
   await page.clock.install();
   await page.goto("/prayer-requests");
   const marker = page.locator('.member-nav-link[href="/notices"] .nav-badge');

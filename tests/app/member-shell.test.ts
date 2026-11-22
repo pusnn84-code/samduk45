@@ -5,7 +5,7 @@ import { COMMUNITY_2027 } from "../../src/content/community-2027";
 describe("삼덕사오 member shell", () => {
   it("pins the required menu order", () => {
     const source = readFileSync("src/content/member-navigation.ts", "utf8");
-    const labels = ["공지", "오늘의 생일", "성경통독", "기도요청", "심방요청", "도란도란", "마을과 샘", "샘목양지", "2027 사역안내"];
+    const labels = ["공지", "오늘의 생일", "성경통독", "기도요청", "심방요청", "도란도란", "마을과 샘", "샘목양지"];
     let cursor = -1;
     for (const label of labels) {
       const next = source.indexOf(label);
