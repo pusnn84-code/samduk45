@@ -1,0 +1,25 @@
+import {expect,test} from "@playwright/test";
+import {login,expectNoOverflow} from "./helpers";
+test("2027 ministry plan remains pinned above notices and replaces the separate menu",async({page})=>{
+ test.skip(process.env.E2E_DATABASE_READY!=="1","Requires disposable CI DB");
+ await page.setViewportSize({width:360,height:800});await login(page);
+ const nav=page.getByRole("navigation",{name:"메뉴 선택",exact:true});
+ await expect(nav.getByRole("link",{name:"2027 사역안내",exact:true})).toHaveCount(0);
+ await expect(nav.getByRole("link")).toHaveCount(12);
+ await page.goto("/notices");
+ const pinned=page.locator(".notice-list").getByRole("link").first();
+ await expect(pinned).toHaveText(/고정.*2027 사역안내/);
+ await pinned.click();
+ await expect(page).toHaveURL(/\/notices\/ministry-plan$/);
+ await expect(page.getByRole("heading",{name:"2027 사역안내",exact:true})).toBeVisible();
+ await expect(page.getByRole("heading",{name:"너른 사랑의 해",exact:true})).toBeVisible();
+ await expect(page.getByRole("navigation",{name:"2027 사역 계획 바로가기",exact:true})).toBeVisible();
+ await expectNoOverflow(page);
+ await page.getByRole("link",{name:"공지 목록",exact:true}).click();
+ await expect(page).toHaveURL(/\/notices$/);
+ await expect(page.locator(".notice-list").getByRole("link").first()).toHaveText(/고정.*2027 사역안내/);
+ await page.goto("/ministry-plan");
+ await expect(page).toHaveURL(/\/notices\/ministry-plan$/);
+ await expect(page.getByRole("heading",{name:"2027 사역안내",exact:true})).toBeVisible();
+ await page.screenshot({path:"test-results/pinned-ministry-plan.png",fullPage:false});
+});
