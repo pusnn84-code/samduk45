@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { login, expectNoOverflow } from "./helpers";
 
-test("new notices show ! without device notifications and clear when read", async ({ page, browser }) => {
+test("new notices show an unread count without device notifications and clear when read", async ({ page, browser }) => {
   test.skip(process.env.E2E_DATABASE_READY !== "1", "Requires disposable CI DB");
   await page.addInitScript(() => { Object.defineProperty(window, "Notification", { value: undefined, configurable: true }); });
   await page.setViewportSize({width:360,height:800});
@@ -34,13 +34,13 @@ test("new notices show ! without device notifications and clear when read", asyn
     expect(created.status()).toBe(201);
     noticeId = (await created.json()).notice.id;
     await page.clock.fastForward(30_000);
-    await expect(marker).toHaveText("!");
+    await expect(marker).toHaveText("1");
     await expect(page.locator('.community-menu-button .nav-badge')).toBeVisible();
     await page.getByRole("button", {name:"메뉴 열기",exact:true}).click();
     await expect(marker).toBeVisible();
     await page.locator('.member-nav-link[href="/notices"]').click();
     await expect(page.getByRole("heading", {name:"공지",exact:true})).toBeVisible();
-    await expect(marker).toHaveText("!");
+    await expect(marker).toHaveText("1");
     const link = page.getByRole("link", {name:/앱 안 새 공지 표시 검증/});
     await expect(link).toContainText("NEW");
     await page.clock.fastForward(30_000);
