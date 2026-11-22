@@ -29,7 +29,7 @@ test('PDF review, inline answers, private notes, optimistic saves, score display
   const saved=member.waitForResponse(r=>r.url().endsWith('/record')&&r.request().method()==='PUT');await member.getByRole('button',{name:'기록 저장',exact:true}).click();expect((await saved).status()).toBe(200);
   const own=await(await member.request.get('/api/samji/'+id)).json();expect(own.record.notes[0].text).toBe('공유하면 안 되는 개인 메모');expect(own.record.version).toBe(1);
   const admin=await(await page.request.get('/api/samji/'+id)).json();expect(admin.record.answers).toEqual({});expect(admin.record.notes).toEqual([]);
-  const other=await otherContext.newPage();await login(other,'leader');expect((await(await other.request.get('/api/samji/'+id)).json()).record.answers).toEqual({});
+  const other=await otherContext.newPage();await login(other,'newcomer');expect((await(await other.request.get('/api/samji/'+id)).json()).record.answers).toEqual({});
   expect((await member.request.post('/api/samji',{data:{}})).status()).toBe(403);
   expect((await member.request.put('/api/samji/'+id+'/record',{data:{version:1,answers:own.record.answers,notes:[],ownerUserId:'other'}})).status()).toBe(400);
   expect((await member.request.put('/api/samji/'+id+'/record',{data:{version:0,answers:{},notes:[]}})).status()).toBe(409);
@@ -41,3 +41,5 @@ test('PDF review, inline answers, private notes, optimistic saves, score display
   await member.getByRole('button',{name:'기록 저장',exact:true}).click();await expect(q1).toHaveValue('');await expectNoOverflow(member);await member.screenshot({path:'test-results/samji-inline-answers.png',fullPage:true});
  }finally{if(id){await db`delete from prayer_app.samji_records where document_id=${id}::uuid`;await db`delete from prayer_app.samji_documents where id=${id}::uuid`;}await memberContext.close();await otherContext.close();await db.end();}
 });
+
+
