@@ -7,6 +7,7 @@ vi.mock("../../src/features/bible-reading/service", () => ({
   getBibleReadingState: mocks.get,
   updateBibleReadingState: mocks.update,
 }));
+vi.mock("../../src/features/bible-reading/meditations",()=>({withMeditations:async(state:unknown)=>state}));
 import { GET, PUT } from "../../app/api/bible-reading/route";
 
 const url = "https://samduk45.vercel.app/api/bible-reading";
@@ -57,13 +58,12 @@ describe("member Bible reading API", () => {
     expect(mocks.update).toHaveBeenLastCalledWith("signed-in-member", { date, sharing: null });
   });
 
-  it("trims a valid one-line share and rejects multiple lines or oversized shares", async () => {
-    expect((await update({ date, sharing: "  한줄 나눔  " })).status).toBe(200);
-    expect(mocks.update).toHaveBeenCalledWith("signed-in-member", { date, sharing: "한줄 나눔" });
-    for (const sharing of ["\n첫째 줄", "첫째 줄\u2028둘째 줄", " ", "가".repeat(151)]) {
-      expect((await update({ date, sharing })).status).toBe(400);
+  it("accepts long, multiline meditations while rejecting empty text and NUL",async()=>{
+    for(const sharing of ["  묵상 나눔  ","첫째 줄\n둘째 줄","가".repeat(5000)]){
+      expect((await update({date,sharing})).status).toBe(200);
+      expect(mocks.update).toHaveBeenLastCalledWith("signed-in-member",{date,sharing:sharing.trim()});
     }
-    expect(mocks.update).toHaveBeenCalledTimes(1);
+    for(const sharing of [" ","가\u0000나"])expect((await update({date,sharing})).status).toBe(400);
   });
 
   it("rejects actor overrides and cross-site mutations", async () => {

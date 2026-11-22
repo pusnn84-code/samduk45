@@ -1,4 +1,5 @@
 "use client";
+import {takeLoginDestination} from "../../src/features/auth/prayer-return";
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -24,7 +25,7 @@ export function LoginForm() {
       const body = await response.json().catch(() => ({}));
 
       if (response.ok) {
-        router.replace(body.status === "password_change_required" ? "/set-password" : body.status === "pin_setup_required" ? "/set-pin" : "/");
+        router.replace(body.status === "password_change_required" ? "/set-password" : body.status === "pin_setup_required" ? "/set-pin" : takeLoginDestination());
         router.refresh();
         return;
       }

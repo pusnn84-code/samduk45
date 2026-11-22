@@ -76,7 +76,7 @@ export async function updateBibleReadingState(userId: string, update: BibleReadi
         .where(and(eq(bibleReadingEntries.userId, userId), eq(bibleReadingEntries.readingDate, update.date)));
       if (existing?.number != null) anonymousNumber = existing.number;
       else {
-        const [allocation] = await tx.select({ next: sql<number>`coalesce(max(${bibleReadingEntries.anonymousNumber}),0)+1` }).from(bibleReadingEntries).where(eq(bibleReadingEntries.readingDate, update.date));
+        const [allocation] = await tx.select({ next: sql<number>`greatest(coalesce(max(${bibleReadingEntries.anonymousNumber}),0),coalesce((select max(anonymous_number) from prayer_app.bible_reading_shares where reading_date=${update.date}::date),0))+1` }).from(bibleReadingEntries).where(eq(bibleReadingEntries.readingDate, update.date));
         anonymousNumber = Number(allocation.next);
       }
     }

@@ -17,7 +17,7 @@ describe("menu update indicators", () => {
   });
   it("also shows numeric updates in the sidebar", () => {
     const html = renderToStaticMarkup(createElement(MemberSidebar, { unreadCount: 3, communityCount: 2, readingCount: 1 }));
-    expect(html).toContain("안 읽은 공지 3개"); expect(html).toContain("새 이야기 2개"); expect(html).toContain("새 한 줄 나눔 1개");
+    expect(html).toContain("안 읽은 공지 3개"); expect(html).toContain("새 이야기 2개"); expect(html).toContain("새 묵상 나눔 1개");
   });
   it("hides zero counts and caps large badges while announcing the full count", () => {
     expect(renderToStaticMarkup(createElement(MenuUpdateBadge, { count: 0, label: "새 이야기" }))).toBe("");

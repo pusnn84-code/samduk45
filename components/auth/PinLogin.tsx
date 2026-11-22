@@ -1,4 +1,5 @@
 "use client";
+import {takeLoginDestination} from "../../src/features/auth/prayer-return";
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { fetchJson } from "../../src/lib/fetch-json";
@@ -17,7 +18,7 @@ export function PinLogin({ remembered }: { remembered: boolean }) {
     pending.current = true; setBusy(true); setMessage("");
     try {
       await fetchJson("/api/auth/pin", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ pin: value }) });
-      setPin(""); router.replace("/"); router.refresh();
+      setPin(""); router.replace(takeLoginDestination()); router.refresh();
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
       if (code === "PIN_DEVICE_EXPIRED") { setUsePin(false); setMessage("휴대폰 등록이 만료되었습니다. 이름과 비밀번호로 다시 로그인해 주세요."); }

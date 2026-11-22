@@ -142,7 +142,7 @@ export const bibleReadingEntries = appSchema.table("bible_reading_entries", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   readingDate: date("reading_date").notNull(),
   completed: boolean("completed").notNull().default(false),
-  sharing: varchar("sharing", { length: 150 }),
+  sharing: text("sharing"),
   sharingId: uuid("sharing_id").notNull().defaultRandom(),
   sharingUpdatedAt: timestamp("sharing_updated_at", { withTimezone: true }),
   sharingAnonymous: boolean("sharing_anonymous").notNull().default(false),
@@ -162,8 +162,14 @@ export const bibleSharingViews = appSchema.table("bible_sharing_views", {
   viewedAt: timestamp("viewed_at", { withTimezone: true }).notNull(),
 }, t => [primaryKey({ columns: [t.userId, t.readingDate] })]);
 
+export const bibleReadingShares=appSchema.table("bible_reading_shares",{
+ sharingId:uuid("sharing_id").primaryKey().defaultRandom(),userId:uuid("user_id").notNull().references(()=>users.id,{onDelete:"cascade"}),
+ readingDate:date("reading_date").notNull(),sharing:text("sharing"),sharingAnonymous:boolean("sharing_anonymous").notNull().default(false),anonymousNumber:integer("anonymous_number"),
+ sharingUpdatedAt:timestamp("sharing_updated_at",{withTimezone:true}).notNull().defaultNow(),createdAt:timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+},t=>[index("meditation_date_updated_idx").on(t.readingDate,t.sharingUpdatedAt,t.sharingId),uniqueIndex("meditation_anonymous_number_uq").on(t.readingDate,t.anonymousNumber).where(sql`${t.anonymousNumber} is not null`)]);
+
 export const bibleSharingEmpathy = appSchema.table("bible_sharing_empathy", {
-  sharingId: uuid("sharing_id").notNull().references(() => bibleReadingEntries.sharingId, { onDelete: "cascade" }),
+  sharingId: uuid("sharing_id").notNull().references(() => bibleReadingShares.sharingId, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, t => [primaryKey({ columns: [t.sharingId, t.userId] }), index("bible_sharing_empathy_user_idx").on(t.userId)]);
