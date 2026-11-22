@@ -12,7 +12,7 @@ test('PDF review, inline answers, private notes, optimistic saves, score display
   await page.setViewportSize({width:320,height:568});for(const link of await nav.getByRole('link').all())await expect(link).toBeInViewport();await expectNoOverflow(page);await page.setViewportSize({width:390,height:844});
   await page.goto('/samji');await page.getByRole('button',{name:'PDF 올리기',exact:true}).click();
   await page.getByLabel('PDF 선택 (3MB 이하)',{exact:true}).setInputFiles({name:'samji_261122_.pdf',mimeType:'application/pdf',buffer:textPdf()});
-  const uploader=page.getByRole('region',{name:'샘지 PDF 올리기',exact:true});await expect(uploader.getByLabel('본문',{exact:true})).toHaveValue('Hello Samji PDF',{timeout:45000});
+  const uploader=page.getByRole('region',{name:'샘지 PDF 올리기',exact:true});try{await expect(uploader.getByLabel('본문',{exact:true})).toHaveValue('Hello Samji PDF',{timeout:45000});}catch(e){console.log('SAMJI_BROWSER_STATE',await page.locator('body').innerText());throw e;}
   await uploader.getByLabel('말씀 제목',{exact:true}).fill('샘지 기능 검증');await uploader.getByLabel('질문 내용',{exact:true}).fill('오늘 감사한 일은 무엇인가요?');
   await uploader.getByRole('button',{name:'질문 추가',exact:true}).click();await uploader.getByLabel('질문 내용',{exact:true}).last().fill('오늘 실천하고 싶은 일은 무엇인가요?');
   await uploader.getByRole('button',{name:'찬송가 추가',exact:true}).click();
@@ -41,5 +41,6 @@ test('PDF review, inline answers, private notes, optimistic saves, score display
   await member.getByRole('button',{name:'기록 저장',exact:true}).click();await expect(q1).toHaveValue('');await expectNoOverflow(member);await member.screenshot({path:'test-results/samji-inline-answers.png',fullPage:true});
  }finally{if(id){await db`delete from prayer_app.samji_records where document_id=${id}::uuid`;await db`delete from prayer_app.samji_documents where id=${id}::uuid`;}await memberContext.close();await otherContext.close();await db.end();}
 });
+
 
 
