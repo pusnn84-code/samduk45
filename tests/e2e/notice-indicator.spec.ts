@@ -14,7 +14,7 @@ test("new notices show ! without device notifications and clear when read", asyn
   await pinned.click();
   await expect(page).toHaveURL(/\/notices\/ministry-plan$/);
   await expect(page.getByRole("heading",{name:"2027 사역안내",exact:true})).toBeVisible();
-  await expect(page.getByRole("heading",{name:"너른 사랑의 해.",exact:true})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"너른 사랑의 해",exact:true})).toBeVisible();
   await expectNoOverflow(page);
   await page.getByRole("link",{name:"공지 목록",exact:true}).click();
   await expect(page).toHaveURL(/\/notices$/);
