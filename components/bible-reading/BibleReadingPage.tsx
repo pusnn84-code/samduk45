@@ -14,7 +14,6 @@ import "./bible-reading.css";
 type ReadingUpdate = { completed: boolean } | { sharing: string | null; sharingAnonymous?: boolean };
 
 const endpoint = "/api/bible-reading";
-const maxSharingLength = 150;
 const monthOf = (date: string) => Number(date.slice(5, 7));
 const dateLabel = (date: string) => `${monthOf(date)}월 ${Number(date.slice(8, 10))}일`;
 
@@ -26,6 +25,8 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
   const [loadedReading, setReading] = useState<BibleReadingState | null>(null);
   const [draftOverride, setDraftOverride] = useState<string | null>(null);
   const [anonymousOverride, setAnonymousOverride] = useState<boolean | null>(null);
+  const [editingId,setEditingId]=useState<string|null>(null);
+  const postId=useRef<string|null>(null);
   const [loadError, setLoadError] = useState("");
   const [reload, setReload] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,8 +40,8 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
   const chapterLinks = plannedDay ? getBibleReadingLinks(plannedDay.passage) : [];
   const todayIsPlanned = Boolean(getBibleReadingDay(today));
   const reading = loadedReading?.date === date ? loadedReading : null;
-  const draft = draftOverride ?? reading?.sharing ?? "";
-  const anonymous = anonymousOverride ?? reading?.sharingAnonymous ?? false;
+  const draft = draftOverride ?? "";
+  const anonymous = anonymousOverride ?? false;
 
   useEffect(() => {
     if (!date) return;
@@ -79,6 +80,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
     setRefreshing(false);
     setDraftOverride(null);
     setAnonymousOverride(null);
+    setEditingId(null);postId.current=null;
     setLoadError("");
     setFeedback(null);
     setEmpathyError(null);
@@ -122,10 +124,25 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
     setReload(current => current + 1);
   }
 
-  function submitSharing(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const sharing = draft.trim();
-    if (sharing && (sharing !== reading?.sharing || anonymous !== reading?.sharingAnonymous)) void save({ sharing, sharingAnonymous: anonymous }, "한 줄 나눔을 저장했습니다.");
+  async function writeSharing(method:"POST"|"PATCH"|"DELETE",id:string,text?:string){
+    if(mutation.current||refreshing||!reading)return;
+    mutation.current=true;loadController.current?.abort();setSaving(true);setFeedback(null);
+    try{
+      const result=await fetchJson<BibleReadingState>(endpoint+"/shares",{method,headers:{"Content-Type":"application/json"},body:JSON.stringify({id,date,...(method==="DELETE"?{}:{sharing:text,sharingAnonymous:anonymous})})});
+      setReading(result);
+      if(method!=="DELETE"||id===editingId){setDraftOverride("");setAnonymousOverride(false);setEditingId(null);postId.current=null;}
+      setFeedback({target:"sharing",message:method==="DELETE"?"묵상 나눔을 삭제했습니다.":method==="PATCH"?"묵상 나눔을 수정했습니다.":"묵상 나눔을 올렸습니다. 새로운 글을 계속 남길 수 있습니다."});
+    }catch{setFeedback({target:"sharing",message:"저장 결과를 확인하지 못했습니다. 입력한 내용은 그대로 남아 있습니다. 다시 불러와 확인해 주세요.",error:true});}
+    finally{mutation.current=false;setSaving(false);}
+  }
+  function submitSharing(event:FormEvent<HTMLFormElement>){
+    event.preventDefault();if(!draft.trim())return;
+    if(editingId)void writeSharing("PATCH",editingId,draft.trim());
+    else{postId.current??=crypto.randomUUID();void writeSharing("POST",postId.current,draft.trim());}
+  }
+  function editSharing(line:BibleReadingState["sharedLines"][number]){
+    setEditingId(line.id);setDraftOverride(line.text);setAnonymousOverride(line.anonymous??false);postId.current=null;setFeedback(null);
+    document.getElementById("bible-reading-share")?.focus();
   }
 
   async function reactToLine(line:BibleReadingState["sharedLines"][number]) {
@@ -218,7 +235,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
                   aria-current={dayDate === today ? "date" : undefined}
                   disabled={saving || !scheduled}
                   onClick={() => chooseDate(dayDate)}
-                >{day}{menuCounts.readingDates?.includes(dayDate) && <small aria-label="새 한 줄 나눔"> N</small>}</button>
+                >{day}{menuCounts.readingDates?.includes(dayDate) && <small aria-label="새 묵상 나눔"> N</small>}</button>
               );
             })}
           </div>
@@ -296,27 +313,26 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
             </section>)}
 
           {reading && (<section className="bible-reading-card bible-reading-sharing-card" aria-labelledby="bible-reading-sharing-title">
-              <h3 id="bible-reading-sharing-title">한 줄 나눔</h3>
+              <h3 id="bible-reading-sharing-title">묵상 나눔</h3>
               <SharingActivityView date={date} observedAt={reading.observedAt} />
               <p id="bible-reading-share-hint" className="bible-reading-hint">마음에 남은 말씀이나 생각을 나눠 보세요. 나눔은 로그인한 공동체 구성원에게 보여요.</p>
               <form onSubmit={submitSharing} className="bible-reading-share-form">
-                <label htmlFor="bible-reading-share">나의 한 줄</label>
-                <input id="bible-reading-share" type="text" maxLength={maxSharingLength} value={draft} disabled={saving}
-                  aria-describedby="bible-reading-share-hint" onChange={event => setDraftOverride(event.target.value)} placeholder="150자 이내로 적어 주세요" />
+                <label htmlFor="bible-reading-share">나의 묵상</label>
+                <textarea id="bible-reading-share" rows={5} value={draft} disabled={saving}
+                  aria-describedby="bible-reading-share-hint" onChange={event => setDraftOverride(event.target.value)} placeholder="말씀을 읽으며 느낀 생각과 은혜를 편안하게 적어 주세요." />
                 <label className="bible-reading-anonymous"><input type="checkbox" checked={anonymous} disabled={saving} onChange={event => setAnonymousOverride(event.target.checked)} />무명으로 나누기</label>
-                <p className="bible-reading-hint">한 줄 나눔의 이름만 무명1·무명2처럼 표시합니다. 함께 읽은 분들에는 기존처럼 이름이 표시됩니다.</p>
+                <p className="bible-reading-hint">묵상 나눔의 이름만 무명1·무명2처럼 표시합니다. 함께 읽은 분들에는 기존처럼 이름이 표시됩니다.</p>
                 <div className="bible-reading-share-actions">
-                  <span>{draft.length}/{maxSharingLength}자</span>
-                  {reading.sharing !== null && <button type="button" className="bible-reading-secondary" disabled={updating} onClick={() => void save({ sharing: null }, "한 줄 나눔을 삭제했습니다.")}>삭제</button>}
-                  <button type="submit" className="bible-reading-primary" disabled={updating || !draft.trim() || (draft.trim() === reading.sharing && anonymous === reading.sharingAnonymous)}>한 줄 저장</button>
+                  {editingId&&<button type="button" className="bible-reading-secondary" disabled={updating} onClick={()=>{setEditingId(null);setDraftOverride("");setAnonymousOverride(false);postId.current=null;}}>수정 취소</button>}
+                  <button type="submit" className="bible-reading-primary" disabled={updating||!draft.trim()}>{editingId?"수정 저장":"나눔 올리기"}</button>
                 </div>
               </form>
               {renderFeedback("sharing")}
               {reading.sharedLines.length > 0 ? (
                 <ul className="bible-reading-lines">
-                  {reading.sharedLines.map(line => <li key={line.id}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
+                  {reading.sharedLines.map(line => <li key={line.id}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><div className="meditation-line-actions"><SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>{line.isOwn&&<><button type="button" className="bible-reading-secondary" disabled={updating} onClick={()=>editSharing(line)}>수정</button><button type="button" className="bible-reading-secondary" disabled={updating} onClick={()=>{if(window.confirm("이 묵상 나눔을 삭제할까요?"))void writeSharing("DELETE",line.id);}}>삭제</button></>}</div>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
                 </ul>
-              ) : <p className="bible-reading-hint">아직 등록된 한 줄 나눔이 없습니다.</p>}
+              ) : <p className="bible-reading-hint">아직 등록된 묵상 나눔이 없습니다.</p>}
             </section>)}
       </div>
     </main>

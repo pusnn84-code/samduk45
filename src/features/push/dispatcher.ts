@@ -11,7 +11,7 @@ export async function deliveryEligible(d:Delivery){
   and coalesce((dev.preferences->>${d.topic})::boolean,false) and (case
    when ${d.kind}='notice' then exists(select 1 from prayer_app.notices n where n.id::text=${d.sourceKey} and n.status='published')
    when ${d.kind}='community' then exists(select 1 from prayer_app.community_posts c where c.id::text=${d.sourceKey} and c.published_at is not null)
-   when ${d.kind}='reading' then exists(select 1 from prayer_app.bible_reading_entries b where b.sharing_id::text=${d.sourceKey} and nullif(btrim(b.sharing),'') is not null)
+   when ${d.kind}='reading' then exists(select 1 from prayer_app.bible_reading_shares b where b.sharing_id::text=${d.sourceKey} and nullif(btrim(b.sharing),'') is not null)
    when ${d.kind}='own_visit' then exists(select 1 from prayer_app.visit_requests v where v.id::text=${d.sourceKey} and v.requester_user_id=u.id and v.status='confirmed' and not v.is_unavailable)
    when ${d.kind}='own_question' then exists(select 1 from prayer_app.question_messages m join prayer_app.questions q on q.id=m.question_id where m.id::text=${d.sourceKey} and m.sender='pastor' and q.owner_user_id=u.id)
    else u.role='admin' and exists(select 1 from prayer_app.question_settings qs where qs.id=1 and qs.pastor_user_id=u.id) and (case

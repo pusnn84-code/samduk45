@@ -1,3 +1,4 @@
+import {withMeditations} from "../../../src/features/bible-reading/meditations";
 import {schedulePushDelivery} from "../../../src/features/push/wakeup";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -10,11 +11,7 @@ export const dynamic = "force-dynamic";
 
 const headers = { "Cache-Control": "private, no-store" };
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const sharingSchema = z.string()
-  .refine(value => !/[\p{Cc}\p{Zl}\p{Zp}]/u.test(value), "Sharing must be one line")
-  .transform(value => value.trim())
-  .pipe(z.string().min(1).max(150))
-  .nullable();
+const sharingSchema=z.string().trim().min(1).refine(v=>!v.includes("\u0000")).nullable();
 const updateSchema = z.union([
   z.object({ date: dateSchema, completed: z.boolean(), sharing: sharingSchema.optional(), sharingAnonymous: z.boolean().optional() }).strict(),
   z.object({ date: dateSchema, completed: z.boolean().optional(), sharing: sharingSchema, sharingAnonymous: z.boolean().optional() }).strict(),
@@ -32,7 +29,7 @@ async function readJson(request: Request): Promise<unknown> {
   if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
     throw new DomainError("INVALID_CONTENT_TYPE", 415);
   }
-  const bytes = await readLimited(request, 4096);
+  const bytes = await readLimited(request, 4*1024*1024);
   try {
     return JSON.parse(new TextDecoder().decode(bytes));
   } catch {
@@ -49,7 +46,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ code: "INVALID_READING_DATE" }, { status: 400, headers });
   }
   try {
-    return NextResponse.json(await getBibleReadingState(user.id, date), { headers });
+    return NextResponse.json(await withMeditations(await getBibleReadingState(user.id, date),user.id), { headers });
   } catch (error) {
     return errorResponse(error);
   }
@@ -66,7 +63,7 @@ export async function PUT(request: Request) {
 
     const result=await updateBibleReadingState(user.id, parsed.data);
     schedulePushDelivery();
-    return NextResponse.json(result, { headers });
+    return NextResponse.json(await withMeditations(result,user.id), { headers });
   } catch (error) {
     return errorResponse(error);
   }

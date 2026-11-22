@@ -1,5 +1,6 @@
 "use client";
-import { useRef, useState, type FormEvent } from "react";
+import {autumnDestination,rememberAutumnDestination,takeLoginDestination} from "../../src/features/auth/prayer-return";
+import { useEffect,useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { fetchJson } from "../../src/lib/fetch-json";
 import { isSixDigitPin } from "../../src/features/auth/pin-policy";
@@ -8,6 +9,7 @@ import { PinPad } from "./PinPad";
 
 export function PinSetupForm({ initial = false }: { initial?: boolean }) {
   const router = useRouter();
+  useEffect(()=>{const target=autumnDestination(new URLSearchParams(location.search).get("autumnCard"));if(target)rememberAutumnDestination(target);},[]);
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -23,7 +25,7 @@ export function PinSetupForm({ initial = false }: { initial?: boolean }) {
     try {
       await fetchJson(initial ? "/api/auth/set-password" : "/api/auth/pin", { method: initial ? "POST" : "PUT",
         headers: { "content-type": "application/json" }, body: JSON.stringify({ password, confirmation: pin }) });
-      setPassword(""); setConfirmation(""); router.replace("/"); router.refresh();
+      setPassword(""); setConfirmation(""); router.replace(takeLoginDestination()); router.refresh();
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
       const messages: Record<string, string> = {

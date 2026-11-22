@@ -9,7 +9,7 @@ export async function activityObservationTime(db: Executor = getDb()): Promise<s
 export async function getMenuActivityCounts(userId:string,db:Executor=getDb()) {
  const [row]=await rows<{community:number;reading:number;readingDates:string[]}>(db,sql`
  with unread as (
- select e.reading_date from prayer_app.bible_reading_entries e
+ select e.reading_date from prayer_app.bible_reading_shares e
  join prayer_app.users author on author.id=e.user_id and author.is_active
  left join prayer_app.bible_sharing_views v on v.user_id=${userId}::uuid and v.reading_date=e.reading_date
  where e.user_id<>${userId}::uuid and e.sharing is not null and e.sharing_updated_at>coalesce(v.viewed_at,'-infinity'::timestamptz)

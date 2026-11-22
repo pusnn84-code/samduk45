@@ -10,7 +10,7 @@ export type SharingEmpathyState = { sharingId:string; reacted:boolean; count:num
 export async function setSharingEmpathy(userId:string, input:SharingEmpathyInput):Promise<SharingEmpathyState> {
   if (!getBibleReadingDay(input.date)) throw new DomainError("INVALID_READING_DATE",400);
   return getDb().transaction(async tx => {
-    const target=await tx.execute(sql`select entry.sharing_id from prayer_app.bible_reading_entries entry
+    const target=await tx.execute(sql`select entry.sharing_id from prayer_app.bible_reading_shares entry
       join prayer_app.users author on author.id=entry.user_id and author.is_active
       where entry.sharing_id=${input.sharingId}::uuid and entry.reading_date=${input.date}::date
         and entry.sharing is not null for share of entry,author`);

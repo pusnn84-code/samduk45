@@ -28,7 +28,7 @@ export function MemberSidebar({ onNavigate, unreadCount, communityCount = 0, rea
 
             {item.href === "/notices" && <UnreadNoticeBadge count={unreadCount} />}
             {item.href === "/community" && <MenuUpdateBadge count={communityCount} label="새 이야기" />}
-            {item.href === "/bible-reading" && <MenuUpdateBadge count={readingCount} label="새 한 줄 나눔" />}
+            {item.href === "/bible-reading" && <MenuUpdateBadge count={readingCount} label="새 묵상 나눔" />}
             {item.href === "/questions" && <MenuUpdateBadge count={counts.questions ?? 0} label="새 비공개 대화" />}
 
           </Link>
