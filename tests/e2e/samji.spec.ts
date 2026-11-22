@@ -8,7 +8,7 @@ test('PDF review, inline answers, private notes, optimistic saves, score display
  try{
   await page.setViewportSize({width:390,height:844});await login(page,'admin');await page.goto('/');
   const nav=page.getByRole('navigation',{name:'메뉴 선택',exact:true});await expect(nav.getByRole('link',{name:'은혜의 샘지',exact:true})).toBeInViewport();
-  expect(await nav.getByRole('link').count()).toBe(13);for(const link of await nav.getByRole('link').all())await expect(link).toBeInViewport();await expectNoOverflow(page);
+  expect(await nav.getByRole('link').count()).toBe(12);for(const link of await nav.getByRole('link').all())await expect(link).toBeInViewport();await expectNoOverflow(page);
   await page.setViewportSize({width:320,height:568});for(const link of await nav.getByRole('link').all())await expect(link).toBeInViewport();await expectNoOverflow(page);await page.setViewportSize({width:390,height:844});
   await page.goto('/samji');await page.getByRole('button',{name:'PDF 올리기',exact:true}).click();
   await page.getByLabel('PDF 선택 (3MB 이하)',{exact:true}).setInputFiles({name:'samji_261122_.pdf',mimeType:'application/pdf',buffer:textPdf()});

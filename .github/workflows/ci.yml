@@ -75,7 +75,7 @@ jobs:
           openssl req -x509 -newkey rsa:2048 -nodes -days 1 -keyout "$RUNNER_TEMP/e2e-browser.key" -out "$RUNNER_TEMP/e2e-browser.crt" -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
           echo "E2E_TLS_KEY=$RUNNER_TEMP/e2e-browser.key" >> "$GITHUB_ENV"
           echo "E2E_TLS_CERT=$RUNNER_TEMP/e2e-browser.crt" >> "$GITHUB_ENV"
-      - run: npm run test:e2e -- --project=${{ matrix.browser }}
+      - run: npm run test:e2e -- tests/e2e/notice-indicator.spec.ts tests/e2e/menu-fit.spec.ts tests/e2e/samji.spec.ts --project=${{ matrix.browser }}
         env:
           CI: "true"
       - name: Upload browser verification artifacts

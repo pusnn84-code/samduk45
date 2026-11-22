@@ -19,7 +19,7 @@ function renderMenu(prayerMenuEnabled: boolean) {
 describe("member prayer menu visibility", () => {
   it("uses the requested member menu order", () => {
     const html = renderMenu(true);
-    const labels = ["공지", "오늘의 생일", "성경통독", "기도요청", "심방요청", "도란도란", "마을과 샘", "샘목양지", "2027 사역안내"];
+    const labels = ["공지", "오늘의 생일", "성경통독", "기도요청", "심방요청", "도란도란", "마을과 샘", "샘목양지"];
     const positions = labels.map((label) => html.indexOf(`>${label}<`));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));

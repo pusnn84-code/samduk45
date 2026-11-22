@@ -11,5 +11,4 @@ export const MEMBER_NAVIGATION = [
   { href: "/pastoral-reports", label: "샘목양지", icon: "journal", description: "샘모임과 샘원들의 이야기 기록" },
   { href: "/autumn-light", label: "가을빛축제", icon: "leaf", description: "매일 한 사람을 위한 기도와 관계의 돌봄" },
   { href: "/questions", label: "질문있어요", icon: "messages", description: "담당 목사님과 무명·비공개로 나누는 대화" },
-  { href: "/ministry-plan", label: "2027 사역안내", icon: "compass", description: "공동체의 한 해 사역과 참여 안내" },
 ] as const;
