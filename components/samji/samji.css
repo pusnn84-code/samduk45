@@ -3,3 +3,5 @@
 
 
 .samji-save-buttons .samji-share-button{width:44px;min-height:44px;height:44px;align-self:center;padding:0}.samji-share-button svg{flex:none}
+
+.samji-heading>.samji-upload-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;min-height:44px;padding:0;border:1px solid #ccd9df;border-radius:10px;background:#fff;color:#147f9f;cursor:pointer}.samji-upload-icon svg{flex:none}.samji-upload-icon:focus-visible{outline:2px solid #147f9f;outline-offset:2px}
