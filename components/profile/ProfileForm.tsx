@@ -22,7 +22,7 @@ export function ProfileForm({initial}:{initial:ProfileData}){
   <dl className="profile-summary">
    <div><dt>이름</dt><dd>{initial.displayName}</dd></div>
    <div><dt>직분</dt><dd>{initial.position??"미지정"}</dd></div>
-   <div><dt>샘</dt><dd>{initial.samLabel??"미지정"}</dd></div>
+   <div><dt>{initial.position==="목사"?"소속":"샘"}</dt><dd>{initial.samLabel??"미지정"}</dd></div>
    <div><dt>비밀번호</dt><dd>{initial.passwordMode==="initial"?"초기 비밀번호 사용 중":"설정한 비밀번호 사용 중"}</dd></div>
   </dl>
   <form onSubmit={save} className="profile-edit-form" aria-label="내 정보 수정">
