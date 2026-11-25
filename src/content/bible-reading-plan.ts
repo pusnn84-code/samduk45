@@ -2,7 +2,7 @@
 // Aligned to the supplied November 2026 timetable (Nov 2: Colossians, Nov 28: Revelation 19–22).
 export const BIBLE_READING_YEAR = 2026;
 export const BIBLE_READING_START = "2026-01-26";
-export const BIBLE_READING_END = "2026-11-28";
+export const BIBLE_READING_END = "2027-03-22";
 
 const weeklyPassages = [
   ["창세기 1–4장", "창세기 5–8장", "창세기 9–12장", "창세기 13–16장", "창세기 17–20장", "창세기 21–24장"],
@@ -53,7 +53,7 @@ const weeklyPassages = [
 
 export type BibleReadingDay = Readonly<{ date: string; passage: string }>;
 
-export const BIBLE_READING_PLAN: readonly BibleReadingDay[] = weeklyPassages.flatMap(
+export const PREVIOUS_READING_PLAN: readonly BibleReadingDay[] = weeklyPassages.flatMap(
   (week, weekIndex) => week.map((passage, dayIndex) => ({
     date: new Date(Date.UTC(BIBLE_READING_YEAR, 0, 26 + weekIndex * 7 + dayIndex))
       .toISOString().slice(0, 10),
@@ -61,6 +61,13 @@ export const BIBLE_READING_PLAN: readonly BibleReadingDay[] = weeklyPassages.fla
   })),
 );
 
+export const PSALM_READING_START = "2026-11-30";
+export const PSALM_READING_PLAN: readonly BibleReadingDay[] = Array.from({length:97},(_,index)=>({
+ date:new Date(Date.UTC(2026,10,30+Math.floor(index/6)*7+index%6)).toISOString().slice(0,10),
+ passage:`시편 ${54+index}편`,
+}));
+export const BIBLE_READING_PLAN: readonly BibleReadingDay[] = [...PREVIOUS_READING_PLAN,...PSALM_READING_PLAN];
+export function readingCycle(date:string){return date>=PSALM_READING_START?PSALM_READING_PLAN:PREVIOUS_READING_PLAN;}
 const readingDays = new Map(BIBLE_READING_PLAN.map(day => [day.date, day]));
 
 export function getBibleReadingDay(date: string): BibleReadingDay | undefined {

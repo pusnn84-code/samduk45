@@ -22,6 +22,7 @@ export async function PATCH(
 ) {
   try {
     requireAdmin(await getCurrentSessionUser());
+    if ((request.headers.get("origin") && request.headers.get("origin") !== new URL(request.url).origin) || request.headers.get("sec-fetch-site") === "cross-site") throw new DomainError("FORBIDDEN",403);
     const input = await parseNoticeRequest(request);
     const { id } = await context.params;
     const result = await updateNotice(id, input);
@@ -49,3 +50,4 @@ export async function DELETE(
     return errorResponse(error);
   }
 }
+

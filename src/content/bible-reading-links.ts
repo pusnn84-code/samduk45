@@ -2,7 +2,7 @@ import books from "../../data/scripture-library/books.json";
 
 export function getBibleReadingChapters(passage: string) {
   return passage.split(" · ").flatMap(part => {
-    const match = /^([가-힣]+)(?: (\d+)(?:[–-](\d+))?장)?$/.exec(part);
+    const match = /^([가-힣]+)(?: (\d+)(?:[–-](\d+))?[장편])?$/.exec(part);
     const book = match && books.find(book => book.name === match[1]);
     if (!match || !book) return [];
     const first = Number(match[2] ?? 1);

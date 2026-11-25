@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { BIBLE_READING_PLAN } from "../../src/content/bible-reading-plan";
+import { PREVIOUS_READING_PLAN as BIBLE_READING_PLAN } from "../../src/content/bible-reading-plan";
 
 const mocks = vi.hoisted(() => ({ db: vi.fn() }));
 vi.mock("../../src/db/client", () => ({ getDb: mocks.db }));

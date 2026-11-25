@@ -5,6 +5,9 @@ export type SamOption = {
 };
 
 export type ProfileData = {
+  birthDate?: string | null;
+  phone?: string | null;
+  phonePrivate?: boolean;
   displayName: string;
   position: string | null;
   samLabel: string | null;
