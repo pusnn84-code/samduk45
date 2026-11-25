@@ -15,6 +15,8 @@ test("headings are not selectable, text-only highlights and four actions fit one
   expect(Math.max(...boxes.map(b=>b.y))-Math.min(...boxes.map(b=>b.y))).toBeLessThan(1);
   expect(boxes.every(b=>b.x>=0&&b.right<=width&&b.height>=44)).toBe(true);await expectNoOverflow(page);
  }
+ const markBefore=verse.locator(".scripture-verse-mark");expect(await markBefore.evaluate(el=>getComputedStyle(el).boxShadow)).toBe("none");
+ for(const button of ["형광펜 칠하기","형광펜 지우기"]){const bounds=await toolbar.getByRole("button",{name:button,exact:true}).locator("svg").boundingBox();expect(bounds?.width).toBeGreaterThanOrEqual(32);expect(bounds?.height).toBeGreaterThanOrEqual(32);}
  const marker=toolbar.getByRole("button",{name:"형광펜 칠하기",exact:true});await expect(marker).toBeEnabled();
  const saved=page.waitForResponse(r=>r.url().endsWith("/api/scripture/highlights")&&r.request().method()==="PUT");await marker.click();expect((await saved).status()).toBe(200);
  try{
