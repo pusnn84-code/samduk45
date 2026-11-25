@@ -10,3 +10,8 @@ describe("one-way Google event projection",()=>{
  it("keeps deterministic IDs and content fingerprints for retries",()=>{expect(exportEventId("primary",source)).toMatch(/^[0-9a-v]{5,1024}$/);expect(exportEventId("primary",source)).toBe(exportEventId("primary",source));expect(exportEventId("other",source)).not.toBe(exportEventId("primary",source));expect(googleExportBody(source)).toEqual(googleExportBody({...source}));expect(googleExportBody({...source,location:"가정"}).extendedProperties.private.samduk45Hash).not.toBe(googleExportBody(source).extendedProperties.private.samduk45Hash);});
  it("exports weekly ministry recurrence with an inclusive last occurrence date",()=>{expect(googleExportBody({...source,kind:"ministry",repeat:"weekly",repeatUntil:"2026-12-31"}).recurrence).toEqual(["RRULE:FREQ=WEEKLY;UNTIL=20261231T145959Z"]);});
 });
+
+it("exports biweekly recurrence and its inclusive cutoff without converting it to weekly",()=>{
+ expect(googleExportBody({...source,kind:"ministry",repeat:"biweekly",repeatUntil:"2026-12-17"}).recurrence).toEqual(["RRULE:FREQ=WEEKLY;INTERVAL=2;UNTIL=20261217T145959Z"]);
+ expect(googleExportBody({...source,kind:"ministry",repeat:"biweekly",allDay:true,repeatUntil:"2026-12-17"}).recurrence).toEqual(["RRULE:FREQ=WEEKLY;INTERVAL=2;UNTIL=20261217"]);
+});

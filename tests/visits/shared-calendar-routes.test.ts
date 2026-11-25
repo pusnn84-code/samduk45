@@ -44,3 +44,10 @@ describe("shared calendar authorization",()=>{
   expect(await (await people()).json()).toEqual({people:[{id:"person",name:"김믿음",sam:"1-2샘",leaderName:"가상리더"}]});
  });
 });
+
+it("accepts a biweekly schedule and an inclusive end date but rejects a reversed cutoff",async()=>{
+ boundary.session.mockResolvedValue({id:"pastor",role:"admin"});
+ expect((await ministry(post({...input,repeat:"biweekly",endDate:"2026-12-17"}))).status).toBe(201);
+ expect(boundary.create).toHaveBeenCalledWith("pastor",{...input,repeat:"biweekly",endDate:"2026-12-17"});
+ boundary.create.mockClear();expect((await ministry(post({...input,repeat:"biweekly",endDate:"2026-11-04"}))).status).toBe(400);expect(boundary.create).not.toHaveBeenCalled();
+});

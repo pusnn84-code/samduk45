@@ -36,3 +36,15 @@ describe("shared ministry calendar",()=>{
   expect(samSuffix("6-1")).toBeNull();expect(samSuffix(null)).toBeNull();
  });
 });
+
+it("anchors biweekly recurrence at the original start date and includes the final permitted occurrence",()=>{
+ const biweekly={...series,repeat:"biweekly",endDate:"2026-12-17"};
+ expect(expandMinistry([biweekly],"2026-11").map(e=>e.date)).toEqual(["2026-11-05","2026-11-19"]);
+ expect(expandMinistry([biweekly],"2026-12").map(e=>e.date)).toEqual(["2026-12-03","2026-12-17"]);
+ expect(expandMinistry([biweekly],"2027-01")).toEqual([]);
+ expect(expandMinistry([{...biweekly,endDate:null}],"2027-01").map(e=>e.date)).toEqual(["2027-01-14","2027-01-28"]);
+ expect(expandMinistry([biweekly],"2026-12")[0]).toMatchObject({repeat:"biweekly",repeatUntil:"2026-12-17"});
+});
+it("preserves full multi-day biweekly occurrences whose start is on the inclusive cutoff",()=>{
+ expect(expandMinistry([{...series,repeat:"biweekly",startDate:"2026-11-26",eventEndDate:"2026-11-27",endDate:"2026-12-24"}],"2026-12").map(e=>e.date)).toEqual(["2026-12-10","2026-12-11","2026-12-24","2026-12-25"]);
+});

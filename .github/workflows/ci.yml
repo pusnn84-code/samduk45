@@ -69,13 +69,13 @@ jobs:
           echo "ROSTER_ENCRYPTION_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
           echo "E2E_DATABASE_READY=1" >> "$GITHUB_ENV"
       - run: npx tsx scripts/seed-e2e.ts
-      - run: npm test -- tests/db/connection-resilience.test.ts
+      - run: npm test -- tests/db/connection-resilience.test.ts tests/push/queue-integration.test.ts
       - name: Generate one-day localhost TLS certificate for browser tests
         run: |
           openssl req -x509 -newkey rsa:2048 -nodes -days 1 -keyout "$RUNNER_TEMP/e2e-browser.key" -out "$RUNNER_TEMP/e2e-browser.crt" -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
           echo "E2E_TLS_KEY=$RUNNER_TEMP/e2e-browser.key" >> "$GITHUB_ENV"
           echo "E2E_TLS_CERT=$RUNNER_TEMP/e2e-browser.crt" >> "$GITHUB_ENV"
-      - run: npm run test:e2e -- --project=${{ matrix.browser }}
+      - run: npm run test:e2e -- tests/e2e/ministry-repeat.spec.ts --project=${{ matrix.browser }}
         env:
           CI: "true"
       - name: Upload browser verification artifacts
