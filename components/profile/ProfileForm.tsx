@@ -15,7 +15,8 @@ export function ProfileForm({ initial }: { initial: ProfileData }) {
       <div><dt>비밀번호</dt><dd>{initial.passwordMode === "initial" ? "초기 비밀번호 사용 중" : "설정한 비밀번호 사용 중"}</dd></div>
     </dl>
     <form onSubmit={save} className="profile-edit-form">
-      <label>생년월일<input type="date" value={birthDate} onChange={e=>setBirthDate(e.target.value)} disabled={busy}/></label>
+      <label>생년월일<input type="text" inputMode="numeric" autoComplete="bday" maxLength={10} placeholder="예: 19840718" value={birthDate} onChange={e=>setBirthDate(e.target.value)} disabled={busy} aria-describedby="profile-birth-hint"/></label>
+      <p id="profile-birth-hint" className="helper-text">생년월일은 숫자 8자리로 입력해 주세요. 예: 19840718</p>
       <label>휴대폰 번호<input type="tel" autoComplete="tel" value={phone} onChange={e=>setPhone(e.target.value)} disabled={busy} required placeholder="01012345678"/></label>
       <label><input type="checkbox" checked={phonePrivate} onChange={e=>setPhonePrivate(e.target.checked)} disabled={busy}/>연락처 비공개</label>
       <p className="helper-text">비공개로 선택하면 다른 구성원의 명단에 연락처가 표시되지 않습니다. 목사님은 확인할 수 있습니다. 번호를 바꿔도 간편비밀번호는 그대로입니다.</p>
