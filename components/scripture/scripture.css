@@ -154,3 +154,6 @@
 }
 
 .scripture-verse[data-highlight="yellow"]{background:#fff3a3}.scripture-verse[data-highlight="green"]{background:#d9f2cf}.scripture-verse[data-highlight="pink"]{background:#fbdbe8}.scripture-verse[aria-pressed="true"]{outline:2px solid #178399;outline-offset:-2px}.scripture-highlight-actions{display:flex;gap:8px;flex-wrap:wrap;padding:8px}.scripture-highlight-actions button{min-height:40px;padding:6px 12px;border:1px solid #ccd5d8;border-radius:20px}.scripture-highlight-actions [data-color="yellow"]{background:#fff3a3}.scripture-highlight-actions [data-color="green"]{background:#d9f2cf}.scripture-highlight-actions [data-color="pink"]{background:#fbdbe8}
+.scripture-highlight-actions{width:min(100%,650px);margin:0 auto}
+.scripture-library:has(.scripture-copy-bar){padding-bottom:calc(170px + env(safe-area-inset-bottom))}
+@media(min-width:861px){.community-app .scripture-copy-bar{left:250px}}
