@@ -66,7 +66,7 @@ test("Psalms, inline comments, cross-reader highlights, profile privacy and noti
   await page.reload();await expect(page.getByLabel("휴대폰 번호",{exact:true})).toHaveValue("01000000982");await expect(page.getByLabel("연락처 비공개",{exact:true})).toBeChecked();
   const notice=await other.request.post("/api/admin/notices",{data:{title:"수정 동작 검증",body:"수정하기 전",status:"published"}});expect(notice.status()).toBe(201);noticeId=(await notice.json()).notice.id;
   await other.goto("/notices/"+noticeId);await other.getByRole("button",{name:"공지 수정",exact:true}).click();await other.getByPlaceholder("공지 내용을 입력하세요.").fill("수정한 안내입니다.");
-  const noticeSaved=other.waitForResponse(r=>r.url().endsWith("/api/admin/notices/"+noticeId)&&r.request().method()==="PATCH");await other.getByRole("button",{name:"발행",exact:true}).click();expect((await noticeSaved).status()).toBe(200);await expect(other.locator(".notice-body")).toHaveText("수정한 안내입니다.");
+  const noticeSaved=other.waitForResponse(r=>r.url().endsWith("/api/admin/notices/"+noticeId)&&r.request().method()==="PATCH");await other.getByRole("button",{name:"발행",exact:true}).click();expect((await noticeSaved).status()).toBe(200);await expect.poll(()=>other.locator(".notice-detail:visible .notice-body").allTextContents()).toContain("수정한 안내입니다.");
   await page.goto("/notices/"+noticeId);await expect(page.getByRole("button",{name:"공지 수정",exact:true})).toHaveCount(0);
   await expectNoOverflow(page);
  }finally{
