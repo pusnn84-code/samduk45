@@ -29,7 +29,7 @@ export function ProfileForm({initial}:{initial:ProfileData}){
    <label className="profile-edit-field">생년월일<input name="birthDate" type="text" inputMode="numeric" autoComplete="bday" maxLength={10} placeholder="예: 19800521" defaultValue={initial.birthDate??""} disabled={busy} aria-describedby="profile-birth-hint"/></label>
    <p id="profile-birth-hint" className="helper-text">생년월일은 숫자 8자리로 입력해 주세요. 예: 19800521</p>
    <label className="profile-edit-field">휴대폰 번호<input name="phone" type="tel" autoComplete="tel" defaultValue={initial.phone??""} disabled={busy} required placeholder="01012345678"/></label>
-   <label><input name="phonePrivate" type="checkbox" defaultChecked={initial.phonePrivate??false} disabled={busy}/>연락처 비공개</label>
+   <label className="checkbox-row"><input name="phonePrivate" type="checkbox" defaultChecked={initial.phonePrivate??false} disabled={busy}/>연락처 비공개</label>
    <p className="helper-text">비공개로 선택하면 다른 구성원의 명단에 연락처가 표시되지 않습니다. 목사님은 확인할 수 있습니다. 번호를 바꿔도 간편비밀번호는 그대로입니다.</p>
    <button className="primary-button" type="submit" disabled={busy}>{busy?"저장 중…":"내 정보 저장"}</button>
    {message&&<p role="status">{message}</p>}
