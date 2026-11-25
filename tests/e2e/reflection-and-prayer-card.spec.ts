@@ -37,12 +37,11 @@ test("multiple long meditations retain legacy completion, aliases and empathy wi
  }finally{await db`delete from prayer_app.bible_reading_shares where user_id=${user}::uuid and reading_date=${date}::date`;await db`delete from prayer_app.bible_reading_entries where user_id=${user}::uuid and reading_date=${date}::date`;await otherContext.close();await db.end();}
 });
 
-test("Psalms, inline comments, cross-reader highlights, profile privacy and notice editing",async({page,browser})=>{
+test("Psalms, inline comments and cross-reader highlights",async({page,browser})=>{
  test.skip(!disposable(),"Disposable CI database only");test.setTimeout(150000);
  const db=postgres(process.env.DATABASE_URL!,{ssl:"require",prepare:false,max:1});
  const otherContext=await browser.newContext();const shareId=randomUUID(),commentId=randomUUID(),day="2026-11-30";
- const member=e2eAccounts.member;let noticeId="";
- const [original]=await db`select birth_date,phone_ciphertext,phone_lookup_hash,phone_private from prayer_app.member_roster where id=${member.rosterId}::uuid`;
+ const member=e2eAccounts.member;
  try{
   await login(page);
   const share=await page.request.post("/api/bible-reading/shares",{data:{id:shareId,date:day,sharing:"시편을 새롭게 읽습니다.",sharingAnonymous:true}});
@@ -60,24 +59,39 @@ test("Psalms, inline comments, cross-reader highlights, profile privacy and noti
   const marked=page.waitForResponse(r=>r.url().endsWith("/api/scripture/highlights")&&r.request().method()==="PUT");await yellow.click();expect((await marked).status()).toBe(200);
   await page.goto("/scripture/reading/"+day);await expect(page.locator('.scripture-verse[data-highlight="yellow"]').first()).toBeVisible();
   const privateHighlights=await(await other.request.get("/api/scripture/highlights?references=19:54")).json();expect(privateHighlights.highlights).toEqual([]);
-  await page.bringToFront();await page.goto("/profile");const profileForm=page.locator(".profile-edit-form:visible");await expect(profileForm).toHaveCount(1);await profileForm.getByLabel("생년월일",{exact:true}).fill("19800521");await profileForm.getByLabel("휴대폰 번호",{exact:true}).fill("01000000982");await profileForm.getByLabel("연락처 비공개",{exact:true}).check();
-  const profileSaved=page.waitForResponse(r=>r.url().endsWith("/api/profile/details")&&r.request().method()==="PATCH");await profileForm.getByRole("button",{name:"내 정보 저장",exact:true}).click();expect((await profileSaved).status()).toBe(200);
-  const profile=await(await page.request.get("/api/profile")).json();expect(profile.profile.phonePrivate).toBe(true);expect(profile.profile.birthDate).toBe("1980-05-21");expect(profile.profile.phone).toBe("01000000982");
-  await page.reload();await expect(profileForm.getByLabel("휴대폰 번호",{exact:true})).toHaveValue("01000000982");await expect(profileForm.getByLabel("연락처 비공개",{exact:true})).toBeChecked();
-  const notice=await other.request.post("/api/admin/notices",{data:{title:"수정 동작 검증",body:"수정하기 전",status:"published"}});expect(notice.status()).toBe(201);noticeId=(await notice.json()).notice.id;
-  await other.bringToFront();await other.goto("/notices/"+noticeId);await other.getByRole("button",{name:"공지 수정",exact:true}).click();await other.getByPlaceholder("공지 내용을 입력하세요.").fill("수정한 안내입니다.");
-  const noticeSaved=other.waitForResponse(r=>r.url().endsWith("/api/admin/notices/"+noticeId)&&r.request().method()==="PATCH");await other.getByRole("button",{name:"발행",exact:true}).click();expect((await noticeSaved).status()).toBe(200);await expect.poll(()=>other.locator(".notice-detail:visible .notice-body").allTextContents()).toContain("수정한 안내입니다.");
-  await page.bringToFront();await page.goto("/notices/"+noticeId);await expect(page.getByRole("button",{name:"공지 수정",exact:true})).toHaveCount(0);
   await expectNoOverflow(page);
  }finally{
   await db`delete from prayer_app.bible_reading_shares where sharing_id=${shareId}::uuid`;
   await db`delete from prayer_app.scripture_highlights where user_id=${member.userId}::uuid`;
-  if(noticeId)await db`delete from prayer_app.notices where id=${noticeId}::uuid`;
-  await db`update prayer_app.member_roster set birth_date=${original.birth_date},phone_ciphertext=${original.phone_ciphertext},phone_lookup_hash=${original.phone_lookup_hash},phone_private=${original.phone_private} where id=${member.rosterId}::uuid`;
-  await db`update prayer_app.users set phone_lookup_hash=${original.phone_lookup_hash} where id=${member.userId}::uuid`;
   await otherContext.close();await db.end();
  }
 });
+
+test("profile contacts and birth date save, remain private, and notice edits require an administrator",async({page})=>{
+ test.skip(!disposable(),"Disposable CI database only");test.setTimeout(150000);
+ const db=postgres(process.env.DATABASE_URL!,{ssl:"require",prepare:false,max:1}),member=e2eAccounts.member;let noticeId="";
+ const [original]=await db`select birth_date,phone_ciphertext,phone_lookup_hash,phone_private from prayer_app.member_roster where id=${member.rosterId}::uuid`;
+ try{
+  await login(page);console.log("profile-stage:authenticated");
+  await page.bringToFront();await page.goto("/profile");const profileForm=page.locator(".profile-edit-form:visible");await expect(profileForm).toHaveCount(1);await profileForm.getByLabel("생년월일",{exact:true}).fill("19800521");await profileForm.getByLabel("휴대폰 번호",{exact:true}).fill("01000000982");await profileForm.getByLabel("연락처 비공개",{exact:true}).check();
+  const profileSaved=page.waitForResponse(r=>r.url().endsWith("/api/profile/details")&&r.request().method()==="PATCH");await profileForm.getByRole("button",{name:"내 정보 저장",exact:true}).click();expect((await profileSaved).status()).toBe(200);
+  const profile=await(await page.request.get("/api/profile")).json();expect(profile.profile.phonePrivate).toBe(true);expect(profile.profile.birthDate).toBe("1980-05-21");expect(profile.profile.phone).toBe("01000000982");
+  await page.reload();await expect(profileForm.getByLabel("휴대폰 번호",{exact:true})).toHaveValue("01000000982");await expect(profileForm.getByLabel("연락처 비공개",{exact:true})).toBeChecked();
+  console.log("profile-stage:saved-and-reloaded");await login(page,"admin");
+  const notice=await page.request.post("/api/admin/notices",{data:{title:"수정 동작 검증",body:"수정하기 전",status:"published"}});expect(notice.status()).toBe(201);noticeId=(await notice.json()).notice.id;
+  await page.bringToFront();await page.goto("/notices/"+noticeId);await page.getByRole("button",{name:"공지 수정",exact:true}).click();await page.getByPlaceholder("공지 내용을 입력하세요.").fill("수정한 안내입니다.");
+  const noticeSaved=page.waitForResponse(r=>r.url().endsWith("/api/admin/notices/"+noticeId)&&r.request().method()==="PATCH");await page.getByRole("button",{name:"발행",exact:true}).click();expect((await noticeSaved).status()).toBe(200);await expect.poll(()=>page.locator(".notice-detail:visible .notice-body").allTextContents()).toContain("수정한 안내입니다.");
+  await login(page);await page.goto("/notices/"+noticeId);await expect(page.getByRole("button",{name:"공지 수정",exact:true})).toHaveCount(0);
+
+  await expectNoOverflow(page);
+ }finally{
+  if(noticeId)await db`delete from prayer_app.notices where id=${noticeId}::uuid`;
+  await db`update prayer_app.member_roster set birth_date=${original.birth_date},phone_ciphertext=${original.phone_ciphertext},phone_lookup_hash=${original.phone_lookup_hash},phone_private=${original.phone_private} where id=${member.rosterId}::uuid`;
+  await db`update prayer_app.users set phone_lookup_hash=${original.phone_lookup_hash} where id=${member.userId}::uuid`;
+  await db.end();
+ }
+});
+
 test("prayer card has three aligned actions, PNG export, mobile preview and a login-safe share link",async({page,browser})=>{
  test.skip(!disposable(),"Disposable CI database only");test.setTimeout(150000);
  const db=postgres(process.env.DATABASE_URL!,{ssl:"require",prepare:false,max:1}),mobileContext=await browser.newContext({viewport:{width:390,height:844},hasTouch:true}),anonymousContext=await browser.newContext();let id="";const samId=randomUUID();

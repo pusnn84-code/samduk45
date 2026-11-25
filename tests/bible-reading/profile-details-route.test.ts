@@ -4,13 +4,13 @@ vi.mock("../../src/features/auth/http-session",()=>({getCurrentSessionUser:mocks
 vi.mock("../../src/features/profile/service",()=>({getProfile:mocks.get}));
 vi.mock("../../src/features/profile/details",async original=>({...await original<object>(),updateProfileDetails:mocks.update}));
 import {PATCH} from "../../app/api/profile/details/route";
-const url="https://app.test/api/profile/details",valid={birthDate:"1984-07-18",phone:"010-0000-0025",phonePrivate:true};
+const url="https://app.test/api/profile/details",valid={birthDate:"1980-05-21",phone:"010-0000-0025",phonePrivate:true};
 const request=(body:unknown,origin="https://app.test")=>new Request(url,{method:"PATCH",headers:{origin,"Content-Type":"application/json"},body:JSON.stringify(body)});
 beforeEach(()=>{vi.resetAllMocks();mocks.session.mockResolvedValue({id:"session-owner"});mocks.get.mockResolvedValue({phonePrivate:true});});
 it("saves normalized contacts for the session owner without accepting identity or role changes",async()=>{
  const response=await PATCH(request(valid));expect(response.status).toBe(200);expect(response.headers.get("cache-control")).toContain("no-store");
  expect(mocks.update).toHaveBeenCalledWith("session-owner",{...valid,phone:"01000000025"});
- expect((await PATCH(request({...valid,birthDate:"19840718"}))).status).toBe(200);
+ expect((await PATCH(request({...valid,birthDate:"19800521"}))).status).toBe(200);
  expect(mocks.update).toHaveBeenLastCalledWith("session-owner",{...valid,phone:"01000000025"});
  expect((await PATCH(request({...valid,userId:"other"}))).status).toBe(400);
  expect((await PATCH(request({...valid,role:"admin"}))).status).toBe(400);
