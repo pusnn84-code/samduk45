@@ -2,7 +2,8 @@ export type CalendarEntry = {
   id: string; seriesId?: string; date: string; title: string; sam: string | null;
   time: string; location: string; kind: "visit" | "ministry";
   status: "confirmed" | "requested" | "unavailable" | "completed";
-  repeat?: "none" | "weekly";
+  repeat?: "none" | "weekly" | "biweekly";
+  repeatUntil?: string | null;
   allDay?: boolean; startDate?: string; endDate?: string;
   canEdit?: boolean;
 };
@@ -30,13 +31,14 @@ export function expandMinistry(series: MinistrySeries[], month: string): Calenda
       const date = `${month}-${String(day).padStart(2, "0")}`;
       if(date<item.startDate)continue;
       const elapsed=dateDistance(item.startDate,date);
-      const offset=item.repeat==='weekly'?Math.floor(elapsed/7)*7:0;
+      const interval=item.repeat==='biweekly'?14:item.repeat==='weekly'?7:0;
+      const offset=interval?Math.floor(elapsed/interval)*interval:0;
       const occurrence=shiftDate(item.startDate,offset),last=shiftDate(occurrence,duration);
-      if(date>last||(item.repeat==='weekly'&&item.endDate&&occurrence>item.endDate))continue;
+      if(date>last||(interval&&item.endDate&&occurrence>item.endDate))continue;
       entries.push({ id: `${item.id}:${date}`, seriesId: item.id, date, title: item.title,
         sam: null, time: item.allDay?'':item.time, location: item.location, kind: "ministry", status: item.status === "requested" ? "requested" : "confirmed",
         startDate:occurrence,endDate:last,...(item.allDay?{allDay:true}:{}),
-        repeat: item.repeat === "weekly" ? "weekly" : "none" });
+        repeat: item.repeat === "biweekly" ? "biweekly" : item.repeat === "weekly" ? "weekly" : "none",repeatUntil:interval?item.endDate:null });
     }
     return entries;
   });
@@ -65,3 +67,4 @@ export function timeSortKey(value: string) {
   return hour*60+Number(match[3]||0);
 }
 import {dateDistance,shiftDate} from './schedule-range';
+

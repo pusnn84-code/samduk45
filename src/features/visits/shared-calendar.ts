@@ -1,4 +1,4 @@
-import {and,asc,eq,gte,lt,or,isNull,sql} from "drizzle-orm";
+import {and,asc,eq,gte,lt,or,isNull,sql,inArray} from "drizzle-orm";
 import {z} from "zod";
 import {getDb} from "../../db/client";
 import {memberRoster,ministrySchedules,sams,users,visitRequests} from "../../db/schema";
@@ -11,10 +11,10 @@ export const MinistryInput=z.object({
  status:z.enum(["requested","confirmed"]).optional(),
  title:z.string().trim().min(1).max(120),startDate:z.iso.date(),endDate:z.iso.date().nullable().default(null),
  eventEndDate:z.iso.date().nullable().optional(),allDay:z.boolean().optional(),time:z.string().max(5).default(""),
- location:z.string().trim().max(500).default(""),repeat:z.enum(["none","weekly"]).default("none")
+ location:z.string().trim().max(500).default(""),repeat:z.enum(["none","weekly","biweekly"]).default("none")
 }).strict().refine(x=>!x.endDate||x.endDate>=x.startDate)
  .refine(x=>!x.eventEndDate||(validDate(x.eventEndDate)&&dateDistance(x.startDate,x.eventEndDate)>=0&&dateDistance(x.startDate,x.eventEndDate)<=365))
- .refine(x=>x.repeat!=="weekly"||dateDistance(x.startDate,x.eventEndDate??x.startDate)<7)
+ .refine(x=>x.repeat==="none"||dateDistance(x.startDate,x.eventEndDate??x.startDate)<(x.repeat==="biweekly"?14:7))
  .refine(x=>x.allDay||/^([01]\d|2[0-3]):[0-5]\d$/.test(x.time));
 const samJoin=and(eq(sams.isActive,true),sql`replace(replace(${sams.name},'샘',''),' ','')=replace(replace(${memberRoster.samLabel},'샘',''),' ','')`);
 const identity=(row:{name:string;sam:string|null;leaderName?:string|null})=>({
@@ -54,7 +54,7 @@ export async function sharedMonth(month:string,viewer?:VisitEditor):Promise<Cale
    .where(and(lt(visitRequests.visitDate,end),gte(sql<string>`coalesce(${visitRequests.endDate},${visitRequests.visitDate})`,start),or(sql`${visitRequests.status}<>'cancelled'`,eq(visitRequests.isUnavailable,true)))),
   getDb().select().from(ministrySchedules).where(and(eq(ministrySchedules.isActive,true),lt(ministrySchedules.startDate,end),
    or(and(eq(ministrySchedules.repeat,"none"),gte(sql<string>`coalesce(${ministrySchedules.eventEndDate},${ministrySchedules.startDate})`,start)),
-      and(eq(ministrySchedules.repeat,"weekly"),or(isNull(ministrySchedules.endDate),gte(sql<string>`${ministrySchedules.endDate}+coalesce(${ministrySchedules.eventEndDate}-${ministrySchedules.startDate},0)`,start)))))),
+      and(inArray(ministrySchedules.repeat,["weekly","biweekly"]),or(isNull(ministrySchedules.endDate),gte(sql<string>`${ministrySchedules.endDate}+coalesce(${ministrySchedules.eventEndDate}-${ministrySchedules.startDate},0)`,start)))))),
   calendarPeople()
  ]);
  const entries:CalendarEntry[]=visits.flatMap(row=>monthDates(row.date,row.endDate??row.date,month).map(date=>({
@@ -73,3 +73,4 @@ export async function declineVisit(id:string){
   .where(and(eq(visitRequests.id,id),eq(visitRequests.status,"requested"))).returning({id:visitRequests.id});
  if(!rows.length)throw new DomainError("INVALID_VISIT_STATUS_TRANSITION",409);
 }
+

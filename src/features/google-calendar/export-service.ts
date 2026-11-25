@@ -26,7 +26,7 @@ export async function exportSources():Promise<CalendarExportSource[]> {
       location:row.location,startDate:row.date,endDate:row.end??row.date,time:row.time,allDay:row.allDay};}),
     ...ministries.map(row=>({kind:"ministry" as const,id:row.id,title:row.title,location:row.location,
       startDate:row.startDate,endDate:row.eventEndDate??row.startDate,time:row.time,allDay:row.allDay,
-      repeat:row.repeat as "none"|"weekly",repeatUntil:row.endDate})),
+      repeat:row.repeat as "none"|"weekly"|"biweekly",repeatUntil:row.endDate})),
   ];
 }
 export type ExportCalendar = Pick<calendar_v3.Calendar,"events">;

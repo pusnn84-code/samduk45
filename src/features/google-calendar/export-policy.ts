@@ -4,7 +4,7 @@ import { shiftDate } from "../visits/schedule-range";
 export type CalendarExportSource = {
   kind: "visit" | "ministry"; id: string; title: string; location: string;
   startDate: string; endDate: string; time: string; allDay: boolean;
-  repeat?: "none" | "weekly"; repeatUntil?: string | null;
+  repeat?: "none" | "weekly" | "biweekly"; repeatUntil?: string | null;
 };
 export const exportMarker = "samduk45-calendar-v1";
 export const sourceKey = (source: Pick<CalendarExportSource,"kind"|"id">) => `${source.kind}:${source.id}`;
@@ -22,7 +22,7 @@ export function exactTime(value: string): string | null {
 export function googleExportBody(source: CalendarExportSource) {
   const time=source.allDay?null:exactTime(source.time);
   const allDay=!time;
-  const recurrence=source.repeat==="weekly"?["RRULE:FREQ=WEEKLY"+(source.repeatUntil?
+  const recurrence=(source.repeat==="weekly"||source.repeat==="biweekly")?["RRULE:FREQ=WEEKLY"+(source.repeat==="biweekly"?";INTERVAL=2":"")+(source.repeatUntil?
     ";UNTIL="+(allDay?source.repeatUntil.replaceAll("-",""):
       new Date(source.repeatUntil+"T23:59:59+09:00").toISOString().replaceAll("-","").replaceAll(":","").replace(".000","")):"")]:undefined;
   const payload={
