@@ -220,3 +220,25 @@
 .bible-reading-share-form textarea{width:100%;min-width:0;min-height:140px;padding:12px;border:1px solid #d8dcd2;border-radius:12px;background:white;color:inherit;font:inherit;font-size:16px;line-height:1.8;resize:vertical}.bible-reading-lines p{white-space:pre-wrap;overflow-wrap:anywhere}.meditation-line-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.meditation-line-actions>.bible-reading-secondary{min-height:40px;padding:6px 12px}
 
 .meditation-comments{padding-top:12px}.meditation-comments ul{padding:0;list-style:none}.meditation-comments li{background:#f6f8f8;padding:12px;margin:8px 0;border-radius:12px}.meditation-comments p{white-space:pre-wrap;overflow-wrap:anywhere}.meditation-comments form{display:grid;gap:8px}.meditation-comments label{display:grid;gap:6px}.meditation-comments textarea{box-sizing:border-box;width:100%;font:inherit;padding:10px;border:1px solid #ccd5d8;border-radius:10px}
+
+/* Compact, consistent post and comment controls. */
+.bible-reading .meditation-icon-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-width:44px; min-height:44px; padding:8px; border:0; border-radius:8px; background:transparent; color:#52666b; font:inherit; cursor:pointer; }
+.bible-reading .meditation-icon-button svg { display:block; flex:none; width:24px; height:24px; }
+.bible-reading .meditation-icon-button:disabled { opacity:.4; cursor:default; }
+.bible-reading .meditation-icon-button:focus-visible { outline:2px solid #087f97; outline-offset:2px; }
+.bible-reading .meditation-comment-toggle[aria-expanded="true"] { color:#087f97; }
+.meditation-line-actions { gap:12px; margin-top:8px; }
+.meditation-own-tools { display:flex; align-items:center; margin-left:auto; gap:2px; }
+.bible-reading .sharing-empathy { margin:0; color:#52666b; }
+.bible-reading .sharing-empathy-pill { min-width:44px; padding:8px 4px; gap:7px; border:0; border-radius:0; background:transparent; font:inherit; }
+.bible-reading .sharing-empathy-pill svg { width:24px; height:24px; flex:none; }
+.bible-reading .sharing-empathy[aria-pressed="true"] .sharing-empathy-pill { background:transparent; }
+.meditation-comments { padding-top:0; }
+.meditation-comment-panel { border-top:1px solid #e5eae8; margin-top:6px; padding-top:10px; }
+.bible-reading .meditation-comments li { padding:8px 0; margin:0; background:transparent; border-radius:0; }
+.meditation-comment-heading { display:flex; align-items:center; gap:8px; }
+.meditation-comments li p { margin:2px 0 12px; }
+.meditation-comments .meditation-comment-compose { display:flex; align-items:flex-end; gap:6px; padding:4px; border:1px solid #d4dfdf; border-radius:12px; background:#fff; }
+.meditation-comment-compose textarea { flex:1; min-width:0; min-height:44px; max-height:180px; border:0; resize:vertical; }
+.meditation-comment-compose .meditation-icon-button { color:#087f97; }
+.meditation-edit-actions { display:flex; justify-content:flex-end; align-items:center; gap:8px; }

@@ -51,11 +51,17 @@ test("Psalms, inline comments and cross-reader highlights",async({page,browser})
   const share=await page.request.post("/api/bible-reading/shares",{data:{id:shareId,date:day,sharing:"시편을 새롭게 읽습니다.",sharingAnonymous:true}});
   expect(share.status()).toBe(200);expect((await share.json()).progress.totalDays).toBe(97);
   await page.goto("/bible-reading?date="+day);await expect.poll(()=>page.locator(".bible-reading-reference:visible").allTextContents()).toContain("시편 54편");
-  const row=page.locator(".bible-reading-lines>li:visible").filter({hasText:"시편을 새롭게 읽습니다."});await row.getByRole("button",{name:"댓글 쓰기·보기",exact:true}).click();
+  const row=page.locator(".bible-reading-lines>li:visible").filter({hasText:"시편을 새롭게 읽습니다."});await row.getByRole("button",{name:"댓글",exact:true}).click();
   await row.getByLabel("댓글 쓰기",{exact:true}).fill("함께 읽을 수 있어서 감사합니다.");
   const added=page.waitForResponse(r=>r.url().endsWith("/api/bible-reading/comments")&&r.request().method()==="POST");await row.getByRole("button",{name:"댓글 등록",exact:true}).click();expect((await added).status()).toBe(200);await expect(row.getByText("함께 읽을 수 있어서 감사합니다.",{exact:true})).toBeVisible();
+  const commentRow=row.locator(".meditation-comments li").filter({hasText:"함께 읽을 수 있어서 감사합니다."});
+  await commentRow.getByRole("button",{name:"댓글 수정",exact:true}).click();await commentRow.getByRole("textbox",{name:"댓글 수정 내용",exact:true}).fill("말씀으로 함께 힘을 얻습니다.");
+  const patched=page.waitForResponse(r=>r.url().endsWith("/api/bible-reading/comments")&&r.request().method()==="PATCH");await commentRow.getByRole("button",{name:"댓글 수정 저장",exact:true}).click();expect((await patched).status()).toBe(200);await expect(row.getByText("말씀으로 함께 힘을 얻습니다.",{exact:true})).toBeVisible();
+  expect(await row.getByRole("button",{name:"댓글",exact:true}).innerText()).toBe("1");
+  await page.reload();await expect(page.locator(".bible-reading-lines>li:visible").filter({hasText:"시편을 새롭게 읽습니다."}).getByRole("button",{name:"댓글",exact:true})).toHaveText("1");
   const comments=await(await page.request.get("/api/bible-reading/comments?sharingId="+shareId)).json();expect(comments.comments[0].name).toMatch(/^무명\d+$/);expect(JSON.stringify(comments)).not.toContain(member.userId);
   const other=await otherContext.newPage();await login(other,"admin");
+  expect((await other.request.patch("/api/bible-reading/comments",{data:{sharingId:shareId,id:comments.comments[0].id,body:"다른 사람 수정"}})).status()).toBe(404);
   expect((await other.request.delete("/api/bible-reading/comments",{data:{sharingId:shareId,id:comments.comments[0].id}})).status()).toBe(404);
   expect((await other.request.post("/api/bible-reading/comments",{data:{sharingId:shareId,id:commentId,body:"함께 기도합니다."}})).status()).toBe(200);
   await page.bringToFront();await page.goto("/scripture/bible/19/54");await page.locator(".scripture-verse:visible").first().click();

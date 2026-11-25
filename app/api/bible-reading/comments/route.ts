@@ -13,16 +13,18 @@ export async function GET(request:Request){
  const parsed=z.uuid().safeParse(new URL(request.url).searchParams.get("sharingId"));if(!parsed.success)return NextResponse.json({code:"INVALID_INPUT"},{status:400,headers});
  try{return NextResponse.json({comments:await listMeditationComments(parsed.data,user.id)},{headers});}catch(e){return failure(e);}
 }
-async function mutate(request:Request,method:"POST"|"DELETE"){
+async function mutate(request:Request,method:"POST"|"PATCH"|"DELETE"){
  const user=await getCurrentSessionUser();if(!user)return NextResponse.json({code:"UNAUTHORIZED"},{status:401,headers});
  try{
   checkOrigin(request);
   if(!request.headers.get("content-type")?.startsWith("application/json"))throw new DomainError("INVALID_INPUT",415);
   let raw:unknown;try{raw=JSON.parse(new TextDecoder().decode(await readLimited(request,4*1024*1024)));}catch(e){if(e instanceof ReportError)throw e;throw new DomainError("INVALID_INPUT",400);}
-  const parsed=(method==="POST"?Write:Base).safeParse(raw);if(!parsed.success)throw new DomainError("INVALID_INPUT",400);
-  await mutateMeditationComment(user.id,parsed.data.sharingId,parsed.data);
+  const parsed=(method!=="DELETE"?Write:Base).safeParse(raw);if(!parsed.success)throw new DomainError("INVALID_INPUT",400);
+  await mutateMeditationComment(user.id,parsed.data.sharingId,parsed.data,method==="PATCH");
   return NextResponse.json({comments:await listMeditationComments(parsed.data.sharingId,user.id)},{headers});
  }catch(e){return failure(e);}
 }
 export const POST=(r:Request)=>mutate(r,"POST");
 export const DELETE=(r:Request)=>mutate(r,"DELETE");
+
+export const PATCH=(r:Request)=>mutate(r,"PATCH");

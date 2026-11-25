@@ -1,4 +1,6 @@
 "use client";
+import {MeditationIcon} from "./MeditationIcon";
+
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -334,7 +336,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
               {renderFeedback("sharing")}
               {reading.sharedLines.length > 0 ? (
                 <ul className="bible-reading-lines">
-                  {reading.sharedLines.map(line => <li key={line.id}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><div className="meditation-line-actions"><SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>{line.isOwn&&<><button type="button" className="bible-reading-secondary" disabled={updating} onClick={()=>editSharing(line)}>수정</button><button type="button" className="bible-reading-secondary" disabled={updating} onClick={()=>{if(window.confirm("이 묵상 나눔을 삭제할까요?"))void writeSharing("DELETE",line.id);}}>삭제</button></>}</div><MeditationComments sharingId={line.id}/>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
+                  {reading.sharedLines.map(line => <li key={line.id}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><MeditationComments sharingId={line.id} commentCount={line.commentCount} reaction={<SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>} controls={line.isOwn&&<><button type="button" className="meditation-icon-button" aria-label="수정" title="수정" disabled={updating} onClick={()=>editSharing(line)}><MeditationIcon name="edit"/></button><button type="button" className="meditation-icon-button" aria-label="삭제" title="삭제" disabled={updating} onClick={()=>{if(window.confirm("이 묵상 나눔을 삭제할까요?"))void writeSharing("DELETE",line.id);}}><MeditationIcon name="delete"/></button></>}/>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
                 </ul>
               ) : <p className="bible-reading-hint">아직 등록된 묵상 나눔이 없습니다.</p>}
             </section>)}

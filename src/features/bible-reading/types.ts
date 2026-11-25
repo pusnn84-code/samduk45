@@ -6,7 +6,7 @@ export type BibleReadingState = {
   progress: { completedDays: number; totalDays: number };
   sharing: string | null;
   sharingAnonymous: boolean;
-  sharedLines: { id: string; name: string; text: string; isOwn: boolean; empathyCount: number; hasEmpathized: boolean; anonymous?: boolean }[];
+  sharedLines: { id: string; name: string; text: string; isOwn: boolean; empathyCount: number; commentCount?: number; hasEmpathized: boolean; anonymous?: boolean }[];
 };
 
 export type BibleReadingUpdate =
