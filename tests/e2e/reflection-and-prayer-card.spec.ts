@@ -54,7 +54,7 @@ test("Psalms, inline comments and cross-reader highlights",async({page,browser})
   const row=page.locator(".bible-reading-lines>li:visible").filter({hasText:"시편을 새롭게 읽습니다."});await row.getByRole("button",{name:"댓글",exact:true}).click();
   await row.getByLabel("댓글 쓰기",{exact:true}).fill("함께 읽을 수 있어서 감사합니다.");
   const added=page.waitForResponse(r=>r.url().endsWith("/api/bible-reading/comments")&&r.request().method()==="POST");await row.getByRole("button",{name:"댓글 등록",exact:true}).click();expect((await added).status()).toBe(200);await expect(row.getByText("함께 읽을 수 있어서 감사합니다.",{exact:true})).toBeVisible();
-  const commentRow=row.locator(".meditation-comments li").filter({hasText:"함께 읽을 수 있어서 감사합니다."});
+  const commentRow=row.locator(".meditation-comments li").first();
   await commentRow.getByRole("button",{name:"댓글 수정",exact:true}).click();await commentRow.getByRole("textbox",{name:"댓글 수정 내용",exact:true}).fill("말씀으로 함께 힘을 얻습니다.");
   const patched=page.waitForResponse(r=>r.url().endsWith("/api/bible-reading/comments")&&r.request().method()==="PATCH");await commentRow.getByRole("button",{name:"댓글 수정 저장",exact:true}).click();expect((await patched).status()).toBe(200);await expect(row.getByText("말씀으로 함께 힘을 얻습니다.",{exact:true})).toBeVisible();
   expect(await row.getByRole("button",{name:"댓글",exact:true}).innerText()).toBe("1");
