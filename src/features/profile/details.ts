@@ -6,7 +6,7 @@ import {DomainError} from "../../lib/http";
 import {encryptRosterPhone} from "../roster/crypto";
 import {phoneLookupHash} from "../auth/crypto";
 export const ProfileDetailsSchema=z.object({
- birthDate:z.iso.date().nullable(),
+ birthDate:z.string().trim().transform(value=>/^\d{8}$/.test(value)?`${value.slice(0,4)}-${value.slice(4,6)}-${value.slice(6,8)}`:value).pipe(z.iso.date()).nullable(),
  phone:z.string().trim().transform(v=>v.replace(/[\s()-]/g,"")).pipe(z.string().regex(/^\d{9,11}$/)),
  phonePrivate:z.boolean(),
 }).strict().refine(v=>v.birthDate===null||(v.birthDate>="1900-01-01"&&v.birthDate<=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul"}).format(new Date())),{message:"INVALID_BIRTH_DATE"});

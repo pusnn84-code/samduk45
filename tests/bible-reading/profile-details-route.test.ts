@@ -10,11 +10,13 @@ beforeEach(()=>{vi.resetAllMocks();mocks.session.mockResolvedValue({id:"session-
 it("saves normalized contacts for the session owner without accepting identity or role changes",async()=>{
  const response=await PATCH(request(valid));expect(response.status).toBe(200);expect(response.headers.get("cache-control")).toContain("no-store");
  expect(mocks.update).toHaveBeenCalledWith("session-owner",{...valid,phone:"01000000025"});
+ expect((await PATCH(request({...valid,birthDate:"19840718"}))).status).toBe(200);
+ expect(mocks.update).toHaveBeenLastCalledWith("session-owner",{...valid,phone:"01000000025"});
  expect((await PATCH(request({...valid,userId:"other"}))).status).toBe(400);
  expect((await PATCH(request({...valid,role:"admin"}))).status).toBe(400);
 });
 it("rejects invalid dates, future birth dates, malformed phone numbers and cross-site writes",async()=>{
- for(const input of [{...valid,birthDate:"2026-02-30"},{...valid,birthDate:"2999-01-01"},{...valid,phone:"123"}])expect((await PATCH(request(input))).status).toBe(400);
+ for(const input of [{...valid,birthDate:"2026-02-30"},{...valid,birthDate:"20260230"},{...valid,birthDate:"2999-01-01"},{...valid,phone:"123"}])expect((await PATCH(request(input))).status).toBe(400);
  expect((await PATCH(request(valid,"https://evil.test"))).status).toBe(403);
  expect(mocks.update).not.toHaveBeenCalled();mocks.session.mockResolvedValue(null);expect((await PATCH(request(valid))).status).toBe(401);
 });
