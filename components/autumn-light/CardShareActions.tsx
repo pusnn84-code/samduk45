@@ -11,7 +11,7 @@ async function copy(value:string){
 export function CardShareActions({card}:{card:AutumnCard}){
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(""),[images,setImages]=useState<{blob:Blob;url:string;name:string}[]>([]),[manual,setManual]=useState("");
  const dialog=useRef<HTMLDialogElement>(null),urls=useRef<string[]>([]);
- const mobile=()=>navigator.maxTouchPoints>0&&matchMedia("(pointer:coarse)").matches;
+ const mobile=()=>matchMedia("(max-width:860px)").matches||(navigator.maxTouchPoints>0&&matchMedia("(pointer:coarse)").matches);
  function close(){for(const url of urls.current)URL.revokeObjectURL(url);urls.current=[];setImages([]);}
  useEffect(()=>()=>{for(const url of urls.current)URL.revokeObjectURL(url);},[]);
  useEffect(()=>{if(images.length)dialog.current?.showModal();},[images]);
@@ -42,3 +42,4 @@ export function CardShareActions({card}:{card:AutumnCard}){
  {manual&&<div className="autumn-share-fallback" role="dialog" aria-label="기도카드 링크 복사"><label>기도카드 링크<input readOnly value={manual} onFocus={e=>e.target.select()}/></label><button type="button" className="text-button" onClick={()=>setManual("")}>닫기</button></div>}
  </div>;
 }
+

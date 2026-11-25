@@ -6,10 +6,14 @@ export const VerseReference=z.object({book:z.number().int(),chapter:z.number().i
 });
 export const HighlightInput=z.object({verses:z.array(VerseReference).min(1).max(400),color:z.enum(["yellow","green","pink"]).nullable()}).strict();
 export async function saveHighlights(userId:string,input:z.infer<typeof HighlightInput>){
+ const verses=[...new Map(input.verses.map(v=>[`${v.book}:${v.chapter}:${v.verse}`,v])).values()];
  await getDb().transaction(async tx=>{
-  for(const verse of input.verses){
-   if(input.color===null)await tx.execute(sql`delete from prayer_app.scripture_highlights where user_id=${userId}::uuid and book=${verse.book} and chapter=${verse.chapter} and verse=${verse.verse}`);
-   else await tx.execute(sql`insert into prayer_app.scripture_highlights(user_id,book,chapter,verse,color) values(${userId}::uuid,${verse.book},${verse.chapter},${verse.verse},${input.color}) on conflict(user_id,book,chapter,verse) do update set color=excluded.color,updated_at=now()`);
+  if(input.color===null){
+   const matches=verses.map(v=>sql`(book=${v.book} and chapter=${v.chapter} and verse=${v.verse})`);
+   await tx.execute(sql`delete from prayer_app.scripture_highlights where user_id=${userId}::uuid and (${sql.join(matches,sql` or `)})`);
+  }else{
+   const values=verses.map(v=>sql`(${userId}::uuid,${v.book},${v.chapter},${v.verse},${input.color})`);
+   await tx.execute(sql`insert into prayer_app.scripture_highlights(user_id,book,chapter,verse,color) values ${sql.join(values,sql`, `)} on conflict(user_id,book,chapter,verse) do update set color=excluded.color,updated_at=now()`);
   }
  });
 }

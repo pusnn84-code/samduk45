@@ -1,5 +1,5 @@
 import {z} from "zod";
-import {eq,sql} from "drizzle-orm";
+import {eq} from "drizzle-orm";
 import {getDb} from "../../db/client";
 import {memberRoster,users} from "../../db/schema";
 import {DomainError} from "../../lib/http";
@@ -21,7 +21,6 @@ export async function updateProfileDetails(userId:string,input:z.infer<typeof Pr
   await tx.update(memberRoster).set({birthDate:input.birthDate,phonePrivate:input.phonePrivate,phoneLookupHash:hash,phoneCiphertext:ciphertext,updatedAt:new Date()}).where(eq(memberRoster.id,user.rosterId));
   await tx.update(users).set({phoneLookupHash:hash,updatedAt:new Date()}).where(eq(users.id,userId));
   // Password and remembered PIN devices are independent of the updated contact number.
-  await tx.execute(sql`select 1`);
  });}catch(error){
   if(error instanceof DomainError)throw error;
   const cause=error as {code?:string;cause?:{code?:string}};

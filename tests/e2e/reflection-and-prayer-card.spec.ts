@@ -47,7 +47,7 @@ test("Psalms, inline comments, cross-reader highlights, profile privacy and noti
   await login(page);
   const share=await page.request.post("/api/bible-reading/shares",{data:{id:shareId,date:day,sharing:"시편을 새롭게 읽습니다.",sharingAnonymous:true}});
   expect(share.status()).toBe(200);expect((await share.json()).progress.totalDays).toBe(97);
-  await page.goto("/bible-reading?date="+day);await expect(page.getByText("시편 54편",{exact:true}).first()).toBeVisible();
+  await page.goto("/bible-reading?date="+day);await expect(page.locator(".bible-reading-reference")).toHaveText("시편 54편");
   const row=page.locator(".bible-reading-lines>li").filter({hasText:"시편을 새롭게 읽습니다."});await row.getByRole("button",{name:"댓글 쓰기·보기",exact:true}).click();
   await row.getByLabel("댓글 쓰기",{exact:true}).fill("함께 읽을 수 있어서 감사합니다.");
   const added=page.waitForResponse(r=>r.url().endsWith("/api/bible-reading/comments")&&r.request().method()==="POST");await row.getByRole("button",{name:"댓글 등록",exact:true}).click();expect((await added).status()).toBe(200);await expect(row.getByText("함께 읽을 수 있어서 감사합니다.",{exact:true})).toBeVisible();
