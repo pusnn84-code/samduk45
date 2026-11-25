@@ -185,5 +185,3 @@
 /* Shared action padding must not shrink the two fixed-width tool icons. */
 .community-app .community-content .scripture-copy-actions > .scripture-tool-icon { display:inline-flex; padding:0; flex:none; }
 
-/* Selection remains visible even over a saved text highlight. */
-.scripture-verse[aria-pressed="true"] .scripture-verse-number:not([aria-hidden="true"])::after { content:"✓"; display:block; margin-top:2px; color:#087f91; font-size:13px; line-height:1.2; font-weight:800; }
