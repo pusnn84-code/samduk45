@@ -60,7 +60,7 @@ test("Psalms, inline comments, cross-reader highlights, profile privacy and noti
   const marked=page.waitForResponse(r=>r.url().endsWith("/api/scripture/highlights")&&r.request().method()==="PUT");await yellow.click();expect((await marked).status()).toBe(200);
   await page.goto("/scripture/reading/"+day);await expect(page.locator('.scripture-verse[data-highlight="yellow"]').first()).toBeVisible();
   const privateHighlights=await(await other.request.get("/api/scripture/highlights?references=19:54")).json();expect(privateHighlights.highlights).toEqual([]);
-  await page.goto("/profile");await page.getByLabel("생년월일",{exact:true}).fill("1980-05-21");await page.getByLabel("휴대폰 번호",{exact:true}).fill("01000000982");await page.getByLabel("연락처 비공개",{exact:true}).check();
+  await page.goto("/profile");await page.getByLabel("생년월일",{exact:true}).fill("1980-05-21");await page.keyboard.press("Escape");await page.keyboard.press("Tab");await page.getByLabel("휴대폰 번호",{exact:true}).fill("01000000982");await page.getByLabel("연락처 비공개",{exact:true}).check();
   const profileSaved=page.waitForResponse(r=>r.url().endsWith("/api/profile/details")&&r.request().method()==="PATCH");await page.getByRole("button",{name:"내 정보 저장",exact:true}).click();expect((await profileSaved).status()).toBe(200);
   const profile=await(await page.request.get("/api/profile")).json();expect(profile.profile.phonePrivate).toBe(true);expect(profile.profile.birthDate).toBe("1980-05-21");expect(profile.profile.phone).toBe("01000000982");
   await page.reload();await expect(page.getByLabel("휴대폰 번호",{exact:true})).toHaveValue("01000000982");await expect(page.getByLabel("연락처 비공개",{exact:true})).toBeChecked();
