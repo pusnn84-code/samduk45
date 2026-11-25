@@ -3,14 +3,14 @@ import {useEffect,useRef,useState,type FormEvent,type ReactNode} from "react";
 import {MeditationIcon} from "./MeditationIcon";
 type Comment={id:string;name:string;body:string;isOwn:boolean};
 export function MeditationComments({sharingId,commentCount=0,reaction,controls}:{sharingId:string;commentCount?:number;reaction?:ReactNode;controls?:ReactNode}){
- const [open,setOpen]=useState(false),[comments,setComments]=useState<Comment[]>([]),[count,setCount]=useState(commentCount),[draft,setDraft]=useState("");
+ const [open,setOpen]=useState(false),[comments,setComments]=useState<Comment[]>([]),[countResult,setCount]=useState<{source:number;value:number}|null>(null),[draft,setDraft]=useState("");
  const [editing,setEditing]=useState<string|null>(null),[editDraft,setEditDraft]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState("");const pending=useRef<string|null>(null);
- useEffect(()=>setCount(commentCount),[commentCount]);
- useEffect(()=>{if(!open)return;const controller=new AbortController();fetch(`/api/bible-reading/comments?sharingId=${sharingId}`,{cache:"no-store",signal:controller.signal}).then(async r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{setComments(data.comments);setCount(data.comments.length);}).catch(()=>{if(!controller.signal.aborted)setError("댓글을 불러오지 못했습니다. 다시 열어 주세요.");});return ()=>controller.abort();},[open,sharingId]);
+ const count=countResult?.source===commentCount?countResult.value:commentCount;
+ useEffect(()=>{if(!open)return;const controller=new AbortController();fetch(`/api/bible-reading/comments?sharingId=${sharingId}`,{cache:"no-store",signal:controller.signal}).then(async r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{setComments(data.comments);setCount({source:commentCount,value:data.comments.length});}).catch(()=>{if(!controller.signal.aborted)setError("댓글을 불러오지 못했습니다. 다시 열어 주세요.");});return ()=>controller.abort();},[open,sharingId,commentCount]);
  async function mutate(method:"POST"|"PATCH"|"DELETE",id:string,body?:string){
   if(busy)return;setBusy(true);setError("");
-  try{const response=await fetch("/api/bible-reading/comments",{method,headers:{"Content-Type":"application/json"},body:JSON.stringify({sharingId,id,...(body===undefined?{}:{body})})});if(!response.ok)throw Error();const data=await response.json();setComments(data.comments);setCount(data.comments.length);if(method==="POST"){setDraft("");pending.current=null;}if(method==="PATCH")setEditing(null);}
+  try{const response=await fetch("/api/bible-reading/comments",{method,headers:{"Content-Type":"application/json"},body:JSON.stringify({sharingId,id,...(body===undefined?{}:{body})})});if(!response.ok)throw Error();const data=await response.json();setComments(data.comments);setCount({source:commentCount,value:data.comments.length});if(method==="POST"){setDraft("");pending.current=null;}if(method==="PATCH")setEditing(null);}
   catch{setError("저장 결과를 확인하지 못했습니다. 다시 열어 확인해 주세요.");}finally{setBusy(false);}
  }
  function submit(event:FormEvent){event.preventDefault();if(!draft.trim())return;pending.current??=crypto.randomUUID();void mutate("POST",pending.current,draft.trim());}
