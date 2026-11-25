@@ -1397,4 +1397,4 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .admin-notice-row .header-actions { flex-wrap: wrap; white-space: normal; }
 }
 
-.profile-edit-form{display:grid;gap:14px;margin:20px 0 28px}.profile-edit-form label:not(:has(input[type=checkbox])){display:grid;gap:8px}.profile-edit-form input:not([type=checkbox]){box-sizing:border-box;min-height:46px;width:100%;padding:10px 12px;font:inherit;border:1px solid #ccd5d8;border-radius:10px}.notice-inline-edit{margin-bottom:16px}
+.profile-edit-form{display:grid;gap:14px;margin:20px 0 28px}.profile-edit-form .profile-edit-field{display:grid;gap:8px}.profile-edit-form input:not([type=checkbox]){box-sizing:border-box;min-height:46px;width:100%;padding:10px 12px;font:inherit;border:1px solid #ccd5d8;border-radius:10px}.notice-inline-edit{margin-bottom:16px}
