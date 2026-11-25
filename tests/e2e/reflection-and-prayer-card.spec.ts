@@ -6,6 +6,10 @@ import {login,expectNoOverflow} from "./helpers";
 import {e2eAccounts} from "../fixtures/e2e-data";
 const date="2026-11-05";
 const disposable=()=>process.env.E2E_DATABASE_READY==="1"&&["127.0.0.1","localhost"].includes(new URL(process.env.DATABASE_URL!).hostname);
+// Data and UI flows are independent of device push registration. The ephemeral
+// localhost certificate is not a trusted service-worker origin in WebKit.
+// Worker payloads and delivery are covered by mobile-sw and queue integration tests.
+test.use({serviceWorkers:"block"});
 test("multiple long meditations retain legacy completion, aliases and empathy with actor-only edits",async({page,browser})=>{
  test.skip(!disposable(),"Disposable CI database only");test.setTimeout(150000);
  const db=postgres(process.env.DATABASE_URL!,{ssl:"require",prepare:false,max:1}),otherContext=await browser.newContext(),legacy=randomUUID();const user=e2eAccounts.admin.userId;
