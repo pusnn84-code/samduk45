@@ -181,6 +181,6 @@
  .scripture-copy-actions .scripture-tool-icon { padding: 0; }
 }
 
-.scripture-copy-actions .scripture-tool-icon svg { display:block; width:32px; height:32px; min-width:32px; min-height:32px; flex:none; stroke-width:1.9; }
+.scripture-copy-actions .scripture-tool-icon svg { display:block; width:32px; height:32px; min-width:32px; min-height:32px; flex:none; stroke-width:1.3; }
 /* Shared action padding must not shrink the two fixed-width tool icons. */
 .community-app .community-content .scripture-copy-actions > .scripture-tool-icon { display:inline-flex; padding:0; flex:none; }
