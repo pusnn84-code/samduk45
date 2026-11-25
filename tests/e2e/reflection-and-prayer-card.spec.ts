@@ -36,13 +36,55 @@ test("multiple long meditations retain legacy completion, aliases and empathy wi
   await expectNoOverflow(page);
  }finally{await db`delete from prayer_app.bible_reading_shares where user_id=${user}::uuid and reading_date=${date}::date`;await db`delete from prayer_app.bible_reading_entries where user_id=${user}::uuid and reading_date=${date}::date`;await otherContext.close();await db.end();}
 });
+
+test("Psalms, inline comments, cross-reader highlights, profile privacy and notice editing",async({page,browser})=>{
+ test.skip(!disposable(),"Disposable CI database only");test.setTimeout(150000);
+ const db=postgres(process.env.DATABASE_URL!,{ssl:"require",prepare:false,max:1});
+ const otherContext=await browser.newContext();const shareId=randomUUID(),commentId=randomUUID(),day="2026-11-30";
+ const member=e2eAccounts.member;let noticeId="";
+ const [original]=await db`select birth_date,phone_ciphertext,phone_lookup_hash,phone_private from prayer_app.member_roster where id=${member.rosterId}::uuid`;
+ try{
+  await login(page);
+  const share=await page.request.post("/api/bible-reading/shares",{data:{id:shareId,date:day,sharing:"시편을 새롭게 읽습니다.",sharingAnonymous:true}});
+  expect(share.status()).toBe(200);expect((await share.json()).progress.totalDays).toBe(97);
+  await page.goto("/bible-reading?date="+day);await expect(page.getByText("시편 54편",{exact:true}).first()).toBeVisible();
+  const row=page.locator(".bible-reading-lines>li").filter({hasText:"시편을 새롭게 읽습니다."});await row.getByRole("button",{name:"댓글 쓰기·보기",exact:true}).click();
+  await row.getByLabel("댓글 쓰기",{exact:true}).fill("함께 읽을 수 있어서 감사합니다.");
+  const added=page.waitForResponse(r=>r.url().endsWith("/api/bible-reading/comments")&&r.request().method()==="POST");await row.getByRole("button",{name:"댓글 등록",exact:true}).click();expect((await added).status()).toBe(200);await expect(row.getByText("함께 읽을 수 있어서 감사합니다.",{exact:true})).toBeVisible();
+  const comments=await(await page.request.get("/api/bible-reading/comments?sharingId="+shareId)).json();expect(comments.comments[0].name).toMatch(/^무명\d+$/);expect(JSON.stringify(comments)).not.toContain(member.userId);
+  const other=await otherContext.newPage();await login(other,"admin");
+  expect((await other.request.delete("/api/bible-reading/comments",{data:{sharingId:shareId,id:comments.comments[0].id}})).status()).toBe(404);
+  expect((await other.request.post("/api/bible-reading/comments",{data:{sharingId:shareId,id:commentId,body:"함께 기도합니다."}})).status()).toBe(200);
+  await page.goto("/scripture/bible/19/54");await page.locator(".scripture-verse").first().click();
+  const yellow=page.getByRole("button",{name:"노랑",exact:true});await expect(yellow).toBeEnabled();
+  const marked=page.waitForResponse(r=>r.url().endsWith("/api/scripture/highlights")&&r.request().method()==="PUT");await yellow.click();expect((await marked).status()).toBe(200);
+  await page.goto("/scripture/reading/"+day);await expect(page.locator('.scripture-verse[data-highlight="yellow"]').first()).toBeVisible();
+  const privateHighlights=await(await other.request.get("/api/scripture/highlights?references=19:54")).json();expect(privateHighlights.highlights).toEqual([]);
+  await page.goto("/profile");await page.getByLabel("생년월일",{exact:true}).fill("1980-05-21");await page.getByLabel("휴대폰 번호",{exact:true}).fill("01000000982");await page.getByLabel("연락처 비공개",{exact:true}).check();
+  const profileSaved=page.waitForResponse(r=>r.url().endsWith("/api/profile/details")&&r.request().method()==="PATCH");await page.getByRole("button",{name:"내 정보 저장",exact:true}).click();expect((await profileSaved).status()).toBe(200);
+  const profile=await(await page.request.get("/api/profile")).json();expect(profile.profile.phonePrivate).toBe(true);expect(profile.profile.birthDate).toBe("1980-05-21");expect(profile.profile.phone).toBe("01000000982");
+  await page.reload();await expect(page.getByLabel("휴대폰 번호",{exact:true})).toHaveValue("01000000982");await expect(page.getByLabel("연락처 비공개",{exact:true})).toBeChecked();
+  const notice=await other.request.post("/api/admin/notices",{data:{title:"수정 동작 검증",body:"수정하기 전",status:"published"}});expect(notice.status()).toBe(201);noticeId=(await notice.json()).notice.id;
+  await other.goto("/notices/"+noticeId);await other.getByRole("button",{name:"공지 수정",exact:true}).click();await other.getByPlaceholder("공지 내용을 입력하세요.").fill("수정한 안내입니다.");
+  const noticeSaved=other.waitForResponse(r=>r.url().endsWith("/api/admin/notices/"+noticeId)&&r.request().method()==="PATCH");await other.getByRole("button",{name:"발행",exact:true}).click();expect((await noticeSaved).status()).toBe(200);await expect(other.locator(".notice-body")).toHaveText("수정한 안내입니다.");
+  await page.goto("/notices/"+noticeId);await expect(page.getByRole("button",{name:"공지 수정",exact:true})).toHaveCount(0);
+  await expectNoOverflow(page);
+ }finally{
+  await db`delete from prayer_app.bible_reading_shares where sharing_id=${shareId}::uuid`;
+  await db`delete from prayer_app.scripture_highlights where user_id=${member.userId}::uuid`;
+  if(noticeId)await db`delete from prayer_app.notices where id=${noticeId}::uuid`;
+  await db`update prayer_app.member_roster set birth_date=${original.birth_date},phone_ciphertext=${original.phone_ciphertext},phone_lookup_hash=${original.phone_lookup_hash},phone_private=${original.phone_private} where id=${member.rosterId}::uuid`;
+  await db`update prayer_app.users set phone_lookup_hash=${original.phone_lookup_hash} where id=${member.userId}::uuid`;
+  await otherContext.close();await db.end();
+ }
+});
 test("prayer card has three aligned actions, PNG export, mobile preview and a login-safe share link",async({page,browser})=>{
  test.skip(!disposable(),"Disposable CI database only");test.setTimeout(150000);
- const db=postgres(process.env.DATABASE_URL!,{ssl:"require",prepare:false,max:1}),mobileContext=await browser.newContext({viewport:{width:390,height:844},hasTouch:true}),anonymousContext=await browser.newContext();let id="";
+ const db=postgres(process.env.DATABASE_URL!,{ssl:"require",prepare:false,max:1}),mobileContext=await browser.newContext({viewport:{width:390,height:844},hasTouch:true}),anonymousContext=await browser.newContext();let id="";const samId=randomUUID();
  try{
   await page.setViewportSize({width:1280,height:900});await login(page);
-  const overview=await(await page.request.get("/api/autumn-light")).json();
-  const result=await page.request.post("/api/autumn-light/cards",{data:{name:"캡처 검증 "+randomUUID().slice(0,5),samId:overview.sams[0].id,prayer:"서로를 사랑하는 마음으로 함께 기도합니다.\n새로운 만남 가운데 은혜를 누리게 하소서.",submissionKey:randomUUID()}});expect(result.status()).toBe(201);const card=(await result.json()).card;id=card.id;
+  await db`insert into prayer_app.sams(id,name,leader_name,is_active) values(${samId}::uuid,'1-98샘','검증리더',true)`;
+  const result=await page.request.post("/api/autumn-light/cards",{data:{name:"캡처 검증 "+randomUUID().slice(0,5),samId,prayer:"서로를 사랑하는 마음으로 함께 기도합니다.\n새로운 만남 가운데 은혜를 누리게 하소서.",submissionKey:randomUUID()}});expect(result.status()).toBe(201);const card=(await result.json()).card;id=card.id;
   await page.goto("/autumn-light?card="+id);const detail=page.locator(".autumn-detail");await expect(detail).toBeVisible();const actions=detail.locator(".autumn-card-actions");await expect(actions.getByRole("button")).toHaveCount(3);
   const left=await actions.locator(".autumn-reaction-hit").boundingBox(),right=await actions.getByRole("button",{name:"기도카드 캡처",exact:true}).boundingBox();expect(right!.x).toBeGreaterThan(left!.x+left!.width);
   const down=page.waitForEvent("download");await actions.getByRole("button",{name:"기도카드 캡처",exact:true}).click();const file=await down;await mkdir("test-results",{recursive:true});await file.saveAs("test-results/prayer-card.png");const bytes=await readFile((await file.path())!);expect([...bytes.subarray(0,8)]).toEqual([137,80,78,71,13,10,26,10]);
@@ -51,5 +93,6 @@ test("prayer card has three aligned actions, PNG export, mobile preview and a lo
   const visitor=await anonymousContext.newPage();await visitor.goto(share.url);await expect(visitor).toHaveURL(new RegExp("/login\\?autumnCard="+id));await expect(visitor.getByText(card.prayer,{exact:true})).toHaveCount(0);
   await visitor.getByLabel("이름 (아이디)",{exact:true}).fill(e2eAccounts.member.name);await visitor.getByLabel("비밀번호",{exact:true}).fill(e2eAccounts.member.phone.slice(-6));await visitor.getByRole("button",{name:"로그인",exact:true}).click();
   await expect(visitor).toHaveURL(new RegExp("/autumn-light\\?card="+id));await expect(visitor.locator(".autumn-detail").getByRole("heading",{name:card.name,exact:true})).toBeVisible();
- }finally{if(id){await db`delete from prayer_app.autumn_daily where person_id=${id}::uuid`;await db`delete from prayer_app.autumn_people where id=${id}::uuid`;}await mobileContext.close();await anonymousContext.close();await db.end();}
+ }finally{if(id){await db`delete from prayer_app.autumn_daily where person_id=${id}::uuid`;await db`delete from prayer_app.autumn_people where id=${id}::uuid`;}await db`delete from prayer_app.sams where id=${samId}::uuid`;await mobileContext.close();await anonymousContext.close();await db.end();}
 });
+
