@@ -22,7 +22,7 @@ describe("independent meditation posts",()=>{
  });
  it("rejects unscheduled dates before accessing storage",async()=>{await expect(mutateMeditation("actor","POST",{id,date:"2026-11-15",sharing:"예시",sharingAnonymous:false})).rejects.toMatchObject({code:"INVALID_READING_DATE"});expect(b.db).not.toHaveBeenCalled();});
  it("returns all independent lines through a database-side anonymous display name",async()=>{
-  const execute=vi.fn(async(q:SQL)=>{const st=dialect.sqlToQuery(q);expect(st.sql).toContain("case when s.sharing_anonymous");expect(st.sql).toContain("u.is_active");return {rows:[{id,name:"무명7",text:"첫 글",isOwn:true,anonymous:true,empathyCount:2,hasEmpathized:false,observedAt:"now"}]};});b.db.mockReturnValue({execute});
-  const result=await withMeditations({date,completed:false,completedPeople:[],sharing:null,sharingAnonymous:false,sharedLines:[],progress:{completedDays:0,totalDays:200}},"actor");expect(result.sharedLines[0]).toEqual({id,name:"무명7",text:"첫 글",isOwn:true,anonymous:true,empathyCount:2,hasEmpathized:false});expect(result.observedAt).toBe("now");
+  const execute=vi.fn(async(q:SQL)=>{const st=dialect.sqlToQuery(q);expect(st.sql).toContain("case when s.sharing_anonymous");expect(st.sql).toContain("u.is_active");return {rows:[{id,name:"무명7",text:"첫 글",isOwn:true,anonymous:true,empathyCount:2,commentCount:3,hasEmpathized:false,observedAt:"now"}]};});b.db.mockReturnValue({execute});
+  const result=await withMeditations({date,completed:false,completedPeople:[],sharing:null,sharingAnonymous:false,sharedLines:[],progress:{completedDays:0,totalDays:200}},"actor");expect(result.sharedLines[0]).toEqual({id,name:"무명7",text:"첫 글",isOwn:true,anonymous:true,empathyCount:2,commentCount:3,hasEmpathized:false});expect(result.observedAt).toBe("now");
  });
 });
