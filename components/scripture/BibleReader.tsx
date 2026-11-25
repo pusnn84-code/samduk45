@@ -8,18 +8,18 @@ export type ReaderChapter = {
   id: string; title: string; abbreviation: string; chapter: number; verses: VerseRow[];
 };
 
-export function BibleReader({ title, abbreviation, chapter, startVerse, verses }: {
-  title: string; abbreviation: string; chapter: number; startVerse: number; verses: VerseRow[];
+export function BibleReader({ title, abbreviation, chapter, startVerse, verses, selectStartVerse = false }: {
+  title: string; abbreviation: string; chapter: number; startVerse: number; verses: VerseRow[]; selectStartVerse?: boolean;
 }) {
-  return <BiblePassageReader title={title} startVerse={startVerse}
+  return <BiblePassageReader title={title} startVerse={startVerse} selectStartVerse={selectStartVerse}
     chapters={[{ id: "scripture", title, abbreviation, chapter, verses }]} />;
 }
 
-export function BiblePassageReader({ title, chapters, startVerse = 1, showChapters = false }: {
-  title: string; chapters: ReaderChapter[]; startVerse?: number; showChapters?: boolean;
+export function BiblePassageReader({ title, chapters, startVerse = 1, showChapters = false, selectStartVerse = false }: {
+  title: string; chapters: ReaderChapter[]; startVerse?: number; showChapters?: boolean; selectStartVerse?: boolean;
 }) {
   const [fontSize, setFontSize] = useState(18);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(()=>{if(!selectStartVerse)return [];const first=chapters[0];const target=first?.verses.find(([start,end])=>start<=startVerse&&startVerse<=end);return target?[`${first.id}-${target[0]}`]:[];});
   const [notice, setNotice] = useState("");
   const [manualCopy, setManualCopy] = useState("");
   const [highlights,setHighlights]=useState<Record<string,string>>({});
