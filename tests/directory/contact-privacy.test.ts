@@ -55,6 +55,7 @@ function person(overrides: Partial<DirectoryRosterRow> = {}): DirectoryRosterRow
 }
 
 describe("directory contact privacy", () => {
+ it("removes private phone numbers before producing member DTOs",async()=>{const decoder=vi.fn(decrypt);const result=await buildCommunityDirectory([person({phonePrivate:true})],[],[],decoder);expect(result.members[0].phone).toBeNull();expect(result.members[0].contactStatus).toBe("private");expect(decoder).not.toHaveBeenCalled();expect(JSON.stringify(result)).not.toContain(ciphertext);});
   it("displays registered contacts even before their owner sets a new password", async () => {
     const decryptInitial = vi.fn(decrypt);
     const contact = await resolveDirectoryPhone(person({ passwordHash: null }), decryptInitial);

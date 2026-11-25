@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { NoticeEditAction } from "../../../../components/notices/NoticeEditAction";
 import { NoticeDetail } from "../../../../components/notices/NoticeDetail";
 import { NoticeConfirmations } from "../../../../components/notices/NoticeConfirmations";
 import { NoticeActivityRefresh } from "../../../../components/app/MenuActivityProvider";
@@ -28,6 +29,7 @@ export default async function NoticeDetailPage({
   return (
     <main className="shell">
       <NoticeActivityRefresh />
+      {user.role === "admin" && <NoticeEditAction notice={notice}/>}
       <NoticeDetail notice={{ ...notice, isUnread: false }}>
         {confirmation && notice.revision && <NoticeConfirmations key={`${id}:${notice.revision}`} noticeId={id} readRevision={notice.revision} initial={confirmation} />}
       </NoticeDetail>

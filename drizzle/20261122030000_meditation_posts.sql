@@ -6,13 +6,13 @@ set local statement_timeout='20s';
 create temporary table meditation_trigger_restore on commit drop as
  select tgname,pg_get_triggerdef(oid) as definition,tgenabled from pg_trigger
  where tgrelid='prayer_app.bible_reading_entries'::regclass and not tgisinternal;
-do $ declare t record; begin
+do $$ declare t record; begin
  for t in select * from meditation_trigger_restore loop
  execute format('drop trigger %I on prayer_app.bible_reading_entries',t.tgname);
  end loop;
-end $;
+end $$;
 alter table prayer_app.bible_reading_entries alter column sharing type text;
-do $ declare t record; begin
+do $$ declare t record; begin
  for t in select * from meditation_trigger_restore loop
  execute t.definition;
  if t.tgenabled='D' then execute format('alter table prayer_app.bible_reading_entries disable trigger %I',t.tgname);
@@ -20,7 +20,7 @@ do $ declare t record; begin
  elsif t.tgenabled='A' then execute format('alter table prayer_app.bible_reading_entries enable always trigger %I',t.tgname);
  end if;
  end loop;
-end $;
+end $$;
 create table prayer_app.bible_reading_shares(
  sharing_id uuid primary key default gen_random_uuid(),
  user_id uuid not null references prayer_app.users(id) on delete cascade,
@@ -67,4 +67,5 @@ end $$;
 create trigger meditation_capture after insert or update of sharing on prayer_app.bible_reading_shares for each row execute function prayer_app.capture_meditation();
 revoke all on function prayer_app.sync_legacy_reading_share(),prayer_app.stamp_meditation(),prayer_app.capture_meditation() from public,anon,authenticated;
 commit;
+
 

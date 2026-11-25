@@ -1,5 +1,5 @@
 import { and, asc, count, eq, inArray, sql } from "drizzle-orm";
-import { BIBLE_READING_PLAN, getBibleReadingDay } from "../../content/bible-reading-plan";
+import { BIBLE_READING_PLAN, getBibleReadingDay, readingCycle } from "../../content/bible-reading-plan";
 import { getDb } from "../../db/client";
 import { bibleReadingEntries, users } from "../../db/schema";
 import { DomainError } from "../../lib/http";
@@ -14,6 +14,7 @@ function validateDate(date: string) {
 }
 
 async function readState(db: ReadingDatabase, userId: string, date: string): Promise<BibleReadingState> {
+  const cycleDates=readingCycle(date).map(day=>day.date);
   const entries = await db.select({
     userId: bibleReadingEntries.userId,
     name: users.displayName,
@@ -36,7 +37,7 @@ async function readState(db: ReadingDatabase, userId: string, date: string): Pro
     .where(and(
       eq(bibleReadingEntries.userId, userId),
       eq(bibleReadingEntries.completed, true),
-      inArray(bibleReadingEntries.readingDate, scheduleDates),
+      inArray(bibleReadingEntries.readingDate, cycleDates),
     ));
 
   const own = entries.find(entry => entry.userId === userId);
@@ -45,7 +46,7 @@ async function readState(db: ReadingDatabase, userId: string, date: string): Pro
     observedAt: entries[0]?.observedAt,
     completed: own?.completed ?? false,
     completedPeople: entries.filter(entry => entry.completed).map(entry => ({ name: entry.name })),
-    progress: { completedDays: progress.completedDays, totalDays: scheduleDates.length },
+    progress: { completedDays: progress.completedDays, totalDays: cycleDates.length },
     sharing: own?.sharing ?? null,
     sharingAnonymous: own?.sharingAnonymous ?? false,
     sharedLines: entries.flatMap(entry => entry.sharing === null ? [] : [

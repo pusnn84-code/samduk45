@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useMenuActivity } from "../app/MenuActivityProvider";
 import { SharingActivityView } from "./SharingActivityView";
+import { MeditationComments } from "./MeditationComments";
 import { SharingEmpathyButton } from "./SharingEmpathyButton";
-import { BIBLE_READING_PLAN, BIBLE_READING_YEAR, getBibleReadingDay } from "../../src/content/bible-reading-plan";
+import { BIBLE_READING_PLAN, getBibleReadingDay, readingCycle } from "../../src/content/bible-reading-plan";
 import { getBibleReadingLinks } from "../../src/content/bible-reading-links";
 import type { BibleReadingState } from "../../src/features/bible-reading/types";
 import { fetchJson } from "../../src/lib/fetch-json";
@@ -15,13 +16,14 @@ type ReadingUpdate = { completed: boolean } | { sharing: string | null; sharingA
 
 const endpoint = "/api/bible-reading";
 const monthOf = (date: string) => Number(date.slice(5, 7));
+const monthIndex=(date:string)=>Number(date.slice(0,4))*12+monthOf(date)-1;
 const dateLabel = (date: string) => `${monthOf(date)}월 ${Number(date.slice(8, 10))}일`;
 
 export function BibleReadingPage({ today, initialDate }: { today: string; initialDate?: string }) {
   const {counts:menuCounts}=useMenuActivity();
   const initialDay = (initialDate && getBibleReadingDay(initialDate)) || BIBLE_READING_PLAN.find(day => day.date >= today) || BIBLE_READING_PLAN.at(-1);
   const [date, setDate] = useState(initialDay?.date ?? "");
-  const [month, setMonth] = useState(initialDay ? monthOf(initialDay.date) : 1);
+  const [month, setMonth] = useState(initialDay ? monthIndex(initialDay.date) : monthIndex(today));
   const [loadedReading, setReading] = useState<BibleReadingState | null>(null);
   const [draftOverride, setDraftOverride] = useState<string | null>(null);
   const [anonymousOverride, setAnonymousOverride] = useState<boolean | null>(null);
@@ -87,9 +89,9 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
   }
 
   function chooseMonth(nextMonth: number) {
-    if (mutation.current || nextMonth < 1 || nextMonth > 12) return;
+    if (mutation.current || nextMonth < monthIndex(BIBLE_READING_PLAN[0].date) || nextMonth > monthIndex(BIBLE_READING_PLAN.at(-1)!.date)) return;
     setMonth(nextMonth);
-    chooseDate(BIBLE_READING_PLAN.find(day => monthOf(day.date) === nextMonth)?.date ?? "");
+    chooseDate(BIBLE_READING_PLAN.find(day => monthIndex(day.date) === nextMonth)?.date ?? "");
   }
 
   async function save(update: ReadingUpdate, message: string) {
@@ -158,16 +160,18 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
     } finally {mutation.current=false;setEmpathyBusy(null);}
   }
 
-  const startWeekday = new Date(Date.UTC(BIBLE_READING_YEAR, month - 1, 1)).getUTCDay();
-  const daysInMonth = new Date(Date.UTC(BIBLE_READING_YEAR, month, 0)).getUTCDate();
+  const year=Math.floor(month/12), monthNumber=month%12+1;
+  const cycle=readingCycle(date||today);
+  const startWeekday = new Date(Date.UTC(year, monthNumber - 1, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
   const completedDays = reading?.progress.completedDays;
-  const totalDays = reading?.progress.totalDays ?? BIBLE_READING_PLAN.length;
+  const totalDays = reading?.progress.totalDays ?? cycle.length;
   const progressPercent = completedDays === undefined || totalDays === 0 ? 0 : Math.round(1000 * completedDays / totalDays) / 10;
-  const firstDate = BIBLE_READING_PLAN[0]?.date;
-  const lastDate = BIBLE_READING_PLAN.at(-1)?.date;
-  const firstMonth = firstDate ? monthOf(firstDate) : 1;
-  const lastMonth = lastDate ? monthOf(lastDate) : 12;
-  const monthPlan = BIBLE_READING_PLAN.filter(day => monthOf(day.date) === month);
+  const firstDate = cycle[0]?.date;
+  const lastDate = cycle.at(-1)?.date;
+  const firstMonth = monthIndex(BIBLE_READING_PLAN[0].date);
+  const lastMonth = monthIndex(BIBLE_READING_PLAN.at(-1)!.date);
+  const monthPlan = BIBLE_READING_PLAN.filter(day => monthIndex(day.date) === month);
   const updating = saving || refreshing || empathyBusy !== null;
 
   function renderFeedback(target: "sharing" | "completion") {
@@ -184,7 +188,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
     <main className="bible-reading" aria-labelledby="bible-reading-title">
       <header className="bible-reading-header">
         <div>
-          <p className="bible-reading-eyebrow">삼덕사오 · {BIBLE_READING_YEAR}년 말씀 읽기</p>
+          <p className="bible-reading-eyebrow">삼덕사오 · 말씀 읽기</p>
           <h2 id="bible-reading-title">성경통독<span aria-hidden="true">.</span></h2>
           <p>읽을 본문을 확인하고, 함께 말씀을 읽은 하루를 기록해요.</p>
         </div>
@@ -192,12 +196,12 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
       </header>
 
       {firstDate && lastDate && (
-        <p className="bible-reading-period"><strong>{dateLabel(firstDate)} ~ {dateLabel(lastDate)} · {BIBLE_READING_PLAN.length}일</strong> 월요일부터 토요일까지 읽어요. 일요일은 밀린 분량을 읽는 날이며 별도 완료 체크는 없어요.</p>
+        <p className="bible-reading-period"><strong>{dateLabel(firstDate)} ~ {dateLabel(lastDate)} · {cycle.length}일</strong> 월요일부터 토요일까지 읽어요. 일요일은 밀린 분량을 읽는 날이며 별도 완료 체크는 없어요.</p>
       )}
 
       <section className="bible-reading-progress" aria-labelledby="bible-reading-progress-title">
         <div>
-          <h3 id="bible-reading-progress-title">나의 {BIBLE_READING_YEAR}년 통독</h3>
+          <h3 id="bible-reading-progress-title">나의 {cycle[0].date === "2026-11-30" ? "시편" : "2026년"} 통독</h3>
           <p>{completedDays === undefined ? (loadError ? "통독 기록을 불러오지 못했습니다." : "통독 기록 확인 중") : `전체 ${totalDays}일 중 ${completedDays}일 완료`}</p>
         </div>
         <div className="bible-reading-progress-meter">
@@ -214,7 +218,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
             <select aria-label="통독 달 선택" value={month} disabled={saving} onChange={event => chooseMonth(Number(event.target.value))}>
               {Array.from({ length: lastMonth - firstMonth + 1 }, (_, index) => {
                 const optionMonth = firstMonth + index;
-                return <option key={optionMonth} value={optionMonth}>{BIBLE_READING_YEAR}년 {optionMonth}월</option>;
+                return <option key={optionMonth} value={optionMonth}>{Math.floor(optionMonth/12)}년 {optionMonth%12+1}월</option>;
               })}
             </select>
             <button type="button" aria-label="다음 달" disabled={month === lastMonth || saving} onClick={() => chooseMonth(month + 1)}>›</button>
@@ -224,7 +228,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
             {Array.from({ length: startWeekday }, (_, index) => <span key={`blank-${index}`} aria-hidden="true" />)}
             {Array.from({ length: daysInMonth }, (_, index) => {
               const day = index + 1;
-              const dayDate = `${BIBLE_READING_YEAR}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const dayDate = `${year}-${String(monthNumber).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const scheduled = Boolean(getBibleReadingDay(dayDate));
               return (
                 <button
@@ -241,7 +245,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
           </div>
           {todayIsPlanned && (
             <button className="bible-reading-today" type="button" disabled={saving || date === today} onClick={() => {
-              setMonth(monthOf(today));
+              setMonth(monthIndex(today));
               chooseDate(today);
             }}>오늘 일정 보기</button>
           )}
@@ -273,7 +277,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
         </section>
 
           <section className="bible-reading-card bible-reading-passage" aria-labelledby="bible-reading-passage-title">
-            <p className="bible-reading-eyebrow">{date ? `${dateLabel(date)}${date === today ? " · 오늘" : ""}` : `${month}월`}</p>
+            <p className="bible-reading-eyebrow">{date ? `${dateLabel(date)}${date === today ? " · 오늘" : ""}` : `${monthNumber}월`}</p>
             <h3 id="bible-reading-passage-title">{date === today ? "오늘의 읽을 본문" : "읽을 본문"}</h3>
             <p className="bible-reading-reference">{plannedDay?.passage ?? "선택한 달에는 통독 일정이 없습니다."}</p>
             <div className="bible-reading-reading-actions">
@@ -330,7 +334,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
               {renderFeedback("sharing")}
               {reading.sharedLines.length > 0 ? (
                 <ul className="bible-reading-lines">
-                  {reading.sharedLines.map(line => <li key={line.id}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><div className="meditation-line-actions"><SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>{line.isOwn&&<><button type="button" className="bible-reading-secondary" disabled={updating} onClick={()=>editSharing(line)}>수정</button><button type="button" className="bible-reading-secondary" disabled={updating} onClick={()=>{if(window.confirm("이 묵상 나눔을 삭제할까요?"))void writeSharing("DELETE",line.id);}}>삭제</button></>}</div>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
+                  {reading.sharedLines.map(line => <li key={line.id}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><div className="meditation-line-actions"><SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>{line.isOwn&&<><button type="button" className="bible-reading-secondary" disabled={updating} onClick={()=>editSharing(line)}>수정</button><button type="button" className="bible-reading-secondary" disabled={updating} onClick={()=>{if(window.confirm("이 묵상 나눔을 삭제할까요?"))void writeSharing("DELETE",line.id);}}>삭제</button></>}</div><MeditationComments sharingId={line.id}/>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
                 </ul>
               ) : <p className="bible-reading-hint">아직 등록된 묵상 나눔이 없습니다.</p>}
             </section>)}

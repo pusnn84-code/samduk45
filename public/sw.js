@@ -5,7 +5,7 @@ self.addEventListener("push",event=>{
  let data={};try{data=event.data?event.data.json():{};}catch{}if(!data||typeof data!=="object")data={};
  event.waitUntil(self.registration.showNotification(typeof data.title==="string"?data.title.slice(0,80):"삼덕사오",{
   body:typeof data.body==="string"?data.body.slice(0,180):"새 소식을 앱에서 확인해 주세요.",
-  icon:"/icons/45-logo-v4-192.png",badge:"/icons/45-logo-v4-192.png",
+  icon:"/icons/notification-cross-192.png",badge:"/icons/notification-cross-badge-96.png",
   tag:typeof data.tag==="string"?data.tag.slice(0,180):"samduk45",data:{url:safePath(data.url)}
  }));
 });
@@ -16,3 +16,4 @@ self.addEventListener("notificationclick",event=>{
   return self.clients.openWindow(url);
  })());
 });
+

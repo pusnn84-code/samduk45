@@ -72,6 +72,7 @@ export const memberRoster = appSchema.table(
     directoryGroupRole: text("directory_group_role"),
     phoneLookupHash: varchar("phone_lookup_hash", { length: 64 }),
     phoneCiphertext: text("phone_ciphertext"),
+    phonePrivate: boolean("phone_private").notNull().default(false),
     passwordHash: text("password_hash"),
     village: varchar("village", { length: 80 }),
     sam: varchar("sam", { length: 80 }),

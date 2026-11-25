@@ -3,6 +3,7 @@ import { getDb } from "../../db/client";
 import { memberRoster, sessions, users } from "../../db/schema";
 import { rosterPasswordState } from "../auth/password-state";
 import { DomainError } from "../../lib/http";
+import { decryptRosterPhone } from "../roster/crypto";
 import type { ProfileData } from "../../lib/types";
 import {
   hashPassword,
@@ -16,6 +17,9 @@ export async function getProfile(userId: string): Promise<ProfileData | null> {
   const [row] = await getDb()
     .select({
       userDisplayName: users.displayName,
+      birthDate: memberRoster.birthDate,
+      phoneCiphertext: memberRoster.phoneCiphertext,
+      phonePrivate: memberRoster.phonePrivate,
       rosterName: memberRoster.canonicalName,
       position: memberRoster.position,
       samLabel: memberRoster.samLabel,
@@ -27,7 +31,12 @@ export async function getProfile(userId: string): Promise<ProfileData | null> {
     .limit(1);
 
   if (!row) return null;
+  let phone: string | null = null;
+  if (row.phoneCiphertext) { try { phone = decryptRosterPhone(row.phoneCiphertext); } catch {} }
   return {
+    birthDate: row.birthDate,
+    phone,
+    phonePrivate: row.phonePrivate ?? false,
     displayName: row.rosterName ?? row.userDisplayName,
     position: row.position,
     samLabel: row.samLabel,

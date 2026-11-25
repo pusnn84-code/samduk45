@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { BIBLE_READING_PLAN } from "../../src/content/bible-reading-plan";
+import { PREVIOUS_READING_PLAN as BIBLE_READING_PLAN } from "../../src/content/bible-reading-plan";
 import { getBibleReadingChapters, getBibleReadingLinks } from "../../src/content/bible-reading-links";
 
 describe("Bible reading chapter links", () => {
@@ -22,6 +22,7 @@ describe("Bible reading chapter links", () => {
     expect(getBibleReadingLinks("디도서 1–3장 · 빌레몬서").map(chapter => chapter.label)).toEqual(["디도서 1장", "디도서 2장", "디도서 3장", "빌레몬서 1장"]);
     expect(getBibleReadingLinks("요한이서 · 요한삼서").map(chapter => chapter.href)).toEqual(["/scripture/bible/63/1", "/scripture/bible/64/1"]);
     expect(getBibleReadingLinks("디모데전서 1–6장")[0].href).toBe("/scripture/bible/54/1");
+    expect(getBibleReadingLinks("시편 54편")[0].href).toBe("/scripture/bible/19/54");
     expect(getBibleReadingLinks("임의의 내용")).toEqual([]);
     expect(getBibleReadingLinks("창세기 51–52장")).toEqual([]);
     expect(getBibleReadingLinks("창세기 4–1장")).toEqual([]);

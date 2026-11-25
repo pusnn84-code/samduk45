@@ -20,7 +20,7 @@ export type DirectoryMember = {
   churchOffice: string | null;
   phone: string | null;
   phoneUnavailable: boolean;
-  contactStatus: "available" | "missing" | "password_required" | "unavailable";
+  contactStatus: "available" | "missing" | "password_required" | "private" | "unavailable";
   roles: string[];
   age: number | null;
   gender: string | null;
@@ -33,6 +33,7 @@ export type DirectoryRosterRow = Identity & {
   position: string | null;
   sam: string | null;
   phoneCiphertext: string | null;
+  phonePrivate?: boolean;
   isNoticeOfficer: boolean;
   directoryAge: number | null;
   directoryGender: string | null;
@@ -44,7 +45,8 @@ export type DirectoryRosterRow = Identity & {
 
 // Directory presentation only: do not delete or reassign the underlying member accounts.
 
-export async function resolveDirectoryPhone(person: Pick<DirectoryRosterRow, "phoneCiphertext">, decrypt = decryptRosterPhone): Promise<Pick<DirectoryMember, "phone" | "phoneUnavailable" | "contactStatus">> {
+export async function resolveDirectoryPhone(person: Pick<DirectoryRosterRow, "phoneCiphertext" | "phonePrivate">, decrypt = decryptRosterPhone): Promise<Pick<DirectoryMember, "phone" | "phoneUnavailable" | "contactStatus">> {
+  if (person.phonePrivate) return { phone:null, phoneUnavailable:false, contactStatus:"private" };
   if (!person.phoneCiphertext) return { phone: null, phoneUnavailable: false, contactStatus: "missing" };
   try {
     const raw = decrypt(person.phoneCiphertext);
@@ -101,7 +103,7 @@ export async function getCommunityDirectory(): Promise<CommunityDirectoryData> {
   const [roster, groups] = await Promise.all([
     db.select({ id: memberRoster.id, sourceName: memberRoster.sourceName, canonicalName: memberRoster.canonicalName,
       village: memberRoster.village, sam: memberRoster.sam, samLabel: memberRoster.samLabel, isActive: memberRoster.isActive,
-      position: memberRoster.position, phoneCiphertext: memberRoster.phoneCiphertext, isNoticeOfficer: memberRoster.isNoticeOfficer,
+      position: memberRoster.position, phoneCiphertext: memberRoster.phoneCiphertext, phonePrivate: memberRoster.phonePrivate, isNoticeOfficer: memberRoster.isNoticeOfficer,
       birthDate: memberRoster.birthDate,
       directoryAge: memberRoster.directoryAge, directoryGender: memberRoster.directoryGender,
       directoryGroupRole: memberRoster.directoryGroupRole,
