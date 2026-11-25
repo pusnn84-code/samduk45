@@ -59,7 +59,7 @@ test("Psalms, inline comments and cross-reader highlights",async({page,browser})
   expect((await other.request.delete("/api/bible-reading/comments",{data:{sharingId:shareId,id:comments.comments[0].id}})).status()).toBe(404);
   expect((await other.request.post("/api/bible-reading/comments",{data:{sharingId:shareId,id:commentId,body:"함께 기도합니다."}})).status()).toBe(200);
   await page.bringToFront();await page.goto("/scripture/bible/19/54");await page.locator(".scripture-verse:visible").first().click();
-  const yellow=page.getByRole("button",{name:"노랑",exact:true});await expect(yellow).toBeEnabled();
+  const yellow=page.getByRole("button",{name:"형광펜 칠하기",exact:true});await expect(yellow).toBeEnabled();
   const marked=page.waitForResponse(r=>r.url().endsWith("/api/scripture/highlights")&&r.request().method()==="PUT");await yellow.click();expect((await marked).status()).toBe(200);
   await page.goto("/scripture/reading/"+day);await expect(page.locator('.scripture-verse[data-highlight="yellow"]:visible').first()).toBeVisible();
   const privateHighlights=await(await other.request.get("/api/scripture/highlights?references=19:54")).json();expect(privateHighlights.highlights).toEqual([]);

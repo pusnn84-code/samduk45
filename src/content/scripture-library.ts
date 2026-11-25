@@ -1,5 +1,6 @@
 import bookIndex from "../../data/scripture-library/books.json";
 import hymnIndex from "../../data/scripture-library/hymns.json";
+import { scriptureVerseText } from "./scripture-segments";
 
 export const bibleBooks = bookIndex;
 export const hymns = hymnIndex;
@@ -37,11 +38,11 @@ export function copyPassage(parts: { abbreviation: string; chapter: number; vers
   const references: string[] = [];
   let previousBook = "";
   for (const part of parts) {
-    const rows = [...part.verses].sort((a, b) => a[0] - b[0]);
+    const rows = part.verses.filter(([, , source]) => scriptureVerseText(source)).sort((a, b) => a[0] - b[0]);
     if (!rows.length) continue;
     const ranges: [number, number][] = [];
     for (const [start, end, source] of rows) {
-      texts.push(source.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
+      texts.push(scriptureVerseText(source));
       const last = ranges[ranges.length - 1];
       if (last && start <= last[1] + 1) last[1] = Math.max(last[1], end);
       else ranges.push([start, end]);

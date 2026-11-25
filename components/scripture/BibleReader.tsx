@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { scriptureSegments, scriptureVerseText } from "../../src/content/scripture-segments";
 import books from "../../data/scripture-library/books.json";
 import { copyPassage, verseLabel, type VerseRow } from "../../src/content/scripture-library";
 
@@ -19,7 +20,7 @@ export function BiblePassageReader({ title, chapters, startVerse = 1, showChapte
   title: string; chapters: ReaderChapter[]; startVerse?: number; showChapters?: boolean; selectStartVerse?: boolean;
 }) {
   const [fontSize, setFontSize] = useState(18);
-  const [selected, setSelected] = useState<string[]>(()=>{if(!selectStartVerse)return [];const first=chapters[0];const target=first?.verses.find(([start,end])=>start<=startVerse&&startVerse<=end);return target?[`${first.id}-${target[0]}`]:[];});
+  const [selected, setSelected] = useState<string[]>(()=>{if(!selectStartVerse)return [];const first=chapters[0];const target=first?.verses.find(([start,end,source])=>start<=startVerse&&startVerse<=end&&Boolean(scriptureVerseText(source)));return target?[`${first.id}-${target[0]}`]:[];});
   const [notice, setNotice] = useState("");
   const [manualCopy, setManualCopy] = useState("");
   const [highlights,setHighlights]=useState<Record<string,string>>({});
@@ -43,7 +44,7 @@ export function BiblePassageReader({ title, chapters, startVerse = 1, showChapte
   useEffect(() => {
     if (startVerse <= 1) return;
     const firstChapter = chapters[0];
-    const target = firstChapter?.verses.find(([first, last]) => startVerse >= first && startVerse <= last);
+    const target = firstChapter?.verses.find(([first, last, source]) => startVerse >= first && startVerse <= last && Boolean(scriptureVerseText(source)));
     if (target) document.getElementById(`${firstChapter.id}-verse-${target[0]}`)?.scrollIntoView({ block: "start" });
   }, [startVerse, chapters]);
 
@@ -83,12 +84,23 @@ export function BiblePassageReader({ title, chapters, startVerse = 1, showChapte
     <div className="scripture-verses" style={{ fontSize: `${fontSize / 16}rem` }}>
       {chapters.map(part => <section key={part.id} id={part.id} aria-label={part.title}>
         {showChapters && <h3 className="scripture-passage-heading">{part.title}</h3>}
-        {part.verses.map(([start, end, source]) => <button className="scripture-verse" type="button" key={start}
-          data-highlight={highlights[referenceKey(part,start)]} id={`${part.id}-verse-${start}`} aria-pressed={selected.includes(`${part.id}-${start}`)} disabled={highlightBusy} onClick={() => toggle(`${part.id}-${start}`)}>
-          <span className="scripture-verse-number">{verseLabel(start, end)}</span>
-          <span>{source.split(/(<[^>]+>)/g).map((text, index) => text.startsWith("<") && text.endsWith(">")
-            ? <strong className="scripture-verse-heading" key={index}>{text.slice(1, -1)}</strong> : text)}</span>
-        </button>)}
+        {part.verses.map(([start, end, source]) => {
+          let bodyIndex = 0;
+          return <div className="scripture-verse-group" key={start}>
+            {scriptureSegments(source).map((segment, index) => {
+              if (segment.kind === "heading") return <h4 className="scripture-verse-heading" key={index}>{segment.text}</h4>;
+              const firstBody = bodyIndex++ === 0;
+              return <button className="scripture-verse" type="button" key={index}
+                data-highlight={highlights[referenceKey(part,start)]}
+                id={firstBody ? `${part.id}-verse-${start}` : `${part.id}-verse-${start}-part-${index}`}
+                aria-pressed={selected.includes(`${part.id}-${start}`)} disabled={highlightBusy}
+                onClick={() => toggle(`${part.id}-${start}`)}>
+                <span className="scripture-verse-number" aria-hidden={!firstBody}>{firstBody ? verseLabel(start,end) : ""}</span>
+                <span className="scripture-verse-body"><span className="scripture-verse-mark" data-highlight={highlights[referenceKey(part,start)]}>{segment.text}</span></span>
+              </button>;
+            })}
+          </div>;
+        })}
       </section>)}
     </div>
     {selected.length > 0 && <aside className="scripture-copy-bar" aria-label="선택한 절">
@@ -96,15 +108,18 @@ export function BiblePassageReader({ title, chapters, startVerse = 1, showChapte
         아래 본문을 선택해 복사하세요.
         <textarea readOnly rows={4} value={manualCopy} onFocus={event => event.target.select()} />
       </label>}
-      <div className="scripture-highlight-actions" role="group" aria-label="형광펜 색상">
-        {[["yellow","노랑"],["green","초록"],["pink","분홍"]].map(([color,label])=><button type="button" key={color} data-color={color} disabled={highlightBusy||!highlightReady} onClick={()=>void highlight(color)}>{label}</button>)}
-        <button type="button" disabled={highlightBusy||!highlightReady} onClick={()=>void highlight(null)}>형광펜 지우기</button>
+      <div className="scripture-copy-actions" role="toolbar" aria-label="선택한 구절 도구">
+        <span className="scripture-selection-count" aria-label={`${selected.length}개 구절 선택`}>{selected.length}개</span>
+        <button type="button" className="scripture-clear-selection" disabled={highlightBusy} onClick={() => { setSelected([]); setNotice(""); setManualCopy(""); }}>선택 해제</button>
+        <button type="button" className="scripture-tool-icon scripture-marker" aria-label="형광펜 칠하기" title="형광펜 칠하기" disabled={highlightBusy||!highlightReady} onClick={()=>void highlight("yellow")}>
+          <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><g transform="rotate(38 12 12)"><rect x="7" y="2" width="10" height="11" rx="2"/><path d="M7 6h10M8 13l1 4h6l1-4"/><path d="M9 17v5h3l3-5z" fill="#e6bd38"/></g></svg>
+        </button>
+        <button type="button" className="scripture-tool-icon" aria-label="형광펜 지우기" title="형광펜 지우기" disabled={highlightBusy||!highlightReady} onClick={()=>void highlight(null)}>
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 3 6 6a2 2 0 0 1 0 3L11 22H5l-4-4a2 2 0 0 1 0-3L12 3a2 2 0 0 1 3 0Z"/><path d="m7 9 10 10M5 22h17"/></svg>
+        </button>
+        <button type="button" className="scripture-primary" disabled={highlightBusy} onClick={copySelection}>복사하기</button>
       </div>
-      <div className="scripture-copy-actions">
-        <span role="status">{notice || `${selected.length}개 구절 선택`}</span>
-        <button type="button" onClick={() => { setSelected([]); setNotice(""); setManualCopy(""); }}>선택 해제</button>
-        <button type="button" className="scripture-primary" onClick={copySelection}>복사하기</button>
-      </div>
+      {notice && <p className="scripture-tool-notice" role="status">{notice}</p>}
     </aside>}
   </article>;
 }
