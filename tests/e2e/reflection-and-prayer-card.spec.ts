@@ -62,7 +62,7 @@ test("Psalms, inline comments and cross-reader highlights",async({page,browser})
   const comments=await(await page.request.get("/api/bible-reading/comments?sharingId="+shareId)).json();expect(comments.comments[0].name).toMatch(/^무명\d+$/);expect(JSON.stringify(comments)).not.toContain(member.userId);
   const other=await otherContext.newPage();await login(other,"admin");
   expect((await other.request.patch("/api/bible-reading/comments",{data:{sharingId:shareId,id:comments.comments[0].id,body:"다른 사람 수정"}})).status()).toBe(404);
-  expect((await other.request.delete("/api/bible-reading/comments",{data:{sharingId:shareId,id:comments.comments[0].id}})).status()).toBe(404);
+  expect((await other.request.delete("/api/bible-reading/comments",{data:{sharingId:shareId,id:comments.comments[0].id}})).status()).toBe(200);
   expect((await other.request.post("/api/bible-reading/comments",{data:{sharingId:shareId,id:commentId,body:"함께 기도합니다."}})).status()).toBe(200);
   await page.bringToFront();await page.goto("/scripture/bible/19/54");await page.locator(".scripture-verse:visible").first().click();
   const yellow=page.getByRole("button",{name:"형광펜 칠하기",exact:true});await expect(yellow).toBeEnabled();

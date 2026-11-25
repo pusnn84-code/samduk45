@@ -10,6 +10,12 @@ const req=(body:unknown,origin="https://app.test")=>new Request(url,{method:"POS
 beforeEach(()=>{vi.resetAllMocks();b.user.mockResolvedValue({id:"actor"});b.state.mockResolvedValue({date});});
 describe("meditation mutation HTTP boundary",()=>{
  it("requires authentication and same-origin writes",async()=>{b.user.mockResolvedValue(null);for(const fn of [POST,PATCH,DELETE])expect((await fn(req({id,date}))).status).toBe(401);b.user.mockResolvedValue({id:"actor"});expect((await POST(req({id,date,sharing:"예시",sharingAnonymous:false},"https://else.test"))).status).toBe(403);expect(b.mutate).not.toHaveBeenCalled();});
- it("accepts multiple posts, long paragraphs and only the server actor",async()=>{for(const text of ["첫 글","가".repeat(10000)+"\n기도하며 읽습니다."]){expect((await POST(req({id,date,sharing:text,sharingAnonymous:true}))).status).toBe(200);expect(b.mutate).toHaveBeenLastCalledWith("actor","POST",{id,date,sharing:text,sharingAnonymous:true});}expect((await PATCH(req({id,date,sharing:"수정",sharingAnonymous:false,userId:"other"}))).status).toBe(400);});
- it("permits explicit own deletion input and rejects forged aliases",async()=>{expect((await DELETE(req({id,date}))).status).toBe(200);expect(b.mutate).toHaveBeenLastCalledWith("actor","DELETE",{id,date});expect((await POST(req({id,date,sharing:"예시",sharingAnonymous:true,anonymousNumber:1}))).status).toBe(400);});
+ it("accepts multiple posts, long paragraphs and only the server actor",async()=>{for(const text of ["첫 글","가".repeat(10000)+"\n기도하며 읽습니다."]){expect((await POST(req({id,date,sharing:text,sharingAnonymous:true}))).status).toBe(200);expect(b.mutate).toHaveBeenLastCalledWith("actor","POST",{id,date,sharing:text,sharingAnonymous:true},false);}expect((await PATCH(req({id,date,sharing:"수정",sharingAnonymous:false,userId:"other"}))).status).toBe(400);});
+ it("permits explicit own deletion input and rejects forged aliases",async()=>{expect((await DELETE(req({id,date}))).status).toBe(200);expect(b.mutate).toHaveBeenLastCalledWith("actor","DELETE",{id,date},false);expect((await POST(req({id,date,sharing:"예시",sharingAnonymous:true,anonymousNumber:1}))).status).toBe(400);});
+});
+
+it("grants delete moderation only from the authenticated administrator role",async()=>{
+ b.user.mockResolvedValue({id:"pastor",role:"admin"});expect((await DELETE(req({id,date}))).status).toBe(200);expect(b.mutate).toHaveBeenLastCalledWith("pastor","DELETE",{id,date},true);
+ expect((await PATCH(req({id,date,sharing:"修正",sharingAnonymous:false}))).status).toBe(200);expect(b.mutate).toHaveBeenLastCalledWith("pastor","PATCH",{id,date,sharing:"修正",sharingAnonymous:false},false);
+ expect((await DELETE(req({id,date,adminDelete:true}))).status).toBe(400);
 });

@@ -10,6 +10,7 @@ import { MeditationComments } from "./MeditationComments";
 import { SharingEmpathyButton } from "./SharingEmpathyButton";
 import { BIBLE_READING_PLAN, getBibleReadingDay, readingCycle } from "../../src/content/bible-reading-plan";
 import { getBibleReadingLinks } from "../../src/content/bible-reading-links";
+import type {ReadingNotice} from "../../src/features/bible-reading/notice";
 import type { BibleReadingState } from "../../src/features/bible-reading/types";
 import { fetchJson } from "../../src/lib/fetch-json";
 import "./bible-reading.css";
@@ -21,7 +22,7 @@ const monthOf = (date: string) => Number(date.slice(5, 7));
 const monthIndex=(date:string)=>Number(date.slice(0,4))*12+monthOf(date)-1;
 const dateLabel = (date: string) => `${monthOf(date)}월 ${Number(date.slice(8, 10))}일`;
 
-export function BibleReadingPage({ today, initialDate }: { today: string; initialDate?: string }) {
+export function BibleReadingPage({ today, initialDate, isAdmin=false, notice=null }: { today: string; initialDate?: string; isAdmin?:boolean; notice?:ReadingNotice|null }) {
   const {counts:menuCounts}=useMenuActivity();
   const initialDay = (initialDate && getBibleReadingDay(initialDate)) || BIBLE_READING_PLAN.find(day => day.date >= today) || BIBLE_READING_PLAN.at(-1);
   const [date, setDate] = useState(initialDay?.date ?? "");
@@ -198,7 +199,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
       </header>
 
       {firstDate && lastDate && (
-        <p className="bible-reading-period"><strong>{dateLabel(firstDate)} ~ {dateLabel(lastDate)} · {cycle.length}일</strong> 월요일부터 토요일까지 읽어요. 일요일은 밀린 분량을 읽는 날이며 별도 완료 체크는 없어요.</p>
+        notice===null?<p className="bible-reading-period"><strong>{dateLabel(firstDate)} ~ {dateLabel(lastDate)} · {cycle.length}일</strong> 월요일부터 토요일까지 읽어요. 일요일은 밀린 분량을 읽는 날이며 별도 완료 체크는 없어요.</p>:(notice.title||notice.body)&&<div className="bible-reading-period">{notice.title&&<strong>{notice.title}</strong>}{notice.body&&<p style={{whiteSpace:"pre-wrap",margin:"8px 0 0"}}>{notice.body}</p>}</div>
       )}
 
       <section className="bible-reading-progress" aria-labelledby="bible-reading-progress-title">
@@ -336,7 +337,7 @@ export function BibleReadingPage({ today, initialDate }: { today: string; initia
               {renderFeedback("sharing")}
               {reading.sharedLines.length > 0 ? (
                 <ul className="bible-reading-lines">
-                  {reading.sharedLines.map(line => <li key={line.id}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><MeditationComments sharingId={line.id} commentCount={line.commentCount} reaction={<SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>} controls={line.isOwn&&<><button type="button" className="meditation-icon-button" aria-label="수정" title="수정" disabled={updating} onClick={()=>editSharing(line)}><MeditationIcon name="edit"/></button><button type="button" className="meditation-icon-button" aria-label="삭제" title="삭제" disabled={updating} onClick={()=>{if(window.confirm("이 묵상 나눔을 삭제할까요?"))void writeSharing("DELETE",line.id);}}><MeditationIcon name="delete"/></button></>}/>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
+                  {reading.sharedLines.map(line => <li key={line.id}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><MeditationComments isAdmin={isAdmin} sharingId={line.id} commentCount={line.commentCount} reaction={<SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>} controls={(line.isOwn||isAdmin)&&<>{line.isOwn&&<button type="button" className="meditation-icon-button" aria-label="수정" title="수정" disabled={updating} onClick={()=>editSharing(line)}><MeditationIcon name="edit"/></button>}<button type="button" className="meditation-icon-button" aria-label="삭제" title="삭제" disabled={updating} onClick={()=>{if(window.confirm("이 묵상 나눔을 삭제할까요?"))void writeSharing("DELETE",line.id);}}><MeditationIcon name="delete"/></button></>}/>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
                 </ul>
               ) : <p className="bible-reading-hint">아직 등록된 묵상 나눔이 없습니다.</p>}
             </section>)}

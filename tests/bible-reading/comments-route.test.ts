@@ -16,16 +16,21 @@ it("requires a session and rejects cross-origin comments and client-chosen ident
 it("accepts multiple long multiline comments using the server-side actor",async()=>{
  const body="감사합니다.\n".repeat(100);
  expect((await POST(request({sharingId,id,body}))).status).toBe(200);
- expect(mocks.mutate).toHaveBeenCalledWith("actual-member",sharingId,{id,sharingId,body:body.trim()},false);
+ expect(mocks.mutate).toHaveBeenCalledWith("actual-member",sharingId,{id,sharingId,body:body.trim()},false,false);
  expect((await GET(new Request(`${url}?sharingId=${sharingId}`))).headers.get("cache-control")).toContain("no-store");
 });
 
 it("validates edits and passes the authenticated actor to the ownership-checked update",async()=>{
  expect((await PATCH(request({sharingId,id,body:"수정한 댓글"}))).status).toBe(200);
- expect(mocks.mutate).toHaveBeenCalledWith("actual-member",sharingId,{id,sharingId,body:"수정한 댓글"},true);
+ expect(mocks.mutate).toHaveBeenCalledWith("actual-member",sharingId,{id,sharingId,body:"수정한 댓글"},true,false);
  mocks.mutate.mockClear();
  expect((await PATCH(request({sharingId,id,body:" "}))).status).toBe(400);
  expect((await PATCH(request({sharingId,id,body:"수정",userId:"other"}))).status).toBe(400);
  expect((await PATCH(request({sharingId,id,body:"수정"},"https://evil.test"))).status).toBe(403);
  expect(mocks.mutate).not.toHaveBeenCalled();
+});
+
+it("allows only server-identified administrators to moderate deletions",async()=>{
+ mocks.session.mockResolvedValue({id:"pastor",role:"admin"});expect((await DELETE(request({sharingId,id}))).status).toBe(200);expect(mocks.mutate).toHaveBeenLastCalledWith("pastor",sharingId,{sharingId,id},false,true);
+ expect((await DELETE(request({sharingId,id,adminDelete:true}))).status).toBe(400);
 });

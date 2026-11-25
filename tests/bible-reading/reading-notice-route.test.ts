@@ -1,0 +1,8 @@
+import {beforeEach,it,expect,vi} from "vitest";
+const m=vi.hoisted(()=>({user:vi.fn(),get:vi.fn(),save:vi.fn()}));
+vi.mock("../../src/features/auth/http-session",()=>({getCurrentSessionUser:m.user}));vi.mock("../../src/features/bible-reading/notice",()=>({getReadingNotice:m.get,saveReadingNotice:m.save}));
+import {GET,PUT} from "../../app/api/admin/bible-reading/notice/route";
+const req=(data:unknown,origin="https://app.test")=>new Request("https://app.test/api/admin/bible-reading/notice",{method:"PUT",headers:{origin,"Content-Type":"application/json"},body:JSON.stringify(data)});
+beforeEach(()=>{vi.resetAllMocks();m.user.mockResolvedValue({id:"pastor",role:"admin"});m.get.mockResolvedValue(null);m.save.mockImplementation(async(v:unknown)=>v);});
+it("requires an administrator even for loading the editor",async()=>{m.user.mockResolvedValue(null);expect((await GET()).status).toBe(401);m.user.mockResolvedValue({id:"member",role:"member"});expect((await GET()).status).toBe(403);expect((await PUT(req({title:"제목",body:"글"}))).status).toBe(403);expect(m.save).not.toHaveBeenCalled();});
+it("saves multiline plain text, permits hiding, and rejects forged or cross-origin writes",async()=>{expect((await PUT(req({title:" 시편 안내 ",body:"첫째 줄\n둘째 줄"}))).status).toBe(200);expect(m.save).toHaveBeenCalledWith({title:"시편 안내",body:"첫째 줄\n둘째 줄"});expect((await PUT(req({title:"",body:""}))).status).toBe(200);m.save.mockClear();expect((await PUT(req({title:"제목",body:"내용",role:"admin"}))).status).toBe(400);expect((await PUT(req({title:"제목",body:"내용"},"https://evil.test"))).status).toBe(403);expect(m.save).not.toHaveBeenCalled();});

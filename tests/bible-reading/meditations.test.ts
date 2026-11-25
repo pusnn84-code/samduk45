@@ -26,3 +26,8 @@ describe("independent meditation posts",()=>{
   const result=await withMeditations({date,completed:false,completedPeople:[],sharing:null,sharingAnonymous:false,sharedLines:[],progress:{completedDays:0,totalDays:200}},"actor");expect(result.sharedLines[0]).toEqual({id,name:"무명7",text:"첫 글",isOwn:true,anonymous:true,empathyCount:2,commentCount:3,hasEmpathized:false});expect(result.observedAt).toBe("now");
  });
 });
+
+it("lets an administrator remove another author's share, while retaining owner-only edits",async()=>{
+ let queries=store({id,owner:"other",date,text:"공유",anonymous:false,number:null});await mutateMeditation("admin","DELETE",{id,date},true);expect(queries.some(q=>q.sql.startsWith("update prayer_app.bible_reading_shares set sharing=null"))).toBe(true);
+ queries=store({id,owner:"other",date,text:"공유",anonymous:false,number:null});await expect(mutateMeditation("admin","PATCH",{id,date,sharing:"변경",sharingAnonymous:false},true)).rejects.toMatchObject({code:"SHARING_NOT_FOUND"});expect(queries.some(q=>q.sql.startsWith("update"))).toBe(false);
+});

@@ -16,7 +16,7 @@ export async function withMeditations(state:BibleReadingState,userId:string):Pro
  where s.reading_date=${state.date}::date and s.sharing is not null order by s.sharing_updated_at,s.sharing_id`);
  return {...state,observedAt:lines[0]?.observedAt??state.observedAt,sharedLines:lines.map(line=>({id:line.id,name:line.name,text:line.text,isOwn:line.isOwn,anonymous:line.anonymous,empathyCount:Number(line.empathyCount),commentCount:Number(line.commentCount??0),hasEmpathized:line.hasEmpathized}))};
 }
-export async function mutateMeditation(userId:string,method:"POST"|"PATCH"|"DELETE",input:Input|{id:string;date:string}){
+export async function mutateMeditation(userId:string,method:"POST"|"PATCH"|"DELETE",input:Input|{id:string;date:string},adminDelete=false){
  if(!getBibleReadingDay(input.date))throw new DomainError("INVALID_READING_DATE",400);
  await getDb().transaction(async tx=>{
   // The same date lock is used by older clients when they allocate anonymous names.
@@ -26,8 +26,8 @@ export async function mutateMeditation(userId:string,method:"POST"|"PATCH"|"DELE
    if("sharing" in input&&existing.owner===userId&&existing.date===input.date&&existing.text===input.sharing&&existing.anonymous===input.sharingAnonymous)return;
    throw new DomainError("MEDITATION_CONFLICT",409);
   }
-  if(method!=="POST"&&(!existing||existing.owner!==userId||existing.date!==input.date||existing.text===null))throw new DomainError("SHARING_NOT_FOUND",404);
-  if(method==="DELETE"){await tx.execute(sql`update prayer_app.bible_reading_shares set sharing=null where sharing_id=${input.id}::uuid and user_id=${userId}::uuid`);return;}
+  if(method!=="POST"&&(!existing||(existing.owner!==userId&&!(method==="DELETE"&&adminDelete))||existing.date!==input.date||existing.text===null))throw new DomainError("SHARING_NOT_FOUND",404);
+  if(method==="DELETE"){await tx.execute(sql`update prayer_app.bible_reading_shares set sharing=null where sharing_id=${input.id}::uuid and (user_id=${userId}::uuid or ${adminDelete})`);return;}
   if(!("sharing" in input))throw new DomainError("INVALID_INPUT",400);
   let number=existing?.number??null;
   if(input.sharingAnonymous&&number===null){

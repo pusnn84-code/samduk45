@@ -20,7 +20,7 @@ async function mutate(request:Request,method:"POST"|"PATCH"|"DELETE"){
   if(!request.headers.get("content-type")?.startsWith("application/json"))throw new DomainError("INVALID_INPUT",415);
   let raw:unknown;try{raw=JSON.parse(new TextDecoder().decode(await readLimited(request,4*1024*1024)));}catch(e){if(e instanceof ReportError)throw e;throw new DomainError("INVALID_INPUT",400);}
   const parsed=(method!=="DELETE"?Write:Base).safeParse(raw);if(!parsed.success)throw new DomainError("INVALID_INPUT",400);
-  await mutateMeditationComment(user.id,parsed.data.sharingId,parsed.data,method==="PATCH");
+  await mutateMeditationComment(user.id,parsed.data.sharingId,parsed.data,method==="PATCH",method==="DELETE"&&user.role==="admin");
   return NextResponse.json({comments:await listMeditationComments(parsed.data.sharingId,user.id)},{headers});
  }catch(e){return failure(e);}
 }

@@ -9,7 +9,7 @@ export async function listMeditationComments(sharingId:string,userId:string){
  join prayer_app.users author on author.id=s.user_id and author.is_active
  where c.sharing_id=${sharingId}::uuid order by c.created_at,c.id`);
 }
-export async function mutateMeditationComment(userId:string,sharingId:string,input:{id:string;body:string}|{id:string},edit=false){
+export async function mutateMeditationComment(userId:string,sharingId:string,input:{id:string;body:string}|{id:string},edit=false,adminDelete=false){
  await getDb().transaction(async tx=>{
   const [parent]=await rows<{id:string}>(tx,sql`select s.sharing_id as id from prayer_app.bible_reading_shares s join prayer_app.users u on u.id=s.user_id and u.is_active where s.sharing_id=${sharingId}::uuid and s.sharing is not null for update of s`);
   if(!parent)throw new DomainError("SHARING_NOT_FOUND",404);
@@ -22,8 +22,8 @@ export async function mutateMeditationComment(userId:string,sharingId:string,inp
    if(existing){if(existing.owner===userId&&existing.parent===sharingId&&existing.body===input.body)return;throw new DomainError("COMMENT_CONFLICT",409);}
    await tx.execute(sql`insert into prayer_app.meditation_comments(id,sharing_id,user_id,body) values(${input.id}::uuid,${sharingId}::uuid,${userId}::uuid,${input.body})`);
   }else{
-   if(!existing||existing.owner!==userId||existing.parent!==sharingId)throw new DomainError("COMMENT_NOT_FOUND",404);
-   await tx.execute(sql`delete from prayer_app.meditation_comments where id=${input.id}::uuid and user_id=${userId}::uuid`);
+   if(!existing||(!adminDelete&&existing.owner!==userId)||existing.parent!==sharingId)throw new DomainError("COMMENT_NOT_FOUND",404);
+   await tx.execute(sql`delete from prayer_app.meditation_comments where id=${input.id}::uuid and (user_id=${userId}::uuid or ${adminDelete})`);
   }
  });
 }
