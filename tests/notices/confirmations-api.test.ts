@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainError } from "../../src/lib/http";
-const mocks = vi.hoisted(() => ({ session: vi.fn(), get: vi.fn(), confirm: vi.fn() }));
+const mocks = vi.hoisted(() => ({ session: vi.fn(), get: vi.fn(), confirm: vi.fn(), wakeup: vi.fn() }));
 vi.mock("../../src/features/auth/http-session", () => ({ getCurrentSessionUser: mocks.session }));
 vi.mock("../../src/features/notices/confirmations", () => ({ getNoticeConfirmations: mocks.get, confirmNotice: mocks.confirm }));
+vi.mock("../../src/features/push/wakeup", () => ({ schedulePushDelivery: mocks.wakeup }));
 import { GET, POST } from "../../app/api/notices/[id]/confirmations/route";
 
 const id = "11111111-1111-4111-8111-111111111111", revision = "a".repeat(32);
@@ -30,7 +31,7 @@ describe("notice explicit confirmation routes", () => {
   });
   it("records only the authenticated actor and the revision actually read", async () => {
     const response = await POST(request(), context);
-    expect(response.status).toBe(200); expect(mocks.confirm).toHaveBeenCalledWith(id, user, revision);
+    expect(response.status).toBe(200); expect(mocks.confirm).toHaveBeenCalledWith(id, user, revision); expect(mocks.wakeup).toHaveBeenCalledOnce();
   });
   it("rejects a forged target identity instead of confirming for somebody else", async () => {
     const response = await POST(request({ revision, rosterId: "another-person" }), context);
@@ -55,3 +56,5 @@ describe("notice explicit confirmation routes", () => {
     expect(mocks.confirm).not.toHaveBeenCalled();
   });
 });
+
+it("only wakes delivery after successful confirmation, never reading the list",async()=>{await GET(request(),context);expect(mocks.wakeup).not.toHaveBeenCalled();mocks.confirm.mockRejectedValueOnce(new DomainError('NOTICE_CHANGED',409));expect((await POST(request(),context)).status).toBe(409);expect(mocks.wakeup).not.toHaveBeenCalled();});

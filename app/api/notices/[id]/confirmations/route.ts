@@ -1,3 +1,4 @@
+import {schedulePushDelivery} from "../../../../../src/features/push/wakeup";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentSessionUser } from "../../../../../src/features/auth/http-session";
@@ -37,6 +38,8 @@ export async function POST(request: Request, context: Context) {
     if (!params.success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400, headers });
     const input = inputSchema.safeParse(await readReportJson(request));
     if (!input.success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400, headers });
-    return NextResponse.json(await confirmNotice(params.data.id, user, input.data.revision), { headers });
+    const state = await confirmNotice(params.data.id, user, input.data.revision);
+    schedulePushDelivery();
+    return NextResponse.json(state, { headers });
   } catch (error) { return errorResponse(error); }
 }

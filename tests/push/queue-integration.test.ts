@@ -2,7 +2,7 @@ import {beforeAll,afterAll,describe,it,expect,vi} from 'vitest';
 import postgres from 'postgres';
 import {randomUUID,createECDH,randomBytes} from 'node:crypto';
 import {e2eAccounts} from '../fixtures/e2e-data';
-const sent=vi.hoisted(()=>({send:vi.fn(async()=>{})}));
+const sent=vi.hoisted(()=>({send:vi.fn(async(_target:unknown,_payload:unknown)=>{})}));
 vi.mock('../../src/features/push/devices',async original=>({...await original<typeof import('../../src/features/push/devices')>(),sendDevicePush:sent.send}));
 import {dispatchPush} from '../../src/features/push/dispatcher';
 import {setupPush} from '../../src/features/push/config';
@@ -61,4 +61,24 @@ describe.skipIf(!enabled)('disposable database notification queue',()=>{
   const kinds=await sql`select kind from prayer_app.push_delivery_queue where subscription_id in(select id from prayer_app.push_subscriptions where endpoint=${endpoint('member')}) and kind in ('reading','community') order by kind`;
   expect(kinds).toEqual([{kind:'community'},{kind:'reading'}]);sent.send.mockClear();await dispatchPush();expect(sent.send).toHaveBeenCalledTimes(2);
  });
+ it('notifies only the pastor once per explicit notice revision, names the confirmer and cancels stale confirmations',async()=>{
+  const revision=async()=>{const [r]=await sql`select md5(jsonb_build_array(n.title,n.body,to_char(n.updated_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US'),ni.version)::text) revision from prayer_app.notices n left join prayer_app.notice_images ni on ni.notice_id=n.id where n.id=${n}::uuid`;return r.revision as string;};
+  const first=await revision();
+  await sql`insert into prayer_app.notice_confirmations(notice_id,roster_id,notice_revision,confirmed_by_user_id) values(${n}::uuid,${e2eAccounts.member.rosterId}::uuid,${first},${member}::uuid)`;
+  await sql`update prayer_app.notice_confirmations set confirmed_at=now() where notice_id=${n}::uuid`;
+  let queue=await sql`select recipient_id,kind,source_key from prayer_app.push_delivery_queue where kind='admin_notice_confirmation' and source_key like ${n+':%'}`;
+  expect(queue).toHaveLength(1);expect(queue[0].recipient_id).toBe(admin);
+  sent.send.mockClear();await dispatchPush();expect(sent.send).toHaveBeenCalledTimes(1);
+  expect(sent.send.mock.calls[0][0]).toMatchObject({recipientId:admin});expect(sent.send.mock.calls[0][1]).toMatchObject({title:'공지 · 읽음 확인',body:'성도검증님이 공지를 확인했습니다.',url:'/notices/'+n});
+  await dispatchPush();expect(sent.send).toHaveBeenCalledTimes(1);
+  await sql`update prayer_app.notices set body='NEW PRIVATE CONTENT',updated_at=clock_timestamp() where id=${n}::uuid`;
+  const second=await revision();await sql`update prayer_app.notice_confirmations set notice_revision=${second},confirmed_at=now() where notice_id=${n}::uuid`;
+  queue=await sql`select recipient_id,kind,source_key from prayer_app.push_delivery_queue where kind='admin_notice_confirmation' and source_key like ${n+':%'}`;expect(queue).toHaveLength(2);
+  await sql`update prayer_app.notices set body='CHANGED AGAIN',updated_at=clock_timestamp() where id=${n}::uuid`;
+  sent.send.mockClear();await dispatchPush();expect(sent.send).not.toHaveBeenCalled();
+  expect((await sql`select state from prayer_app.push_delivery_queue where kind='admin_notice_confirmation' and source_key=${n+':'+e2eAccounts.member.rosterId+':'+second}`)[0].state).toBe('cancelled');
+  await updatePushPreferences(admin,endpoint('admin'),{...prefs,pastoral:false});const third=await revision();await sql`update prayer_app.notice_confirmations set notice_revision=${third},confirmed_at=now() where notice_id=${n}::uuid`;
+  expect(await sql`select id from prayer_app.push_delivery_queue where kind='admin_notice_confirmation' and source_key=${n+':'+e2eAccounts.member.rosterId+':'+third}`).toHaveLength(0);await updatePushPreferences(admin,endpoint('admin'),prefs);
+ });
+
 });
