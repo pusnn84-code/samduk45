@@ -94,3 +94,6 @@ describe("explicit confirmation and notice revisions", () => {
   });
   it("ordinary members cannot get even an empty confirmation board", () => expect(confirmationState("user-ordinary", data(), revision, [])).toBeNull());
 });
+
+
+it("includes designated officers even without sam leadership and shows their office beside the name",()=>{const directory=data();const officer=directory.roster.find(p=>p.id==='officer')!;officer.isNoticeOfficer=true;officer.noticeOfficerTitle='총무';expect(confirmationAudience(directory).find(p=>p.id==='officer')).toMatchObject({name:'박임원(총무)',responsibilities:['임원']});expect(confirmationAccess('user-officer',directory).visible).toBe(true);});

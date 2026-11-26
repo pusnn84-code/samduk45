@@ -12,11 +12,11 @@ type Actor = { id: string };
 async function confirmationDirectory(db: Executor): Promise<ConfirmationDirectory> {
   const [base, flags, allUsers] = await Promise.all([
     directory(db),
-    rows<{ id: string; isAdmin: boolean; isNoticeOfficer: boolean }>(db, sql`select id,is_admin as "isAdmin",is_notice_officer as "isNoticeOfficer" from prayer_app.member_roster`),
+    rows<{ id: string; isAdmin: boolean; isNoticeOfficer: boolean; noticeOfficerTitle: string }>(db, sql`select id,is_admin as "isAdmin",is_notice_officer as "isNoticeOfficer",notice_officer_title as "noticeOfficerTitle" from prayer_app.member_roster`),
     rows<ConfirmationDirectory["users"][number]>(db, sql`select id,roster_id as "rosterId",role,is_active as "isActive" from prayer_app.users`),
   ]);
   const byId = new Map(flags.map(flag => [flag.id, flag]));
-  return { ...base, users: allUsers, roster: base.roster.map(person => ({ ...person, isAdmin: byId.get(person.id)?.isAdmin ?? false, isNoticeOfficer: byId.get(person.id)?.isNoticeOfficer ?? false })) };
+  return { ...base, users: allUsers, roster: base.roster.map(person => ({ ...person, isAdmin: byId.get(person.id)?.isAdmin ?? false, isNoticeOfficer: byId.get(person.id)?.isNoticeOfficer ?? false, noticeOfficerTitle: byId.get(person.id)?.noticeOfficerTitle ?? "" })) };
 }
 
 async function recordsForNotice(noticeId: string, db: Executor): Promise<ConfirmationRecord[]> {

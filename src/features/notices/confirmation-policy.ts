@@ -1,7 +1,7 @@
 import { automaticLeaders, automaticVillageLeaders, type Identity, type SamTarget, type VillageLeader } from "../pastoral/policy";
 import type { NoticeConfirmationState } from "./types";
 
-export type ConfirmationRoster = Identity & { isAdmin: boolean; isNoticeOfficer: boolean };
+export type ConfirmationRoster = Identity & { isAdmin: boolean; isNoticeOfficer: boolean; noticeOfficerTitle?: string };
 export type ConfirmationUser = { id: string; rosterId: string | null; role: "member" | "admin"; isActive: boolean };
 export type ConfirmationDirectory = { roster: ConfirmationRoster[]; users: ConfirmationUser[]; sams: SamTarget[]; heads: VillageLeader[] };
 export type ConfirmationRecord = { rosterId: string; revision: string; confirmedAt: string };
@@ -23,7 +23,7 @@ export function confirmationAudience(directory: ConfirmationDirectory) {
       responsibilities.push(`${sam.name.replace(/샘$/u, "")}샘 리더`);
     }
     for (const leader of villageLeaders.filter(leader => leader.rosterId === person.id)) responsibilities.push(`${leader.village}마을장`);
-    return responsibilities.length ? [{ id: person.id, name: displayName(person), responsibilities: [...new Set(responsibilities)] }] : [];
+    return responsibilities.length ? [{ id: person.id, name: displayName(person)+(person.isNoticeOfficer && person.noticeOfficerTitle ? `(${person.noticeOfficerTitle})` : ""), responsibilities: [...new Set(responsibilities)] }] : [];
   }).sort((a, b) => a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id));
 }
 
@@ -51,3 +51,4 @@ export function confirmationState(userId: string, directory: ConfirmationDirecto
 export function needsConfirmation(existing: ConfirmationRecord | undefined, revision: string) {
   return existing?.revision !== revision;
 }
+

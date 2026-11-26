@@ -1,4 +1,5 @@
 "use client";
+import {AutumnComments} from "./AutumnComments";
 import {AutumnPagination} from "./AutumnPagination";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {fetchJson} from "../../src/lib/fetch-json";
@@ -11,7 +12,7 @@ import "./autumn-light.css";
 
 function Status({card}:{card:AutumnCard}){const labels=autumnStatusLabels(card);return labels.length?<div className="autumn-badges">{labels.map(s=><span key={s}>{s}</span>)}</div>:null;}
 function PersonCard({card,onOpen,onUpdated,compact=false}:{card:AutumnCard;onOpen:(id:string)=>void;onUpdated:(card:AutumnCard)=>void;compact?:boolean}){
- return <div className="autumn-person"><article className={"autumn-person-card"+(compact?" is-compact":"")}><header><div>{compact?<button type="button" className="autumn-person-name" onClick={()=>onOpen(card.id)}>{card.name}<span aria-hidden="true">›</span></button>:<h2>{card.name}</h2>}<p className="autumn-person-meta">{card.samName} · {card.authorName}</p></div>{!compact&&card.canEdit&&<button type="button" className="text-button" onClick={()=>onOpen(card.id)}>관리</button>}</header><Status card={card}/>{!compact&&<h3>이 마음으로 함께 기도해 주세요</h3>}<p className="autumn-prayer-text">{card.prayer}</p></article><div className="autumn-card-actions"><PrayerReaction card={card} onUpdated={onUpdated}/><CardShareActions card={card}/></div></div>;
+ return <div className="autumn-person"><article className={"autumn-person-card"+(compact?" is-compact":"")}><header><div>{compact?<button type="button" className="autumn-person-name" onClick={()=>onOpen(card.id)}>{card.name}<span aria-hidden="true">›</span></button>:<h2>{card.name}</h2>}<p className="autumn-person-meta">{card.samName} · {card.authorName}</p></div>{!compact&&card.canEdit&&<button type="button" className="text-button" onClick={()=>onOpen(card.id)}>관리</button>}</header><Status card={card}/>{!compact&&<h3>이 마음으로 함께 기도해 주세요</h3>}<p className="autumn-prayer-text">{card.prayer}</p></article><div className="autumn-card-actions"><PrayerReaction card={card} onUpdated={onUpdated}/><CardShareActions card={card}/></div><AutumnComments card={card} onUpdated={onUpdated}/></div>;
 }
 function Detail({id,sams,isAdmin,onClose,onUpdated}:{id:string;sams:AutumnSam[];isAdmin:boolean;onClose:()=>void;onUpdated:(card:AutumnCard)=>void}){
  const ref=useRef<HTMLDialogElement>(null);const [card,setCard]=useState<AutumnCard|null>(null),[editing,setEditing]=useState(false),[error,setError]=useState("");

@@ -2,7 +2,7 @@ import {getDb,rows,sql,type Executor} from "../pastoral/db";
 import {DomainError} from "../../lib/http";
 import {todayInSeoul,addDays} from "../challenge/date";
 import {assertAutumnEdit,type AutumnCreateInput,type AutumnPatchInput,type AutumnListFilter} from "./policy";
-import type {AutumnActor,AutumnCard,AutumnSam,AutumnParticipants} from "./types";
+import type {AutumnActor,AutumnCard,AutumnSam,AutumnParticipants,AutumnComment,AutumnCommentsPage} from "./types";
 
 const samName=sql`regexp_replace(s.name,'샘$','')`;
 const eligible=sql`p.active and s.is_active and ${samName} ~ '^[1-5]-[1-9][0-9]*$'`;
@@ -11,7 +11,9 @@ const joins=sql`from prayer_app.autumn_people p join prayer_app.sams s on s.id=p
 function columns(actor:AutumnActor){return sql`p.id,p.person_name as name,p.sam_id as "samId",${samName}||'샘' as "samName",split_part(${samName},'-',1)::int as village,${author} as "authorName",p.prayer,p.visited,p.registered,p.version,
  (select count(*)::int from prayer_app.autumn_prayers r join prayer_app.users ru on ru.id=r.user_id and ru.is_active where r.person_id=p.id) as count,
  exists(select 1 from prayer_app.autumn_prayers r where r.person_id=p.id and r.user_id=${actor.id}::uuid) as prayed,
- (${actor.role==="admin"} or p.created_by_user_id=${actor.id}::uuid) is true as "canEdit"`;}
+ (${actor.role==="admin"} or p.created_by_user_id=${actor.id}::uuid) is true as "canEdit",
+ (${actor.role==="admin"} or p.created_by_user_id=${actor.id}::uuid or exists(select 1 from prayer_app.users owner_user where owner_user.id=${actor.id}::uuid and owner_user.is_active and owner_user.roster_id=p.source_author_roster_id)) is true as "canComment",
+ (select count(*)::int from prayer_app.autumn_comments c where c.person_id=p.id) as "commentCount"`;}
 
 export async function listAutumnSams(db:Executor=getDb()):Promise<AutumnSam[]>{
  return rows<AutumnSam>(db,sql`select s.id,${samName}||'샘' as name,split_part(${samName},'-',1)::int as village from prayer_app.sams s where s.is_active and ${samName} ~ '^[1-5]-[1-9][0-9]*$' order by split_part(${samName},'-',1)::int,split_part(${samName},'-',2)::int,s.id`);
@@ -79,4 +81,25 @@ export async function listAutumnParticipants(actor:AutumnActor,id:string,page=0,
  await getAutumnCard(actor,id,db);
  const people=await rows<{name:string}>(db,sql`select u.display_name as name from prayer_app.autumn_prayers r join prayer_app.users u on u.id=r.user_id and u.is_active where r.person_id=${id}::uuid order by r.created_at,u.id limit 51 offset ${page*50}`);
  return {names:people.slice(0,50).map(p=>p.name),hasMore:people.length>50};
+}
+
+export async function listAutumnComments(actor:AutumnActor,id:string,page=0,db:Executor=getDb()):Promise<AutumnCommentsPage>{
+ await getAutumnCard(actor,id,db);
+ const comments=await rows<AutumnComment>(db,sql`select c.id,u.display_name as name,c.body,c.created_at as "createdAt",(${actor.role==="admin"} or c.user_id=${actor.id}::uuid) as "canDelete" from prayer_app.autumn_comments c join prayer_app.users u on u.id=c.user_id where c.person_id=${id}::uuid order by c.created_at,c.id limit 51 offset ${page*50}`);
+ return {comments:comments.slice(0,50),hasMore:comments.length>50};
+}
+export async function createAutumnComment(actor:AutumnActor,id:string,input:{body:string;submissionKey:string}){
+ return getDb().transaction(async tx=>{
+  // Check ownership server-side, including the exact roster binding for PDF imports.
+  const card=await getAutumnCard(actor,id,tx);if(!card.canComment)throw new DomainError("FORBIDDEN",403);
+  await tx.execute(sql`insert into prayer_app.autumn_comments(person_id,user_id,body,submission_key) values(${id}::uuid,${actor.id}::uuid,${input.body},${input.submissionKey}::uuid) on conflict(person_id,user_id,submission_key) do nothing`);
+  return {card:await getAutumnCard(actor,id,tx)};
+ });
+}
+export async function deleteAutumnComment(actor:AutumnActor,id:string,commentId:string){
+ return getDb().transaction(async tx=>{
+  await getAutumnCard(actor,id,tx);
+  const removed=await rows(tx,sql`delete from prayer_app.autumn_comments where id=${commentId}::uuid and person_id=${id}::uuid and (${actor.role==="admin"} or user_id=${actor.id}::uuid) returning id`);
+  if(!removed.length)throw new DomainError("FORBIDDEN",403);return {card:await getAutumnCard(actor,id,tx)};
+ });
 }
