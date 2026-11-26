@@ -185,3 +185,5 @@
 /* Shared action padding must not shrink the two fixed-width tool icons. */
 .community-app .community-content .scripture-copy-actions > .scripture-tool-icon { display:inline-flex; padding:0; flex:none; }
 
+
+.scripture-page-navigation{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:20px 0}.scripture-page-link{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:58px;padding:10px 12px;border:1px solid #cddde3;border-radius:12px;background:#fff;color:#315365;text-decoration:none;font:inherit;font-size:15px;font-weight:650;text-align:center;line-height:1.4}.scripture-page-link small{display:block;max-width:100%;color:#6d818a;font-size:12px;font-weight:400;overflow-wrap:anywhere}.scripture-page-link:hover{background:#edf4f7}.scripture-page-link:focus-visible{outline:2px solid #147f9f;outline-offset:3px}.scripture-page-link:disabled{background:#f2f5f6;color:#a0acb2;border-color:#e4eaed;cursor:default}
