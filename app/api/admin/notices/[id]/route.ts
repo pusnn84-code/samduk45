@@ -38,11 +38,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     requireAdmin(await getCurrentSessionUser());
+    if ((request.headers.get("origin") && request.headers.get("origin") !== new URL(request.url).origin) || request.headers.get("sec-fetch-site") === "cross-site") throw new DomainError("FORBIDDEN",403);
     const { id } = await context.params;
     await deleteNotice(id);
     return NextResponse.json({ status: "ok" });
