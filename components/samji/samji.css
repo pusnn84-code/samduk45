@@ -13,9 +13,9 @@
 .samji-question{gap:20px;padding:18px;border:1px solid #dbe4e3;border-radius:14px;background:#fff}
 .samji-question>.samji-question-heading{display:grid;grid-template-columns:36px minmax(0,1fr);align-items:start;gap:12px;font-weight:400}
 .samji-question-number{display:grid;place-items:center;min-height:28px;margin-top:4px;border-radius:8px;background:#eaf6fb;color:#315365;font-family:inherit;font-size:14px;font-weight:700;line-height:1.4}
-.samji-question-text{font-family:"Samji Gyeonggi Batang","Batang","바탕",serif;font-size:var(--samji-font,20px);font-weight:400;line-height:1.9;font-synthesis:none;word-break:keep-all;overflow-wrap:anywhere;white-space:pre-wrap}
+.samji-question-text{font-family:inherit;font-size:var(--samji-font,20px);font-weight:600;line-height:1.9;font-synthesis:none;word-break:keep-all;overflow-wrap:anywhere;white-space:pre-wrap}
 .samji-answer{display:grid;gap:8px;padding:14px;border-radius:12px;background:#f1f5f6;min-width:0}
 .samji-answer-caption{color:#546c78;font-family:inherit;font-size:14px;font-weight:700;line-height:1.5}
-.samji-app .samji-answer textarea,.samji-app .samji-answer textarea[readonly]{border:0;background:transparent;padding:0;color:#263b40;font-family:inherit;font-size:18px;line-height:1.8;min-height:100px;border-radius:4px}
+.samji-app .samji-answer textarea,.samji-app .samji-answer textarea[readonly]{border:0;background:transparent;padding:0;color:#263b40;font-family:"Samji Gyeonggi Batang","Batang","바탕",serif;font-size:18px;font-weight:400;font-synthesis:none;line-height:1.8;min-height:100px;border-radius:4px}
 .samji-app .samji-note textarea,.samji-app .samji-note textarea[readonly]{background:#f1f5f6}
 @media(max-width:600px){.samji-block h3,.samji-notes h3{font-size:20px}.samji-question{padding:16px}.samji-question>.samji-question-heading{grid-template-columns:32px minmax(0,1fr);gap:10px}.samji-question-number{font-size:13px}.samji-answer{padding:13px}}
