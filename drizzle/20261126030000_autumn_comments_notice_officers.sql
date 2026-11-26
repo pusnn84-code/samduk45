@@ -1,16 +1,31 @@
 begin;
 alter table prayer_app.member_roster add column if not exists notice_officer_title varchar(30) not null default '';
-alter table prayer_app.autumn_people add column if not exists source_author_roster_id uuid references prayer_app.member_roster(id) on delete set null;
--- Bind imported authors only when the exact source name and sam identify one active member.
-with matches as (
- select p.id,(array_agg(r.id))[1] roster_id from prayer_app.autumn_people p
- join prayer_app.sams s on s.id=p.sam_id
- join prayer_app.member_roster r on r.is_active
-  and upper(regexp_replace(r.source_name,'\s','','g'))=upper(regexp_replace(p.source_author_name,'\s','','g'))
-  and regexp_replace(r.sam_label,'샘$','')=regexp_replace(s.name,'샘$','')
- where p.source_author_roster_id is null and p.source_author_name is not null
- group by p.id having count(*)=1
-) update prayer_app.autumn_people p set source_author_roster_id=m.roster_id from matches m where p.id=m.id;
+create table if not exists prayer_app.autumn_card_authors (
+ person_id uuid not null references prayer_app.autumn_people(id) on delete cascade,
+ roster_id uuid not null references prayer_app.member_roster(id) on delete cascade,
+ primary key(person_id,roster_id)
+);
+-- Resolve imported single/joint authors by exact names. Prefer the source sam;
+-- ambiguous same-name matches are never granted access.
+with names as (
+ select p.id,regexp_replace(s.name,'샘$','') sam,upper(regexp_replace(btrim(n.name),'\s','','g')) name
+ from prayer_app.autumn_people p join prayer_app.sams s on s.id=p.sam_id
+ cross join lateral regexp_split_to_table(p.source_author_name,'[,，·/]') n(name)
+ where p.source_author_name is not null
+), candidates as (
+ select n.id,n.name,r.id roster_id,
+  (case when regexp_replace(r.sam_label,'샘$','')=n.sam then 0 else 2 end)+
+  (case when upper(regexp_replace(r.source_name,'\s','','g'))=n.name then 0 else 1 end) score
+ from names n join prayer_app.member_roster r on r.is_active and
+ (upper(regexp_replace(r.source_name,'\s','','g'))=n.name or upper(regexp_replace(r.canonical_name,'\s','','g'))=n.name)
+), ranked as (
+ select *,min(score) over(partition by id,name) best from candidates
+), unambiguous as (
+ select id,name,(array_agg(roster_id))[1] roster_id from ranked where score=best group by id,name having count(*)=1
+) insert into prayer_app.autumn_card_authors(person_id,roster_id)
+ select distinct id,roster_id from unambiguous on conflict do nothing;
+alter table prayer_app.autumn_card_authors enable row level security;
+revoke all on prayer_app.autumn_card_authors from public,anon,authenticated;
 create table if not exists prayer_app.autumn_comments (
  id uuid primary key default gen_random_uuid(),
  person_id uuid not null references prayer_app.autumn_people(id) on delete cascade,

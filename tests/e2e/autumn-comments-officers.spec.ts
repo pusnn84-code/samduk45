@@ -9,7 +9,8 @@ test("card author and pastor write shared comments while other members only read
  const db=postgres(process.env.DATABASE_URL!,{ssl:"require",prepare:false,max:1}),id=randomUUID(),otherId=randomUUID(),samId=randomUUID(),ctx=await browser.newContext({serviceWorkers:"block"});
  try{
   await db`insert into prayer_app.sams(id,name,leader_name,is_active) values(${samId}::uuid,'1-99','',true)`;
-  await db`insert into prayer_app.autumn_people(id,person_name,sam_id,source_author_name,source_author_roster_id,prayer) values(${id}::uuid,'댓글 검증 대상',${samId}::uuid,'성도검증',${e2eAccounts.member.rosterId}::uuid,'함께 기도하는 예시입니다.'),(${otherId}::uuid,'다른 대상',${samId}::uuid,'다른 작성자',null,'다른 카드입니다.')`;
+  await db`insert into prayer_app.autumn_people(id,person_name,sam_id,source_author_name,prayer) values(${id}::uuid,'댓글 검증 대상',${samId}::uuid,'성도검증','함께 기도하는 예시입니다.'),(${otherId}::uuid,'다른 대상',${samId}::uuid,'다른 작성자','다른 카드입니다.')`;
+  await db`insert into prayer_app.autumn_card_authors(person_id,roster_id) values(${id}::uuid,${e2eAccounts.member.rosterId}::uuid)`;
   await login(page);await page.goto('/autumn-light?card='+id);
   // Open via the share deep link used by the application.
   const detail=page.getByRole('dialog');await expect(detail).toBeVisible();const input=detail.getByRole('textbox',{name:'추가 내용',exact:true});await input.fill('가족과 함께 교회에 방문하기로 했습니다.');const saved=page.waitForResponse(r=>r.url().endsWith('/comments')&&r.request().method()==='POST');await detail.getByRole('button',{name:'등록',exact:true}).click();expect((await saved).status()).toBe(201);await expect(detail.locator('.autumn-comment')).toContainText('가족과 함께');
@@ -19,7 +20,7 @@ test("card author and pastor write shared comments while other members only read
   const admin=await ctx.newPage();await login(admin,'admin');expect((await admin.request.post('/api/autumn-light/cards/'+id+'/comments',{data:{body:'목사님도 함께 기도합니다.',submissionKey:randomUUID()}})).status()).toBe(201);
   const after=await(await page.request.get('/api/autumn-light/cards/'+id+'/comments')).json();const pastor=after.comments.find((c:{body:string})=>c.body==='목사님도 함께 기도합니다.');expect(pastor.canDelete).toBe(false);expect((await page.request.delete('/api/autumn-light/cards/'+id+'/comments/'+pastor.id)).status()).toBe(403);
   // An imported card bound to another author is read-only even for a deputy.
-  await db`update prayer_app.autumn_people set source_author_roster_id=${e2eAccounts.admin.rosterId}::uuid where id=${id}::uuid`;
+  await db`update prayer_app.autumn_card_authors set roster_id=${e2eAccounts.admin.rosterId}::uuid where person_id=${id}::uuid`;
   await db`update prayer_app.member_roster set is_deputy_admin=true where id=${e2eAccounts.member.rosterId}::uuid`;
   await page.bringToFront();await page.reload();await expect(detail.locator('.autumn-comment')).toHaveCount(3);await expect(detail.getByRole('textbox',{name:'추가 내용',exact:true})).toHaveCount(0);expect((await page.request.post('/api/autumn-light/cards/'+id+'/comments',{data:{body:'대리 권한',submissionKey:randomUUID()}})).status()).toBe(403);
   for(const width of [320,390,430]){await page.setViewportSize({width,height:844});await expectNoOverflow(page);}

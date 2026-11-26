@@ -12,7 +12,7 @@ function columns(actor:AutumnActor){return sql`p.id,p.person_name as name,p.sam_
  (select count(*)::int from prayer_app.autumn_prayers r join prayer_app.users ru on ru.id=r.user_id and ru.is_active where r.person_id=p.id) as count,
  exists(select 1 from prayer_app.autumn_prayers r where r.person_id=p.id and r.user_id=${actor.id}::uuid) as prayed,
  (${actor.role==="admin"} or p.created_by_user_id=${actor.id}::uuid) is true as "canEdit",
- (${actor.role==="admin"} or p.created_by_user_id=${actor.id}::uuid or exists(select 1 from prayer_app.users owner_user where owner_user.id=${actor.id}::uuid and owner_user.is_active and owner_user.roster_id=p.source_author_roster_id)) is true as "canComment",
+ (${actor.role==="admin"} or p.created_by_user_id=${actor.id}::uuid or exists(select 1 from prayer_app.autumn_card_authors ca join prayer_app.users owner_user on owner_user.roster_id=ca.roster_id where ca.person_id=p.id and owner_user.id=${actor.id}::uuid and owner_user.is_active)) is true as "canComment",
  (select count(*)::int from prayer_app.autumn_comments c where c.person_id=p.id) as "commentCount"`;}
 
 export async function listAutumnSams(db:Executor=getDb()):Promise<AutumnSam[]>{
