@@ -17,13 +17,13 @@ export function confirmationAudience(directory: ConfirmationDirectory) {
   return directory.roster.filter(person => person.isActive).flatMap(person => {
     const responsibilities: string[] = [];
     if (person.isAdmin || directory.users.some(user => user.isActive && user.rosterId === person.id && user.role === "admin")) responsibilities.push("관리자");
-    if (person.isNoticeOfficer) responsibilities.push("임원");
+    if (person.isNoticeOfficer) { responsibilities.push("임원"); if (person.noticeOfficerTitle) responsibilities.push(person.noticeOfficerTitle); }
     for (const leader of samLeaders.filter(leader => leader.rosterId === person.id)) {
       const sam = directory.sams.find(sam => sam.id === leader.samId)!;
       responsibilities.push(`${sam.name.replace(/샘$/u, "")}샘 리더`);
     }
     for (const leader of villageLeaders.filter(leader => leader.rosterId === person.id)) responsibilities.push(`${leader.village}마을장`);
-    return responsibilities.length ? [{ id: person.id, name: displayName(person)+(person.isNoticeOfficer && person.noticeOfficerTitle ? `(${person.noticeOfficerTitle})` : ""), responsibilities: [...new Set(responsibilities)] }] : [];
+    return responsibilities.length ? [{ id: person.id, name: displayName(person), responsibilities: [...new Set(responsibilities)] }] : [];
   }).sort((a, b) => a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id));
 }
 
