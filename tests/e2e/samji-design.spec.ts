@@ -9,7 +9,7 @@ test("Samji separates categories, Batang questions and private Gothic answers",a
  const db=postgres(process.env.DATABASE_URL!,{ssl:"require",prepare:false,max:1}),id=randomUUID(),q1=randomUUID(),q2=randomUUID();
  const content=[{id:q1,kind:"question",heading:"마음을 여는 시간",text:"오늘 감사한 일은 무엇인가요?"},{id:randomUUID(),kind:"text",heading:"말씀 속으로",text:"함께 말씀을 읽고 은혜를 나눕니다."},{id:q2,kind:"question",heading:"말씀 나눔",text:"이번 주 실천하고 싶은 일은 무엇인가요?"}];
  try{
-  await db`insert into prayer_app.samji_documents(id,author_user_id,issue_date,title,content,source_name,source_sha256,source_data) values(${id}::uuid,${e2eAccounts.admin.userId}::uuid,'2026-11-26','서체와 답변 구분 검증',${JSON.stringify(content)}::jsonb,'synthetic.pdf',${createHash("sha256").update(id).digest("hex")},${Buffer.from("%PDF-1.4\n%%EOF")})`;
+  await db`insert into prayer_app.samji_documents(id,author_user_id,issue_date,title,content,source_name,source_sha256,source_data) values(${id}::uuid,${e2eAccounts.admin.userId}::uuid,'2026-11-26','서체와 답변 구분 검증',${db.json(content)}::jsonb,'synthetic.pdf',${createHash("sha256").update(id).digest("hex")},${Buffer.from("%PDF-1.4\n%%EOF")})`;
   await login(page);await page.goto("/samji");await page.getByRole("button").filter({hasText:"서체와 답변 구분 검증"}).click();
   const question=page.locator(".samji-question-text:visible").first();await expect(question).toHaveText(content[0].text);
   const loaded=await page.evaluate(async()=>{const faces=await document.fonts.load('400 20px "Samji Gyeonggi Batang"','오늘 감사한 일은 무엇인가요?');return faces.map(f=>({family:f.family,status:f.status}));});expect(loaded.length).toBeGreaterThan(0);expect(loaded.every(f=>f.status==="loaded")).toBe(true);
