@@ -97,3 +97,5 @@ describe("explicit confirmation and notice revisions", () => {
 
 
 it("includes designated officers even without sam leadership and keeps their office separate from the name",()=>{const directory=data();const officer=directory.roster.find(p=>p.id==='officer')!;officer.isNoticeOfficer=true;officer.noticeOfficerTitle='총무';expect(confirmationAudience(directory).find(p=>p.id==='officer')).toMatchObject({name:'박임원',responsibilities:['임원','총무']});expect(confirmationAccess('user-officer',directory).visible).toBe(true);});
+
+it("shows a pastor's office without changing administrator access",()=>{const directory=data();const pastor=directory.roster.find(p=>p.id==='admin')!;pastor.position='목사';const entry=confirmationAudience(directory).find(p=>p.id==='admin')!;expect(entry.responsibilities).toEqual(['목사']);expect(confirmationAccess('user-admin',directory).visible).toBe(true);});

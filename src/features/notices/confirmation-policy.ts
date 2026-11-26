@@ -1,7 +1,7 @@
 import { automaticLeaders, automaticVillageLeaders, type Identity, type SamTarget, type VillageLeader } from "../pastoral/policy";
 import type { NoticeConfirmationState } from "./types";
 
-export type ConfirmationRoster = Identity & { isAdmin: boolean; isNoticeOfficer: boolean; noticeOfficerTitle?: string };
+export type ConfirmationRoster = Identity & { isAdmin: boolean; isNoticeOfficer: boolean; noticeOfficerTitle?: string; position?: string };
 export type ConfirmationUser = { id: string; rosterId: string | null; role: "member" | "admin"; isActive: boolean };
 export type ConfirmationDirectory = { roster: ConfirmationRoster[]; users: ConfirmationUser[]; sams: SamTarget[]; heads: VillageLeader[] };
 export type ConfirmationRecord = { rosterId: string; revision: string; confirmedAt: string };
@@ -16,7 +16,7 @@ export function confirmationAudience(directory: ConfirmationDirectory) {
   const villageLeaders = automaticVillageLeaders(directory.heads, directory.roster);
   return directory.roster.filter(person => person.isActive).flatMap(person => {
     const responsibilities: string[] = [];
-    if (person.isAdmin || directory.users.some(user => user.isActive && user.rosterId === person.id && user.role === "admin")) responsibilities.push("관리자");
+    if (person.isAdmin || directory.users.some(user => user.isActive && user.rosterId === person.id && user.role === "admin")) responsibilities.push(person.position === "목사" ? "목사" : "관리자");
     if (person.isNoticeOfficer) { responsibilities.push("임원"); if (person.noticeOfficerTitle) responsibilities.push(person.noticeOfficerTitle); }
     for (const leader of samLeaders.filter(leader => leader.rosterId === person.id)) {
       const sam = directory.sams.find(sam => sam.id === leader.samId)!;

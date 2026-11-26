@@ -10,3 +10,5 @@ it("keeps people with combined roles once and retains officers, administrators a
  expect(result.map(g=>g.title)).toEqual(["1마을","2마을","임원 · 관리자"]);expect(result.flatMap(g=>g.entries).map(e=>e.person.id).sort()).toEqual(["head","leader","officer","pastor"]);expect(result[1].entries[0].label).toBe("마을장");expect(result[2].entries.map(e=>e.label).sort()).toEqual(["관리자","총무"]);
 });
 it("has no empty village blocks or per-village confirmation totals",()=>{expect(groupConfirmationPeople([])).toEqual([]);expect(Object.keys(groupConfirmationPeople([person("one",["1-1샘 리더"])])[0]).sort()).toEqual(["entries","key","title"]);});
+
+it("labels the pastor as 목사 and uses a matching group heading",()=>{const result=groupConfirmationPeople([person('pastor',['목사']),person('officer',['임원','총무'])]);expect(result[0].title).toBe('임원 · 목사');expect(result[0].entries.find(e=>e.person.id==='pastor')!.label).toBe('목사');});
