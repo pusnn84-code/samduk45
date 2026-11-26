@@ -14,6 +14,7 @@ export const messages={
  notice:{title:'공지 · 새 글',body:'공동체의 새 공지를 확인해 주세요.',url:'/notices',topic:'notices'},
  community:{title:'도란도란 · 새 글',body:'도란도란에 새로운 이야기가 올라왔습니다.',url:'/community',topic:'community'},
  reading:{title:'성경통독 · 묵상 나눔',body:'성경통독 묵상 나눔에 새 글이 올라왔습니다.',url:'/bible-reading',topic:'reading'},
+ admin_notice_confirmation:{title:'공지 · 읽음 확인',body:'새 공지 확인이 등록되었습니다.',url:'/notices',topic:'pastoral'},
  admin_prayer:{title:'기도요청 · 새 요청',body:'새 기도요청이 도착했습니다.',url:'/admin/prayer-requests',topic:'pastoral'},
  admin_visit:{title:'심방요청 · 새 신청',body:'새 심방신청이 도착했습니다.',url:'/admin/visits',topic:'pastoral'},
  admin_report:{title:'샘목양지 · 새 제출',body:'새 샘목양지가 제출되었습니다.',url:'/admin/pastoral-reports',topic:'pastoral'},
@@ -23,3 +24,5 @@ export const messages={
 } as const;
 export type PushKind=keyof typeof messages;
 export function pushPayload(kind:PushKind,eventKey:string){const {title,body,url}=messages[kind];return {title,body,url,tag:'samduk45-'+eventKey};}
+
+export function noticeConfirmationPayload(eventKey:string,detail:{noticeId:string;name:string}){const name=detail.name.normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f]/gu,' ').replace(/\s+/gu,' ').trim().slice(0,80)||'리더';return {...pushPayload('admin_notice_confirmation',eventKey),body:name+'님이 공지를 확인했습니다.',url:'/notices/'+detail.noticeId};}
