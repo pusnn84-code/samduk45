@@ -10,12 +10,16 @@ const initial: NoticeConfirmationState = { revision, canConfirm: true, ownConfir
 const render = (state = initial, readRevision = revision) => renderToStaticMarkup(React.createElement(NoticeConfirmations, { noticeId: "notice", initial: state, readRevision }));
 
 describe("notice manual acknowledgement panel", () => {
-  it("offers the explicit confirmation action and both named groups to member leaders", () => {
+  it("offers the explicit confirmation action, total counts and a compact village list", () => {
     const html = render();
     expect(html).toContain(">확인했습니다</button>");
     expect(html).toContain('aria-label="확인한 리더"');
     expect(html).toContain('aria-label="미확인 리더"');
     expect(html).toContain("가상리더");
+    expect(html).toContain('class="notice-confirmation-groups"');
+    expect(html).toContain('aria-label="1마을"');
+    expect(html).toContain('aria-label="미확인"');
+    expect(html).not.toContain("notice-confirmation-columns");
     expect(html).toContain("버튼을 누른 기준");
   });
   it("shows an already confirmed action as disabled", () => {
