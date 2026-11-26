@@ -3,8 +3,8 @@ import {getCurrentSessionUser} from "../../../../src/features/auth/http-session"
 import {json,sameOrigin,boundedJson} from "../../../../src/features/pastoral/http";
 import {ReportError} from "../../../../src/features/pastoral/policy";
 import {DomainError} from "../../../../src/lib/http";
-import {AutumnCreate,AutumnPatch,AutumnFilter} from "../../../../src/features/autumn-light/policy";
-import {getAutumnDaily,listAutumnSams,listAutumnCards,getAutumnCard,createAutumnCard,updateAutumnCard,setAutumnPrayer,listAutumnParticipants} from "../../../../src/features/autumn-light/service";
+import {AutumnCreate,AutumnPatch,AutumnFilter,AutumnCommentInput} from "../../../../src/features/autumn-light/policy";
+import {getAutumnDaily,listAutumnSams,listAutumnCards,getAutumnCard,createAutumnCard,updateAutumnCard,setAutumnPrayer,listAutumnParticipants,listAutumnComments,createAutumnComment,deleteAutumnComment} from "../../../../src/features/autumn-light/service";
 export const dynamic="force-dynamic";
 type Context={params:Promise<{path?:string[]}>};
 async function handle(request:Request,context:Context){
@@ -19,6 +19,11 @@ async function handle(request:Request,context:Context){
   if(!z.uuid().safeParse(path[1]).success)return json({code:"INVALID_INPUT"},400);
   if(request.method==="GET"&&path.length===2)return json({card:await getAutumnCard(actor,path[1])});
   if(request.method==="PATCH"&&path.length===2){const parsed=AutumnPatch.safeParse(await boundedJson(request));if(!parsed.success)return json({code:"INVALID_INPUT"},400);return json({card:await updateAutumnCard(actor,path[1],parsed.data)});}
+  if(path[2]==="comments"){
+   if(path.length===3&&request.method==="GET"){const page=z.coerce.number().int().min(0).max(10000).safeParse(new URL(request.url).searchParams.get("page")??0);if(!page.success)return json({code:"INVALID_INPUT"},400);return json(await listAutumnComments(actor,path[1],page.data));}
+   if(path.length===3&&request.method==="POST"){const parsed=AutumnCommentInput.safeParse(await boundedJson(request));if(!parsed.success)return json({code:"INVALID_INPUT"},400);return json(await createAutumnComment(actor,path[1],parsed.data),201);}
+   if(path.length===4&&request.method==="DELETE"){if(!z.uuid().safeParse(path[3]).success)return json({code:"INVALID_INPUT"},400);return json(await deleteAutumnComment(actor,path[1],path[3]));}
+  }
   if(path.length===3&&path[2]==="prayers"){
    if(request.method==="PUT"){const parsed=z.object({prayed:z.boolean()}).strict().safeParse(await boundedJson(request));if(!parsed.success)return json({code:"INVALID_INPUT"},400);return json({card:await setAutumnPrayer(actor,path[1],parsed.data.prayed)});}
    if(request.method==="GET"){const page=z.coerce.number().int().min(0).max(10000).safeParse(new URL(request.url).searchParams.get("page")??0);if(!page.success)return json({code:"INVALID_INPUT"},400);return json(await listAutumnParticipants(actor,path[1],page.data));}
@@ -27,3 +32,5 @@ async function handle(request:Request,context:Context){
  }catch(error){if(error instanceof DomainError||error instanceof ReportError)return json({code:error.code},error.status);return json({code:"AUTUMN_UNAVAILABLE"},503);}
 }
 export const GET=handle;export const POST=handle;export const PATCH=handle;export const PUT=handle;
+
+export const DELETE=handle;

@@ -13,3 +13,5 @@ export function assertAutumnEdit(actor:AutumnActor,creatorId:string|null,patch:A
 export function autumnStatusLabels(card:{visited:boolean;registered:boolean}){
  return [...(card.visited?["초청일 방문"]:[]),...(card.registered?["교회 등록"]:[])];
 }
+
+export const AutumnCommentInput=z.object({body:z.string().trim().min(1).max(10000),submissionKey:z.uuid()}).strict();

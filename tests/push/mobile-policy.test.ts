@@ -18,3 +18,5 @@ describe('mobile notification privacy and provider boundaries',()=>{
   const b=Buffer.from(sealed,'base64');b[b.length-1]^=1;expect(()=>openPrivateKey(b.toString('base64'),key)).toThrow();expect(()=>openPrivateKey(sealed,randomBytes(32))).toThrow();
  });
 });
+
+it('shows the originating menu first even in a collapsed phone notification',()=>{expect(pushPayload('notice','e').title).toBe('공지 · 새 글');expect(pushPayload('community','e').title).toBe('도란도란 · 새 글');expect(pushPayload('reading','e').title).toBe('성경통독 · 묵상 나눔');expect(pushPayload('admin_visit','e').title).toBe('심방요청 · 새 신청');expect(pushPayload('admin_report','e').title).toBe('샘목양지 · 새 제출');});

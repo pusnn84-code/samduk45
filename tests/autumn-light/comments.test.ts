@@ -1,0 +1,14 @@
+import {beforeEach,it,expect,vi} from "vitest";
+import {PgDialect} from "drizzle-orm/pg-core";
+const mock=vi.hoisted(()=>({execute:vi.fn()}));
+vi.mock("../../src/db/client",()=>({getDb:()=>({execute:mock.execute,transaction:async(fn:(db:unknown)=>Promise<unknown>)=>fn({execute:mock.execute})})}));
+import {createAutumnComment,listAutumnComments,deleteAutumnComment} from "../../src/features/autumn-light/service";
+import {AutumnCommentInput} from "../../src/features/autumn-light/policy";
+const actor={id:"00000000-0000-4000-8000-000000000001",role:"member" as const},id="00000000-0000-4000-8000-000000000002",input={body:"함께 기도합니다",submissionKey:id};
+const queries=()=>mock.execute.mock.calls.map(c=>new PgDialect().sqlToQuery(c[0]));
+beforeEach(()=>{mock.execute.mockReset();mock.execute.mockResolvedValue({rows:[]})});
+it("ordinary members and deputy status alone cannot write",async()=>{mock.execute.mockResolvedValueOnce({rows:[{id,canComment:false}]});await expect(createAutumnComment(actor,id,input)).rejects.toMatchObject({code:"FORBIDDEN"});expect(queries().some(q=>q.sql.includes("insert into"))).toBe(false)});
+it("author/admin permission permits idempotent save under authenticated identity",async()=>{mock.execute.mockResolvedValue({rows:[{id,canComment:true}]});await createAutumnComment(actor,id,input);expect(queries()[1].sql).toContain("on conflict(person_id,user_id,submission_key) do nothing");expect(queries()[1].params).toContain(actor.id);expect(queries()[0].sql).toContain("autumn_card_authors")});
+it("any authenticated card reader can see comments, never phone or roster IDs",async()=>{mock.execute.mockResolvedValueOnce({rows:[{id,canComment:false}]}).mockResolvedValueOnce({rows:[{id,body:"소식",name:"예시"}]});expect((await listAutumnComments(actor,id)).comments).toHaveLength(1);expect(queries()[1].sql).not.toMatch(/phone|roster_id/);expect(queries()[1].sql).toContain("order by c.created_at,c.id")});
+it("delete is constrained to the selected card and own identity or full admin",async()=>{mock.execute.mockResolvedValueOnce({rows:[{id}]}).mockResolvedValueOnce({rows:[]});await expect(deleteAutumnComment(actor,id,id)).rejects.toMatchObject({code:"FORBIDDEN"});expect(queries()[1].sql).toContain("and person_id=");expect(queries()[1].params).toContain(false);expect(queries()[1].params).toContain(actor.id)});
+it("rejects blank/oversize bodies and forged author IDs",()=>{expect(AutumnCommentInput.safeParse({...input,body:" "}).success).toBe(false);expect(AutumnCommentInput.safeParse({...input,body:"x".repeat(10001)}).success).toBe(false);expect(AutumnCommentInput.safeParse({...input,userId:actor.id}).success).toBe(false)});
