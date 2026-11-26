@@ -25,7 +25,7 @@ test("card author and pastor write shared comments while other members only read
   await page.bringToFront();await page.reload();await expect(detail.locator('.autumn-comment')).toHaveCount(3);await expect(detail.getByRole('textbox',{name:'추가 내용',exact:true})).toHaveCount(0);expect((await page.request.post('/api/autumn-light/cards/'+id+'/comments',{data:{body:'대리 권한',submissionKey:randomUUID()}})).status()).toBe(403);
   for(const width of [320,390,430]){await page.setViewportSize({width,height:844});await expectNoOverflow(page);}
   expect((await admin.request.delete('/api/autumn-light/cards/'+id+'/comments/'+pastor.id)).status()).toBe(200);
- }finally{await ctx.close();await db`delete from prayer_app.autumn_people where id in (${id}::uuid,${otherId}::uuid)`;await db`delete from prayer_app.sams where id=${samId}::uuid`;await db`update prayer_app.member_roster set is_deputy_admin=false where id=${e2eAccounts.member.rosterId}::uuid`;await db.end();}
+ }finally{await page.goto("about:blank");await ctx.close();await db`delete from prayer_app.autumn_daily where person_id in (${id}::uuid,${otherId}::uuid)`;await db`delete from prayer_app.autumn_people where id in (${id}::uuid,${otherId}::uuid)`;await db`delete from prayer_app.sams where id=${samId}::uuid`;await db`update prayer_app.member_roster set is_deputy_admin=false where id=${e2eAccounts.member.rosterId}::uuid`;await db.end();}
 });
 test("notice officers appear with their actual responsibilities and can confirm",async({page})=>{
  test.skip(process.env.E2E_DATABASE_READY!=="1"||!["127.0.0.1","localhost"].includes(new URL(process.env.DATABASE_URL!).hostname),"Disposable CI only");const db=postgres(process.env.DATABASE_URL!,{ssl:'require',prepare:false,max:1});let id='';
