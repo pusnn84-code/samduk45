@@ -5,7 +5,7 @@ import {notificationEntryUrl,safeNotificationDestination} from '../../src/featur
 import {rememberAutumnDestination,takeLoginDestination} from '../../src/features/auth/prayer-return';
 const id='11111111-1111-4111-8111-111111111111',recipient='22222222-2222-4222-8222-222222222222';
 const prefs={notices:true,community:false,reading:true,pastoral:true,personal:true};
-const db=(...records:unknown[][])=>({execute:vi.fn(async()=>({rows:records.shift()??[]}))});
+const db=(...records:unknown[][])=>{const execute=vi.fn();execute.mockImplementation(async()=>({rows:records.shift()??[]}));return {execute};};
 afterEach(()=>vi.unstubAllGlobals());
 it('keeps old preferences, splits pastoral categories and clamps forged member privileges',()=>{expect(normalizePreferences({...prefs,pastoral:false})).toMatchObject({reports:false,visits:false,prayers:false,questions:false,confirmations:false});expect(normalizePreferences({...prefs,visits:false})).toMatchObject({reports:true,visits:false,prayers:true});expect(preferencesForRole({...prefs,reports:true},false)).toMatchObject({pastoral:false,reports:false,questions:false});expect(topicForKind('admin_report')).toBe('reports');expect(topicForKind('admin_notice_confirmation')).toBe('confirmations');});
 it('anonymous meditation never includes the actual author name and points to the exact share',async()=>{const result=await notificationContent(recipient,'reading',id,db([{role:'member',pastor:false}],[{name:'숨겨야할이름',anonymous:true,number:3,date:'2026-11-30'}]));expect(result).toEqual({body:'무명3님이 묵상 나눔을 남겼습니다.',target:'/bible-reading?date=2026-11-30&sharing='+id});expect(JSON.stringify(result)).not.toContain('숨겨야할이름');});
