@@ -25,12 +25,14 @@ function errorCopy(cause: unknown): string {
 
 export function AdminVisitManagement({
   initialStatus = "all",
+  initialId = null,
 }: {
   initialStatus?: "all" | VisitStatus;
+  initialId?:string|null;
 }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [visits, setVisits] = useState<AdminVisitRecord[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialId);
   const [status, setStatus] = useState<"all" | VisitStatus>(initialStatus);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -79,7 +81,7 @@ export function AdminVisitManagement({
         if (cancelled) return;
         const next = (body.visits ?? []) as AdminVisitRecord[];
         setVisits(next);
-        setSelectedId(next[0]?.id ?? null);
+        setSelectedId(next.some(visit=>visit.id===initialId)?initialId:next[0]?.id ?? null);
         setLoading(false);
       })
       .catch((cause) => {
@@ -96,7 +98,7 @@ export function AdminVisitManagement({
     return () => {
       cancelled = true;
     };
-  }, [initialStatus]);
+  }, [initialStatus,initialId]);
 
   async function save(patch: InternalVisitPatch) {
     if (!selected || busy) return;

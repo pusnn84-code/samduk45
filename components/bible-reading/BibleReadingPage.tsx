@@ -22,7 +22,7 @@ const monthOf = (date: string) => Number(date.slice(5, 7));
 const monthIndex=(date:string)=>Number(date.slice(0,4))*12+monthOf(date)-1;
 const dateLabel = (date: string) => `${monthOf(date)}월 ${Number(date.slice(8, 10))}일`;
 
-export function BibleReadingPage({ today, initialDate, isAdmin=false, notice=null }: { today: string; initialDate?: string; isAdmin?:boolean; notice?:ReadingNotice|null }) {
+export function BibleReadingPage({ today, initialDate, targetSharing, isAdmin=false, notice=null }: { today: string; initialDate?: string; targetSharing?:string; isAdmin?:boolean; notice?:ReadingNotice|null }) {
   const {counts:menuCounts}=useMenuActivity();
   const initialDay = (initialDate && getBibleReadingDay(initialDate)) || BIBLE_READING_PLAN.find(day => day.date >= today) || BIBLE_READING_PLAN.at(-1);
   const [date, setDate] = useState(initialDay?.date ?? "");
@@ -78,6 +78,8 @@ export function BibleReadingPage({ today, initialDate, isAdmin=false, notice=nul
     return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
   }, []);
 
+  const notificationLine=useRef<HTMLLIElement|null>(null),notificationFocused=useRef(false);
+  useEffect(()=>{if(!notificationFocused.current&&notificationLine.current){notificationFocused.current=true;notificationLine.current.scrollIntoView({block:"center"});notificationLine.current.focus({preventScroll:true});}},[reading,targetSharing]);
   function chooseDate(nextDate: string) {
     if (mutation.current || nextDate === date) return;
     setDate(nextDate);
@@ -337,7 +339,7 @@ export function BibleReadingPage({ today, initialDate, isAdmin=false, notice=nul
               {renderFeedback("sharing")}
               {reading.sharedLines.length > 0 ? (
                 <ul className="bible-reading-lines">
-                  {reading.sharedLines.map(line => <li key={line.id}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><MeditationComments isAdmin={isAdmin} sharingId={line.id} commentCount={line.commentCount} reaction={<SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>} controls={(line.isOwn||isAdmin)&&<>{line.isOwn&&<button type="button" className="meditation-icon-button" aria-label="수정" title="수정" disabled={updating} onClick={()=>editSharing(line)}><MeditationIcon name="edit"/></button>}<button type="button" className="meditation-icon-button" aria-label="삭제" title="삭제" disabled={updating} onClick={()=>{if(window.confirm("이 묵상 나눔을 삭제할까요?"))void writeSharing("DELETE",line.id);}}><MeditationIcon name="delete"/></button></>}/>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
+                  {reading.sharedLines.map(line => <li key={line.id} ref={line.id===targetSharing?notificationLine:undefined} tabIndex={line.id===targetSharing?-1:undefined} data-notification-target={line.id===targetSharing||undefined}><strong>{line.name}{line.isOwn ? " · 나" : ""}</strong><p>{line.text}</p><MeditationComments isAdmin={isAdmin} sharingId={line.id} commentCount={line.commentCount} reaction={<SharingEmpathyButton line={line} disabled={updating} busy={empathyBusy===line.id} onClick={()=>void reactToLine(line)}/>} controls={(line.isOwn||isAdmin)&&<>{line.isOwn&&<button type="button" className="meditation-icon-button" aria-label="수정" title="수정" disabled={updating} onClick={()=>editSharing(line)}><MeditationIcon name="edit"/></button>}<button type="button" className="meditation-icon-button" aria-label="삭제" title="삭제" disabled={updating} onClick={()=>{if(window.confirm("이 묵상 나눔을 삭제할까요?"))void writeSharing("DELETE",line.id);}}><MeditationIcon name="delete"/></button></>}/>{empathyError?.id===line.id&&<p className="bible-reading-error" role="alert">{empathyError.message} <button type="button" className="bible-reading-secondary" disabled={updating} onClick={refreshReading}>다시 확인</button></p>}</li>)}
                 </ul>
               ) : <p className="bible-reading-hint">아직 등록된 묵상 나눔이 없습니다.</p>}
             </section>)}

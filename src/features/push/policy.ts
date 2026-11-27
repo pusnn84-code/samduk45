@@ -1,7 +1,11 @@
 import { z } from "zod";
-export const defaultPreferences={notices:true,community:false,reading:false,pastoral:true,personal:true};
-export type PushPreferences=typeof defaultPreferences;
-export const Preferences=z.object({notices:z.boolean(),community:z.boolean(),reading:z.boolean(),pastoral:z.boolean(),personal:z.boolean()}).strict();
+export const defaultPreferences={notices:true,community:false,reading:false,pastoral:true,personal:true,reports:true,visits:true,prayers:true,questions:true,confirmations:true};
+export type AdminPushTopic='reports'|'visits'|'prayers'|'questions'|'confirmations';
+export const adminPushTopics:AdminPushTopic[]=['reports','visits','prayers','questions','confirmations'];
+export type PushPreferences={notices:boolean;community:boolean;reading:boolean;pastoral:boolean;personal:boolean}&Partial<Record<AdminPushTopic,boolean>>;
+export function normalizePreferences(value:PushPreferences){const result={...defaultPreferences,...value};for(const key of adminPushTopics)result[key]=value.pastoral&&(value[key]??true);return result;}
+export const Preferences=z.object({notices:z.boolean(),community:z.boolean(),reading:z.boolean(),pastoral:z.boolean(),personal:z.boolean(),reports:z.boolean().optional(),visits:z.boolean().optional(),prayers:z.boolean().optional(),questions:z.boolean().optional(),confirmations:z.boolean().optional()}).strict().transform(normalizePreferences);
+export function preferencesForRole(value:PushPreferences,isAdmin:boolean){const result=normalizePreferences(value);if(!isAdmin){result.pastoral=false;for(const key of adminPushTopics)result[key]=false;}return result;}
 export function safePushEndpoint(value:string){
  try{const u=new URL(value);return value.length<=4096&&u.protocol==='https:'&&!u.username&&!u.password&&!u.hash&&(!u.port||u.port==='443')&&
   (u.hostname==='fcm.googleapis.com'||u.hostname==='updates.push.services.mozilla.com'||u.hostname.endsWith('.push.services.mozilla.com')||u.hostname.endsWith('.push.apple.com')||u.hostname.endsWith('.notify.windows.com'));
@@ -26,3 +30,6 @@ export type PushKind=keyof typeof messages;
 export function pushPayload(kind:PushKind,eventKey:string){const {title,body,url}=messages[kind];return {title,body,url,tag:'samduk45-'+eventKey};}
 
 export function noticeConfirmationPayload(eventKey:string,detail:{noticeId:string;name:string}){const name=detail.name.normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f]/gu,' ').replace(/\s+/gu,' ').trim().slice(0,80)||'리더';return {...pushPayload('admin_notice_confirmation',eventKey),body:name+'님이 공지를 확인했습니다.',url:'/notices/'+detail.noticeId};}
+
+export function topicForKind(kind:PushKind){return ({admin_report:'reports',admin_visit:'visits',admin_prayer:'prayers',admin_question:'questions',admin_notice_confirmation:'confirmations'} as Partial<Record<PushKind,AdminPushTopic>>)[kind]??messages[kind].topic;}
+export function cleanPushName(value:string){return value.normalize('NFC').replace(/[\u0000-\u001f\u007f-\u009f]/gu,' ').replace(/\s+/gu,' ').trim().slice(0,80)||'작성자';}

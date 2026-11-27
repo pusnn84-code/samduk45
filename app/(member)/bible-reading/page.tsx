@@ -6,8 +6,8 @@ import { todayInSeoul } from "../../../src/features/challenge/date";
 
 export const metadata: Metadata = { title: "성경통독" };
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
-  const { date } = await searchParams;
+export default async function Page({ searchParams }: { searchParams: Promise<{ date?: string;sharing?:string }> }) {
+  const { date,sharing } = await searchParams;
   const [user,notice]=await Promise.all([getCurrentSessionUser(),getReadingNotice()]);
-  return <BibleReadingPage today={todayInSeoul()} initialDate={date} isAdmin={user?.role==="admin"} notice={notice} />;
+  return <BibleReadingPage key={`${date??""}:${sharing??""}`} targetSharing={sharing} today={todayInSeoul()} initialDate={date} isAdmin={user?.role==="admin"} notice={notice} />;
 }

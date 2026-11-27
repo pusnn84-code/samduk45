@@ -20,12 +20,12 @@ test('phone notification opt-in, choices, test and opt-out require a deliberate 
  expect((await page.request.post('/api/admin/push/setup',{data:{}})).status()).toBe(200);
  await page.goto('/profile');const settings=page.getByRole('region',{name:'휴대폰 알림',exact:true});
  await expect(settings.getByRole('button',{name:'휴대폰 알림 켜기',exact:true})).toBeEnabled();expect(await page.evaluate(()=>Reflect.get(window,'permissionTaps'))).toBe(0);
- await settings.getByLabel('도란도란 새 글',{exact:true}).check();
+ await settings.getByLabel('도란도란 알림',{exact:true}).check();
  await settings.getByRole('button',{name:'휴대폰 알림 켜기',exact:true}).click();await expect(settings.getByRole('button',{name:'이 기기 알림 끄기',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>Reflect.get(window,'permissionTaps'))).toBe(1);
  const status=await(await page.request.post('/api/push/status',{data:{endpoint}})).json();expect(status).toMatchObject({enabled:true,preferences:{community:true,reading:false,pastoral:true}});
- await settings.getByLabel('성경통독 한 줄 나눔',{exact:true}).check();await settings.getByRole('button',{name:'알림 종류 저장',exact:true}).click();await expect(settings.getByRole('status')).toContainText('저장했습니다');
- expect((await(await page.request.post('/api/push/status',{data:{endpoint}})).json()).preferences.reading).toBe(true);
+ await expect(settings.getByLabel('샘모임 · 목양지 알림',{exact:true})).toBeVisible();await settings.getByLabel('심방 신청 알림',{exact:true}).uncheck();await settings.getByLabel('묵상 알림',{exact:true}).check();await settings.getByRole('button',{name:'알림 종류 저장',exact:true}).click();await expect(settings.getByRole('status')).toContainText('저장했습니다');
+ expect((await(await page.request.post('/api/push/status',{data:{endpoint}})).json()).preferences.reading).toBe(true);expect((await(await page.request.post('/api/push/status',{data:{endpoint}})).json()).preferences.visits).toBe(false);expect((await(await page.request.post('/api/push/status',{data:{endpoint}})).json()).preferences.reports).toBe(true);
  await page.route('**/api/push/test',route=>route.fulfill({json:{status:'sent'}}));await settings.getByRole('button',{name:'알림 테스트',exact:true}).click();await expect(settings.getByRole('status')).toContainText('테스트 알림을 보냈습니다');
  await expectNoOverflow(page);await page.screenshot({path:'test-results/mobile-push-settings.png',fullPage:true});
  await settings.getByRole('button',{name:'이 기기 알림 끄기',exact:true}).click();await expect(settings.getByRole('button',{name:'휴대폰 알림 켜기',exact:true})).toBeVisible();

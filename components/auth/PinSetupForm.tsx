@@ -1,4 +1,5 @@
 "use client";
+import {safeNotificationDestination} from "../../src/features/push/destination";
 import {autumnDestination,rememberAutumnDestination,takeLoginDestination} from "../../src/features/auth/prayer-return";
 import { useEffect,useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -9,7 +10,7 @@ import { PinPad } from "./PinPad";
 
 export function PinSetupForm({ initial = false }: { initial?: boolean }) {
   const router = useRouter();
-  useEffect(()=>{const target=autumnDestination(new URLSearchParams(location.search).get("autumnCard"));if(target)rememberAutumnDestination(target);},[]);
+  useEffect(()=>{const params=new URLSearchParams(location.search);const target=safeNotificationDestination(params.get("next"))??autumnDestination(params.get("autumnCard"));if(target)rememberAutumnDestination(target);},[]);
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [confirming, setConfirming] = useState(false);

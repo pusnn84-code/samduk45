@@ -1,7 +1,8 @@
 import {randomUUID} from 'node:crypto';
 import {getDb,rows,sql} from '../pastoral/db';
-import {confirmationSourceMatches,noticeConfirmationDetails} from './notice-confirmation';
-import {noticeConfirmationPayload,pushPayload,type PushKind} from './policy';
+import {confirmationSourceMatches} from './notice-confirmation';
+import {sourcePushPayload} from './content';
+import {topicForKind,type PushKind} from './policy';
 import {pushConfig} from './config';
 import {sendDevicePush,pushStatusCode,type PushTarget} from './devices';
 type Delivery=PushTarget&{id:string;recipientId:string;subscriptionId:string;kind:PushKind;sourceKey:string;eventKey:string;topic:string;attempts:number};
@@ -9,7 +10,7 @@ export async function deliveryEligible(d:Delivery){
  const [row]=await rows<{allowed:boolean}>(getDb(),sql`select exists(select 1 from prayer_app.push_subscriptions p
   join prayer_app.push_devices dev on dev.subscription_id=p.id join prayer_app.users u on u.id=p.user_id and u.is_active
   where p.id=${d.subscriptionId}::uuid and p.user_id=${d.recipientId}::uuid and p.endpoint=${d.endpoint} and p.auth=${d.auth} and p.p256dh=${d.p256dh}
-  and coalesce((dev.preferences->>${d.topic})::boolean,false) and (case
+  and (case when ${d.kind.startsWith('admin_')} then coalesce((dev.preferences->>'pastoral')::boolean,false) and coalesce((dev.preferences->>${topicForKind(d.kind)})::boolean,true) else coalesce((dev.preferences->>${topicForKind(d.kind)})::boolean,false) end) and (case
    when ${d.kind}='notice' then exists(select 1 from prayer_app.notices n where n.id::text=${d.sourceKey} and n.status='published')
    when ${d.kind}='community' then exists(select 1 from prayer_app.community_posts c where c.id::text=${d.sourceKey} and c.published_at is not null)
    when ${d.kind}='reading' then exists(select 1 from prayer_app.bible_reading_shares b where b.sharing_id::text=${d.sourceKey} and nullif(btrim(b.sharing),'') is not null)
@@ -38,9 +39,8 @@ export async function dispatchPush(maxBatches=20){
   await Promise.all(Array.from({length:Math.min(6,due.length)},async()=>{while(index<due.length){const d=due[index++];
    try{
     if(!await deliveryEligible(d)){await finish(d.id,lease,'cancelled');continue;}
-    const payload=pushPayload(d.kind,d.eventKey);
-    if(d.kind==='admin_notice_confirmation'){const detail=await noticeConfirmationDetails(d.sourceKey);if(!detail){await finish(d.id,lease,'cancelled');continue;}await sendDevicePush(d,noticeConfirmationPayload(d.eventKey,detail));}
-    else await sendDevicePush(d,payload);await finish(d.id,lease,'sent');sent++;
+    const payload=await sourcePushPayload(d.recipientId,d.kind,d.sourceKey,d.eventKey);if(!payload){await finish(d.id,lease,'cancelled');continue;}
+    await sendDevicePush(d,payload);await finish(d.id,lease,'sent');sent++;
    }catch(e){
     if([404,410].includes(pushStatusCode(e))){await getDb().execute(sql`delete from prayer_app.push_subscriptions where id=${d.subscriptionId}::uuid and user_id=${d.recipientId}::uuid and endpoint=${d.endpoint} and auth=${d.auth}`);continue;}
     await getDb().execute(sql`update prayer_app.push_delivery_queue set state=${d.attempts>=5?'failed':'pending'},lease=null,lease_until=null,next_attempt_at=now()+interval '1 minute'*least(60,power(2,attempts)::int) where id=${d.id}::uuid and lease=${lease}::uuid`);

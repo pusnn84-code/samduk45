@@ -242,3 +242,5 @@
 .meditation-comment-compose textarea { flex:1; min-width:0; min-height:44px; max-height:180px; border:0; resize:vertical; }
 .meditation-comment-compose .meditation-icon-button { color:#087f97; }
 .meditation-edit-actions { display:flex; justify-content:flex-end; align-items:center; gap:8px; }
+
+.bible-reading-lines li[data-notification-target=true]{outline:2px solid #147f9f;outline-offset:4px;scroll-margin:90px}

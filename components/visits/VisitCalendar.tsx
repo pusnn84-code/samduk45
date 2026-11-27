@@ -47,7 +47,7 @@ export function VisitCalendar({
   refreshKey?: number;
   onEntriesChange?: (entries: CalendarEntry[]) => void;
 }) {
-  const [month, setMonth] = useState(currentSeoulMonth);
+  const [month, setMonth] = useState(()=>selectedDate?.slice(0,7)??currentSeoulMonth());
   const [retryKey, setRetryKey] = useState(0);
   const [result, setResult] = useState<{
     key: string; dates: VisitDateAvailability[]; entries: CalendarEntry[]; message: string;

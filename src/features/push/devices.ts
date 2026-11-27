@@ -2,16 +2,16 @@ import webPush from 'web-push';
 import {getDb,rows,sql} from '../pastoral/db';
 import {DomainError} from '../../lib/http';
 import {pushConfig} from './config';
-import {defaultPreferences,safePushEndpoint,type PushPreferences} from './policy';
+import {defaultPreferences,normalizePreferences,safePushEndpoint,type PushPreferences} from './policy';
 export type PushTarget={endpoint:string;p256dh:string;auth:string};
 export type BrowserPushSubscription={endpoint:string;keys:{p256dh:string;auth:string};preferences?:PushPreferences};
 export function pushStatusCode(e:unknown){return e&&typeof e==='object'&&'statusCode' in e?Number(e.statusCode):0;}
 export async function deviceStatus(userId:string,endpoint:string){
  const [row]=await rows<{preferences:PushPreferences}>(getDb(),sql`select d.preferences from prayer_app.push_subscriptions p join prayer_app.push_devices d on d.subscription_id=p.id where p.user_id=${userId}::uuid and p.endpoint=${endpoint}`);
- return {enabled:Boolean(row),preferences:row?.preferences??defaultPreferences};
+ return {enabled:Boolean(row),preferences:normalizePreferences(row?.preferences??defaultPreferences)};
 }
 export async function savePushSubscription(userId:string,subscription:BrowserPushSubscription,userAgent:string|null){
- const preferences=subscription.preferences??defaultPreferences;
+ const preferences=normalizePreferences(subscription.preferences??defaultPreferences);
  await getDb().transaction(async tx=>{
   await tx.execute(sql`select id from prayer_app.users where id=${userId}::uuid for update`);
   const [count]=await rows<{n:number}>(tx,sql`select count(*)::int as n from prayer_app.push_subscriptions where user_id=${userId}::uuid and endpoint<>${subscription.endpoint}`);
@@ -25,7 +25,7 @@ export async function savePushSubscription(userId:string,subscription:BrowserPus
  });
 }
 export async function updatePushPreferences(userId:string,endpoint:string,preferences:PushPreferences){
- const result=await rows(getDb(),sql`update prayer_app.push_devices d set preferences=${JSON.stringify(preferences)}::jsonb from prayer_app.push_subscriptions p where p.id=d.subscription_id and p.user_id=${userId}::uuid and p.endpoint=${endpoint} returning d.subscription_id`);
+ const result=await rows(getDb(),sql`update prayer_app.push_devices d set preferences=${JSON.stringify(normalizePreferences(preferences))}::jsonb from prayer_app.push_subscriptions p where p.id=d.subscription_id and p.user_id=${userId}::uuid and p.endpoint=${endpoint} returning d.subscription_id`);
  if(!result.length)throw new DomainError('NOT_FOUND',404);
 }
 export async function removePushSubscription(userId:string,endpoint:string){await getDb().execute(sql`delete from prayer_app.push_subscriptions where user_id=${userId}::uuid and endpoint=${endpoint}`);}
