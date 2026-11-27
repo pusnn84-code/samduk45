@@ -46,7 +46,7 @@ describe.skipIf(!enabled)('disposable database notification queue',()=>{
   await sql`insert into prayer_app.question_messages(question_id,sender,content) values(${q}::uuid,'pastor','PRIVATE ANSWER')`;
   sent.send.mockClear();await Promise.all([dispatchPush(),dispatchPush()]);
   const payloads=JSON.stringify(sent.send.mock.calls);expect(payloads).not.toContain('PRIVATE');expect(payloads).not.toContain('Synthetic leader');
-  expect(sent.send.mock.calls.some(call=>JSON.stringify(call).includes('신청하신 심방이 확정'))).toBe(true);expect(sent.send.mock.calls.some(call=>JSON.stringify(call).includes('목사님의 새 답변'))).toBe(true);
+  expect(sent.send.mock.calls.some(call=>JSON.stringify(call).includes('신청하신 심방이 확정'))).toBe(true);expect(sent.send.mock.calls.some(call=>JSON.stringify(call).includes('목사님이 답변'))).toBe(true);
   const delivered=await sql`select id from prayer_app.push_delivery_queue where state='sent'`;expect(delivered.length).toBeGreaterThanOrEqual(5);
   const before=sent.send.mock.calls.length;await dispatchPush();expect(sent.send.mock.calls.length).toBe(before);
  });
@@ -69,7 +69,7 @@ describe.skipIf(!enabled)('disposable database notification queue',()=>{
   let queue=await sql`select recipient_id,kind,source_key from prayer_app.push_delivery_queue where kind='admin_notice_confirmation' and source_key like ${n+':%'}`;
   expect(queue).toHaveLength(1);expect(queue[0].recipient_id).toBe(admin);
   sent.send.mockClear();await dispatchPush();expect(sent.send).toHaveBeenCalledTimes(1);
-  expect(sent.send.mock.calls[0][0]).toMatchObject({recipientId:admin});expect(sent.send.mock.calls[0][1]).toMatchObject({title:'공지 · 읽음 확인',body:'성도검증님이 공지를 확인했습니다.',url:'/notices/'+n});
+  expect(sent.send.mock.calls[0][0]).toMatchObject({recipientId:admin});expect(sent.send.mock.calls[0][1]).toMatchObject({title:'공지 · 읽음 확인',body:'성도검증님이 공지를 확인했습니다.',url:expect.stringContaining('/notifications/open?kind=admin_notice_confirmation&source=')});
   await dispatchPush();expect(sent.send).toHaveBeenCalledTimes(1);
   await sql`update prayer_app.notices set body='NEW PRIVATE CONTENT',updated_at=clock_timestamp() where id=${n}::uuid`;
   const second=await revision();await sql`update prayer_app.notice_confirmations set notice_revision=${second},confirmed_at=now() where notice_id=${n}::uuid`;
@@ -80,5 +80,7 @@ describe.skipIf(!enabled)('disposable database notification queue',()=>{
   await updatePushPreferences(admin,endpoint('admin'),{...prefs,pastoral:false});const third=await revision();await sql`update prayer_app.notice_confirmations set notice_revision=${third},confirmed_at=now() where notice_id=${n}::uuid`;
   expect(await sql`select id from prayer_app.push_delivery_queue where kind='admin_notice_confirmation' and source_key=${n+':'+e2eAccounts.member.rosterId+':'+third}`).toHaveLength(0);await updatePushPreferences(admin,endpoint('admin'),prefs);
  });
+
+ it('honors each pastoral topic at enqueue and rechecks changed settings before send',async()=>{const event='granular:'+randomUUID();await updatePushPreferences(admin,endpoint('admin'),{...prefs,visits:false,prayers:true});await sql`select prayer_app.enqueue_mobile_push('admin_visit',${v},${event+':visit'},${member}::uuid)`;await sql`select prayer_app.enqueue_mobile_push('admin_prayer',${p},${event+':prayer'},${member}::uuid)`;const queue=await sql`select kind,topic from prayer_app.push_delivery_queue where event_key like ${event+':%'}`;expect(queue).toEqual([{kind:'admin_prayer',topic:'prayers'}]);await updatePushPreferences(admin,endpoint('admin'),{...prefs,prayers:false});sent.send.mockClear();await dispatchPush();expect(sent.send).not.toHaveBeenCalled();expect((await sql`select state from prayer_app.push_delivery_queue where event_key=${event+':prayer'}`)[0].state).toBe('cancelled');await updatePushPreferences(admin,endpoint('admin'),prefs);});
 
 });

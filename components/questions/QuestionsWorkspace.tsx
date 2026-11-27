@@ -12,12 +12,12 @@ const changed=()=>window.dispatchEvent(new Event("menu-activity:changed"));
 const options=(method:string,data:unknown)=>({method,headers:{"content-type":"application/json"},body:JSON.stringify(data)});
 function errorText(error:unknown){return error instanceof Error && error.message==="TOO_MANY_REQUESTS"?"잠시 후 다시 보내 주세요.":"불러오거나 보내지 못했습니다. 잠시 후 다시 시도해 주세요.";}
 
-export function QuestionsWorkspace(){
+export function QuestionsWorkspace({initialId=null}:{initialId?:string|null}={}){
  const [list,setList]=useState<List|null>(null),[page,setPage]=useState(0),[detail,setDetail]=useState<Detail|null>(null);
- const [selected,setSelected]=useState<string|null>(null),[compose,setCompose]=useState(false);
+ const [selected,setSelected]=useState<string|null>(initialId),[compose,setCompose]=useState(false);
  const [title,setTitle]=useState(""),[content,setContent]=useState(""),[reply,setReply]=useState("");
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[loading,setLoading]=useState(true);
- const selectedRef=useRef<string|null>(null);
+ const selectedRef=useRef<string|null>(initialId);
  function open(id:string|null){selectedRef.current=id;setSelected(id);setDetail(null);setReply('');setError('');setLoading(Boolean(id));}
  const refresh=useCallback(async(signal?:AbortSignal)=>{
   const data=await fetchJson<List>(`/api/questions?page=${page}`,{cache:"no-store",signal});setList(data);
@@ -64,7 +64,7 @@ export function QuestionsWorkspace(){
   catch(e){setError(errorText(e));}finally{setBusy(false);}
  }
  return <section className="questions-workspace">
-  <header className="questions-intro"><h2>질문있어요</h2><p>신앙과 삶의 궁금한 점을 목사님과 나눠 보세요.</p><p className="questions-privacy">무명 · 비공개 대화입니다. 작성자와 담당 목사님만 볼 수 있습니다.</p></header>
+  <header className="questions-intro"><h2>질문있습니다</h2><p>신앙과 삶의 궁금한 점을 목사님과 나눠 보세요.</p><p className="questions-privacy">무명 · 비공개 대화입니다. 작성자와 담당 목사님만 볼 수 있습니다.</p></header>
   {error&&<p role="alert" className="questions-error">{error}</p>}
   {selected?<>
    <button type="button" className="questions-secondary" onClick={()=>open(null)}>대화 목록</button>
@@ -88,4 +88,3 @@ export function QuestionsWorkspace(){
   </>}
  </section>;
 }
-

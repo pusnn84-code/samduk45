@@ -11,8 +11,8 @@ import "./schedule-fields.css";
 
 const isRepeating=(entry:CalendarEntry)=>entry.repeat==="weekly"||entry.repeat==="biweekly";
 const statusNames={confirmed:"확정",requested:"대기",unavailable:"불가",completed:"완료"};
-export function VisitBookingClient({requesterName,isAdmin=false,onSelectVisit,onChanged}:{requesterName:string;isAdmin?:boolean;onSelectVisit?:(id:string)=>void;onChanged?:()=>void}) {
- const [selectedDate,setSelectedDate]=useState<string|null>(null);
+export function VisitBookingClient({requesterName,isAdmin=false,onSelectVisit,onChanged,initialDate=null,initialVisitId=null}:{requesterName:string;isAdmin?:boolean;initialDate?:string|null;initialVisitId?:string|null;onSelectVisit?:(id:string)=>void;onChanged?:()=>void}) {
+ const [selectedDate,setSelectedDate]=useState<string|null>(initialDate);
  const [refreshKey,setRefreshKey]=useState(0);
  const [availability,setAvailability]=useState<VisitDateAvailability[]>([]);
  const [entries,setEntries]=useState<CalendarEntry[]>([]);
@@ -37,7 +37,7 @@ export function VisitBookingClient({requesterName,isAdmin=false,onSelectVisit,on
   <VisitCalendar selectedDate={selectedDate} onSelect={select} onAvailabilityChange={setAvailability} onEntriesChange={setEntries} refreshKey={refreshKey}/>
   {selectedDate&&<section className="visit-date-details" aria-label="선택한 날짜의 일정">
    <h3>{new Intl.DateTimeFormat("ko-KR",{month:"long",day:"numeric",weekday:"long",timeZone:"Asia/Seoul"}).format(new Date(selectedDate+"T00:00:00+09:00"))}</h3>
-   {entries.filter(entry=>entry.date===selectedDate).map(entry=><article className="visit-event-card" key={entry.id}>
+   {entries.filter(entry=>entry.date===selectedDate).map(entry=><article className="visit-event-card" key={entry.id} data-notification-target={entry.id===initialVisitId||undefined}>
     <div className="visit-event-heading"><h4>{entryTitle(entry)}</h4><i role="img" aria-label={statusNames[entry.status]} title={statusNames[entry.status]} className={`visit-status-dot is-${entry.status}`}/></div>
     <p>{displayTime(entry.time,entry.allDay)}{entry.kind==="visit"?" · 심방":isRepeating(entry)?" · "+(entry.repeat==="biweekly"?"격주 ":"매주 ")+new Intl.DateTimeFormat("ko-KR",{weekday:"long",timeZone:"Asia/Seoul"}).format(new Date(entry.startDate+"T00:00:00+09:00")):""}{isRepeating(entry)&&entry.repeatUntil?" · "+entry.repeatUntil.replaceAll("-", ". ")+"까지":""}</p>
     {entry.startDate&&entry.endDate&&entry.endDate!==entry.startDate&&<p className="schedule-date-range">{entry.startDate} ~ {entry.endDate}</p>}

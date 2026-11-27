@@ -1,7 +1,7 @@
 import {NextResponse} from 'next/server';
 import {getCurrentSessionUser} from '../../../../src/features/auth/http-session';
 import {savePushSubscription,removePushSubscription,updatePushPreferences} from '../../../../src/features/push/devices';
-import {Endpoint,Subscription,Preferences} from '../../../../src/features/push/policy';
+import {Endpoint,Subscription,Preferences,defaultPreferences,preferencesForRole} from '../../../../src/features/push/policy';
 import {pushConfig} from '../../../../src/features/push/config';
 import {checkOrigin,readReportJson,ReportError} from '../../../../src/features/pastoral/policy';
 import {DomainError} from '../../../../src/lib/http';
@@ -13,14 +13,13 @@ async function handle(request:Request,method:string){
   if(method==='POST'){
    const parsed=Subscription.safeParse(body);if(!parsed.success)return NextResponse.json({code:'INVALID_INPUT'},{status:400,headers});
    if(!await pushConfig())return NextResponse.json({code:'PUSH_NOT_CONFIGURED'},{status:503,headers});
-   const preferences={...parsed.data.preferences??{notices:true,community:false,reading:false,pastoral:true,personal:true}};
-   if(user.role!=='admin')preferences.pastoral=false;
+   const preferences=preferencesForRole(parsed.data.preferences??defaultPreferences,user.role==='admin');
    await savePushSubscription(user.id,{...parsed.data,preferences},request.headers.get('user-agent'));
    return NextResponse.json({enabled:true,preferences},{headers});
   }
   if(method==='PUT'){
    const parsed=z.object({endpoint:Endpoint,preferences:Preferences}).strict().safeParse(body);if(!parsed.success)return NextResponse.json({code:'INVALID_INPUT'},{status:400,headers});
-   const preferences={...parsed.data.preferences};if(user.role!=='admin')preferences.pastoral=false;
+   const preferences=preferencesForRole(parsed.data.preferences,user.role==='admin');
    await updatePushPreferences(user.id,parsed.data.endpoint,preferences);return NextResponse.json({enabled:true,preferences},{headers});
   }
   const parsed=z.object({endpoint:Endpoint}).strict().safeParse(body);if(!parsed.success)return NextResponse.json({code:'INVALID_INPUT'},{status:400,headers});
@@ -30,3 +29,4 @@ async function handle(request:Request,method:string){
 export async function POST(request:Request){return handle(request,'POST');}
 export async function PUT(request:Request){return handle(request,'PUT');}
 export async function DELETE(request:Request){return handle(request,'DELETE');}
+

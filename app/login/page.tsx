@@ -1,3 +1,4 @@
+import {safeNotificationDestination} from "../../src/features/push/destination";
 import Link from "next/link";
 import Image from "next/image";
 import {PrayerLoginDestination} from "../../components/auth/PrayerLoginDestination";
@@ -11,10 +12,10 @@ import { PIN_DEVICE_COOKIE_NAME } from "../../src/features/auth/pin-device-cooki
 import { COMMUNITY_2027 } from "../../src/content/community-2027";
 import "../../components/auth/pin.css";
 
-export default async function LoginPage({searchParams}:{searchParams?:Promise<{autumnCard?:string}>}) {
-  const card=(await searchParams)?.autumnCard,destination=autumnDestination(card);
+export default async function LoginPage({searchParams}:{searchParams?:Promise<{autumnCard?:string;next?:string}>}) {
+  const query=await searchParams,card=query?.autumnCard,next=safeNotificationDestination(query?.next),destination=next??autumnDestination(card);
   if (await getCurrentSessionUser()) redirect(destination??"/");
-  if (await getCurrentPasswordSetupSession()) redirect(destination?"/set-password?autumnCard="+card:"/set-password");
+  if (await getCurrentPasswordSetupSession()) redirect(next?"/set-password?"+new URLSearchParams({next}):destination?"/set-password?autumnCard="+card:"/set-password");
   const remembered = Boolean(await getPinDeviceAccount((await cookies()).get(PIN_DEVICE_COOKIE_NAME)?.value));
   return <main className="pin-auth-page">
     <Image unoptimized priority className="pin-auth-logo" src="/brand/samduk45-logo-v4.png" alt="삼덕사오" width={104} height={101} />
@@ -23,3 +24,4 @@ export default async function LoginPage({searchParams}:{searchParams?:Promise<{a
     <footer className="pin-auth-theme"><strong>{COMMUNITY_2027.motto}</strong><p>{COMMUNITY_2027.verseExcerpt}<br />{COMMUNITY_2027.verseRef}</p></footer>
   </main>;
 }
+
