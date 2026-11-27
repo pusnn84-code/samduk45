@@ -4,6 +4,7 @@ const uuid='[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}';
 export function notificationSource(kind:unknown,source:unknown):{kind:NotificationKind;source:string}|null{
  if(typeof kind!=='string'||!notificationKinds.includes(kind as NotificationKind)||typeof source!=='string'||source.length>150)return null;
  const pattern=kind==='admin_notice_confirmation'?new RegExp('^'+uuid+':'+uuid+':[0-9a-f]{32}$','i'):kind==='admin_question'||kind==='own_question'?/^[1-9][0-9]{0,19}$/:new RegExp('^'+uuid+'$','i');
+ if((kind==='admin_question'||kind==='own_question')&&pattern.test(source)&&BigInt(source)>9223372036854775807n)return null;
  return pattern.test(source)?{kind:kind as NotificationKind,source}:null;
 }
 export function notificationEntryUrl(kind:NotificationKind,source:string){return '/notifications/open?'+new URLSearchParams({kind,source});}
