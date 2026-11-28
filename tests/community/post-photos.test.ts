@@ -22,6 +22,19 @@ describe("private post photo rendering", () => {
     expect(html).not.toContain("/_next/image");
   });
 
+  it("only shows carousel controls for multiple photos, preserving slot URLs",()=>{
+    const files=Array.from({length:10},(_,slot)=>({slot,name:`photo-${slot}.png`,size:1024,sha256:hash}));
+    const html=renderToStaticMarkup(React.createElement(PostPhotos,{postId,files}));
+    expect(html).toContain('class="community-photo-track"');
+    expect(html.match(/aria-label="[0-9]+번째 사진"/g)).toHaveLength(10);
+    expect(html).toContain('aria-label="1번째 사진" aria-current="true"');
+    expect(html).toContain('aria-label="다음 사진"');
+    expect(html).toContain(`/files/9/image?sha=${hash}`);
+    const single=renderToStaticMarkup(React.createElement(PostPhotos,{postId,files:files.slice(0,1)}));
+    expect(single).not.toContain('community-photo-dots');
+    expect(single).not.toContain('aria-label="다음 사진"');
+  });
+
   it.each(["jfif", "JPE"])("renders a JPEG .%s attachment alongside normal post content", extension => {
     const html = renderToStaticMarkup(React.createElement(PostPhotos, {
       postId,

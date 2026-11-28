@@ -36,6 +36,28 @@ test("ten photos can be selected, published, viewed and replaced without losing 
       expect((await page.request.get(`${root}/posts/${id}/files/${file.slot}/image?sha=${file.sha256}`)).ok()).toBe(true);
       expect((await page.request.get(`${root}/posts/${id}/files/${file.slot}/chunks/0`)).ok()).toBe(true);
     }
+    const gallery=page.locator(".community-photo-gallery");
+    const dot=(index:number)=>gallery.getByRole("button",{name:`${index}번째 사진`,exact:true});
+    await expect(dot(1)).toHaveAttribute("aria-current","true");
+    await expect(gallery.locator(".community-photo-previous")).toBeDisabled();
+    await gallery.getByRole("button",{name:"다음 사진",exact:true}).click();
+    await expect(dot(2)).toHaveAttribute("aria-current","true");
+    await gallery.getByRole("button",{name:"이전 사진",exact:true}).click();
+    await expect(dot(1)).toHaveAttribute("aria-current","true");
+    await dot(10).click();
+    await expect(dot(10)).toHaveAttribute("aria-current","true");
+    await expect(gallery.locator(".community-photo-next")).toBeDisabled();
+    const track=gallery.locator(".community-photo-track");
+    await track.focus();await track.press("Home");
+    await expect(dot(1)).toHaveAttribute("aria-current","true");
+    await track.press("ArrowRight");
+    await expect(dot(2)).toHaveAttribute("aria-current","true");
+    // Exercise the native scroll event used by touch swipes and trackpads.
+    await track.evaluate(el=>el.scrollTo({left:el.clientWidth*4}));
+    await expect(dot(5)).toHaveAttribute("aria-current","true");
+    await page.setViewportSize({width:390,height:844});
+    await expect.poll(()=>track.evaluate(el=>Math.round(el.scrollLeft/el.clientWidth))).toBe(4);
+    await dot(10).click();
     const last=page.locator(".community-photo img").last();
     await last.scrollIntoViewIfNeeded();
     await expect.poll(()=>last.evaluate((el:HTMLImageElement)=>el.complete&&el.naturalWidth>0)).toBe(true);
