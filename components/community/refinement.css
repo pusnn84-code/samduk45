@@ -33,7 +33,7 @@
 .community-photo-track:focus-visible, .community-photo-arrow:focus-visible, .community-photo-dots button:focus-visible { outline:2px solid #007f9c; outline-offset:-3px; }
 
 /* Feed cards previously scrolled the outer section itself. Keep controls below the track. */
-.doran-post .community-photo-gallery { display:block; overflow:visible; scroll-snap-type:none; background:transparent; }
+.doran-post .community-photos.community-photo-gallery { display:block; overflow:visible; scroll-snap-type:none; background:transparent; }
 .doran-post .community-photo-gallery .community-photo img { height:100%; }
 .community .community-photo-arrow { min-height:40px; }
 .community .community-photo-dots button { min-height:36px; }
