@@ -21,7 +21,7 @@ test("ten photos can be selected, published, viewed and replaced without losing 
     await expect(page.locator(".community-selected-photos img")).toHaveCount(10);
     await expect(submit).toBeEnabled();
     await input.setInputFiles({name:"eleventh.png",mimeType:"image/png",buffer:image});
-    await expect(page.getByRole("alert")).toContainText("최대 10장");
+    await expect(page.locator(".community-file-error").getByRole("alert")).toContainText("최대 10장");
     await expect(page.locator(".community-selected-photos img")).toHaveCount(10);
     await page.getByRole("button",{name:"기존 선택만 유지하기",exact:true}).click();
     const created=page.waitForResponse(r=>r.url().endsWith(root+"/posts")&&r.request().method()==="POST");
@@ -53,6 +53,13 @@ test("ten photos can be selected, published, viewed and replaced without losing 
     expect((await page.request.get(`${root}/posts/${id}/files/9/image?sha=${saved.files[9].sha256}`)).ok()).toBe(true);
 
     const file={name:"synthetic.png",size:image.length,sha256:createHash("sha256").update(image).digest("hex")};
+    const stagedId=randomUUID();
+    const staged=await page.request.post(`${root}/posts/${id}/edits`,{data:{id:stagedId,baseVersion:saved.version,title:"전체 사진 교체 검증",body:"사진",keepSlots:[],files:Array(10).fill(file)}});
+    expect(staged.status()).toBe(201);
+    const stagedUrl=`${root}/posts/${id}/edits/${stagedId}`;
+    expect((await page.request.put(stagedUrl+"/files/9/chunks/0",{data:image,headers:{"content-type":"application/octet-stream"}})).ok()).toBe(true);
+    expect((await page.request.put(stagedUrl+"/files/10/chunks/0",{data:image,headers:{"content-type":"application/octet-stream"}})).status()).toBe(400);
+    expect((await page.request.delete(stagedUrl)).ok()).toBe(true);
     const rejected=await page.request.post(root+"/posts",{data:{id:randomUUID(),folderId,title:"제한 검증",body:"사진",files:Array(11).fill(file)}});
     expect(rejected.status()).toBe(400);expect((await rejected.json()).code).toBe("TOO_MANY_FILES");
     const edit=await page.request.post(`${root}/posts/${id}/edits`,{data:{id:randomUUID(),baseVersion:saved.version,title:"수정 제한",body:"사진",keepSlots:[0,1,2,3,4,5,6,7,8,9],files:[file]}});
