@@ -8,7 +8,7 @@ function Photo({postId,file}:{postId:string;file:Attachment}) {
   return <div className="community-photo">{failed?<div className="helper-text" role="status">{file.name} 사진을 표시하지 못했습니다. 아래 첨부파일에서 원본을 내려받을 수 있습니다. <button className="secondary-button" onClick={()=>setFailed(false)}>사진 다시 불러오기</button></div>:
     // Authenticated, bounded and re-encoded by our image endpoint; never a public optimizer URL.
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={`/api/community/posts/${postId}/files/${file.slot}/image?sha=${file.sha256}`} alt={file.name} decoding="async" onError={()=>setFailed(true)}/>
+    <img src={`/api/community/posts/${postId}/files/${file.slot}/image?sha=${file.sha256}`} alt={file.name} decoding="async" loading="lazy" onError={()=>setFailed(true)}/>
   }</div>;
 }
 export function PostPhotos({postId,files}:{postId:string;files:Attachment[]}) {

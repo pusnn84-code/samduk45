@@ -1,4 +1,4 @@
-import { assertPostContent, CommunityError, parsePostBody, record, text, uuid, validateFiles, type Actor } from "./policy";
+import { MAX_POST_PHOTOS, assertPostContent, CommunityError, parsePostBody, record, text, uuid, validateFiles, type Actor } from "./policy";
 export function assertAuthor(user: Actor, authorId: string | null) {
   if (user.id !== authorId) throw new CommunityError("FORBIDDEN", 403);
 }
@@ -17,13 +17,13 @@ export function parseFolderOrder(value: unknown) {
 export function parseEditInput(value: unknown) {
   const input = record(value);
   if (!Number.isSafeInteger(input.baseVersion) || (input.baseVersion as number) < 0) throw new CommunityError("INVALID_INPUT");
-  if (!Array.isArray(input.keepSlots) || input.keepSlots.some(slot => slot !== 0 && slot !== 1) || new Set(input.keepSlots).size !== input.keepSlots.length) throw new CommunityError("INVALID_INPUT");
+  if (!Array.isArray(input.keepSlots) || input.keepSlots.some(slot => !Number.isInteger(slot) || slot < 0 || slot >= MAX_POST_PHOTOS) || new Set(input.keepSlots).size !== input.keepSlots.length) throw new CommunityError("INVALID_INPUT");
   const files = validateFiles(input.files);
-  if (files.length + input.keepSlots.length > 2) throw new CommunityError("TOO_MANY_FILES");
+  if (files.length + input.keepSlots.length > MAX_POST_PHOTOS) throw new CommunityError("TOO_MANY_FILES");
   const body = parsePostBody(input.body);
   // Retained slots are checked against the stored file names under the post lock.
   if (input.keepSlots.length === 0) assertPostContent(body, files);
-  return { id: uuid(input.id), baseVersion: input.baseVersion as number, title: text(input.title, 150), body, keepSlots: [...input.keepSlots].sort() as number[], files };
+  return { id: uuid(input.id), baseVersion: input.baseVersion as number, title: text(input.title, 150), body, keepSlots: [...input.keepSlots].sort((a,b) => a-b) as number[], files };
 }
 export type EditInput = ReturnType<typeof parseEditInput>;
 export { isPhotoName } from "./policy";

@@ -29,14 +29,14 @@ describe("post attachment selection", () => {
     const oversize = new File([new Uint8Array(MAX_FILE_BYTES + 1)], "too-large.jpg", { type: "image/jpeg" });
     expect(() => selectPostFiles([], accepted, [oversize])).toThrow("FILE_TOO_LARGE");
     expect(accepted).toHaveLength(1);
-    expect(() => selectPostFiles([], accepted, [photo("second.jpg"), photo("third.jpg")])).toThrow("TOO_MANY_FILES");
+    expect(() => selectPostFiles([], accepted, Array.from({length:10},(_,i)=>photo(`photo-${i}.jpg`)))).toThrow("TOO_MANY_FILES");
     expect(accepted).toHaveLength(1);
   });
 
   it("counts retained published attachments together with newly selected files", () => {
     const retained = [{ name: "saved-photo.jpg", size: 10, sha256: "a".repeat(64) }];
-    expect(selectPostFiles(retained, [], [photo()])).toHaveLength(1);
-    expect(() => selectPostFiles(retained, [photo()], [photo("third.jpg")])).toThrow("TOO_MANY_FILES");
+    expect(selectPostFiles(retained, [], Array.from({length:9},()=>photo()))).toHaveLength(9);
+    expect(() => selectPostFiles(retained, Array.from({length:9},()=>photo()), [photo("eleventh.jpg")])).toThrow("TOO_MANY_FILES");
   });
 });
 

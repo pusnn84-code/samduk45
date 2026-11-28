@@ -19,7 +19,7 @@ async function handle(request:Request,context:Context) {
     if(path.length===1 && request.method==="DELETE")return json(await cancelEdit(user,postId,id));
     if(path.length===2 && path[1]==="commit" && request.method==="POST")return json(await commitEdit(user,postId,id));
     if(path.length===5 && path[1]==="files" && path[3]==="chunks" && request.method==="PUT") {
-      if(!/^[01]$/.test(path[2]) || !/^(?:[0-9]|1[01])$/.test(path[4]))throw new CommunityError("INVALID_CHUNK");
+      if(!/^[0-9]$/.test(path[2]) || !/^(?:[0-9]|1[01])$/.test(path[4]))throw new CommunityError("INVALID_CHUNK");
       await uploadEditChunk(user,postId,id,Number(path[2]),Number(path[4]),await readBytes(request,CHUNK_BYTES));return json({ok:true});
     }
     return json({code:"NOT_FOUND"},404);

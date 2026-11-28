@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { CommunityError, hasPostContent, UNTITLED_POST_LABEL } from "../../src/features/community/policy";
+import { MAX_POST_PHOTOS, CommunityError, hasPostContent, UNTITLED_POST_LABEL } from "../../src/features/community/policy";
 import { api, errorText, type Folder, type Post } from "./shared";
 import { sha256, uploadFiles } from "./transfer";
 import { PostPhotos } from "./PostPhotos";
@@ -58,9 +58,9 @@ export function PostEditor({folders,post,basePath,onSaved}:{folders:Folder[];pos
     selecting.current = true; setPreparing(true);
     const version = ++selectionVersion.current;
     try {
-      if (retained.length + files.length + incoming.length > 2) throw new CommunityError("TOO_MANY_FILES");
+      if (retained.length + files.length + incoming.length > MAX_POST_PHOTOS) throw new CommunityError("TOO_MANY_FILES");
       const prepared: PreparedPhoto[] = [];
-      // Sequential decoding avoids holding two full-resolution phone photos in memory.
+      // Sequential decoding avoids holding multiple full-resolution phone photos in memory.
       for (const file of incoming) prepared.push(await preparePostPhoto(file));
       if (version !== selectionVersion.current) return;
       changeFiles(selectPostFiles(retained, files, prepared.map(item => item.file)), prepared);
@@ -110,7 +110,7 @@ export function PostEditor({folders,post,basePath,onSaved}:{folders:Folder[];pos
           </svg>
           <span>사진 추가</span>
         </button>
-        <p className="helper-text">사진은 최대 2장입니다. 큰 사진은 자동으로 긴 변 1,920px 이내·장당 1MB 이하로 줄여 올립니다. 원본은 기기에 그대로 남습니다.</p>
+        <p className="helper-text">사진은 최대 10장입니다. 큰 사진은 자동으로 긴 변 1,920px 이내·장당 1MB 이하로 줄여 올립니다. 원본은 기기에 그대로 남습니다.</p>
         {previews.length > 0 && <section className="community-selected-photos" aria-label="새로 선택한 사진">
           {previews.map(preview => <SelectedPhoto key={preview.url} preview={preview} />)}
         </section>}

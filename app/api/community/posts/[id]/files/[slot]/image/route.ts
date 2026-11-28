@@ -9,7 +9,7 @@ const headers={"cache-control":"private, no-store","x-content-type-options":"nos
 export async function GET(request:Request,context:{params:Promise<{id:string;slot:string}>}) {
   try {
     const user=await getCurrentSessionUser();if(!user)return NextResponse.json({code:"UNAUTHORIZED"},{status:401,headers});
-    const {id,slot}=await context.params;if(!/^[01]$/.test(slot))throw new CommunityError("INVALID_INPUT");
+    const {id,slot}=await context.params;if(!/^[0-9]$/.test(slot))throw new CommunityError("INVALID_INPUT");
     const data=await photoPreview(user,uuid(id),Number(slot),new URL(request.url).searchParams.get("sha"));
     return new Response(new Uint8Array(data),{headers:{...headers,"content-type":"image/webp","content-length":String(data.length),"content-security-policy":"default-src 'none'; sandbox"}});
   }catch(error){

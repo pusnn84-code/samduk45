@@ -47,7 +47,7 @@ async function handle(request:Request,context:Context):Promise<Response> {
       if(path.length===3 && action==="comments" && method==="GET") return json(await listComments(id,pageNumber(url.searchParams.get("page"))));
       if(path.length===3 && action==="comments" && method==="POST") {const input=record(await readJson(request));return json(await addComment(user,id,uuid(input.id),parseCommentBody(input.body)),201);}
       if(path.length===6 && action==="files" && chunks==="chunks") {
-        if(!/^[01]$/.test(slotKey) || !/^(?:[0-9]|1[01])$/.test(indexKey)) throw new CommunityError("INVALID_CHUNK");
+        if(!/^[0-9]$/.test(slotKey) || !/^(?:[0-9]|1[01])$/.test(indexKey)) throw new CommunityError("INVALID_CHUNK");
         const slot=Number(slotKey),index=Number(indexKey);
         if(method==="PUT") {const data=await readBytes(request,CHUNK_BYTES);await uploadChunk(user,id,slot,index,data);return json({ok:true});}
         if(method==="GET") {const data=await downloadChunk(user,id,slot,index);return new Response(new Uint8Array(data),{headers:{...headers,"content-type":"application/octet-stream","content-length":String(data.length)}});}

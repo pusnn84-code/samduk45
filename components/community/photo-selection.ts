@@ -1,4 +1,4 @@
-import { CommunityError, isPhotoName, validateFiles } from "../../src/features/community/policy";
+import { MAX_POST_PHOTOS, CommunityError, isPhotoName, validateFiles } from "../../src/features/community/policy";
 
 export type SelectedPhotoPreview = { file: File; url: string };
 type ObjectUrls = Pick<typeof URL, "createObjectURL" | "revokeObjectURL">;
@@ -12,7 +12,7 @@ export function selectPostFiles(
     throw new CommunityError("UNSUPPORTED_POST_PHOTO");
   }
   const selected = [...current, ...incoming];
-  if (retained.length + selected.length > 2) throw new CommunityError("TOO_MANY_FILES");
+  if (retained.length + selected.length > MAX_POST_PHOTOS) throw new CommunityError("TOO_MANY_FILES");
   validateFiles(selected.map(file => ({
     name: file.name,
     size: file.size,

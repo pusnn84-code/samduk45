@@ -4,7 +4,7 @@ import { assertSameOrigin, readBytes, readJson } from "../../src/features/commun
 const file=(size=MAX_PHOTO_UPLOAD_BYTES)=>({name:"사진.jpg",size,sha256:"a".repeat(64)});
 const id="10000000-0000-4000-8000-000000000001";
 describe("community limits and authorization",()=>{
-  it("accepts two optimized photos at one MB each, never three",()=>{expect(MAX_PHOTO_UPLOAD_BYTES).toBe(1048576);expect(validateFiles([file(),file()])).toHaveLength(2);expect(()=>validateFiles([file(),file(),file()])).toThrow("TOO_MANY_FILES");});
+  it("accepts ten optimized photos at one MB each, never eleven",()=>{expect(MAX_PHOTO_UPLOAD_BYTES).toBe(1048576);expect(validateFiles(Array.from({length:10},()=>file()))).toHaveLength(10);expect(()=>validateFiles(Array.from({length:11},()=>file()))).toThrow("TOO_MANY_FILES");});
   it("rejects oversize and invalid file sizes",()=>{expect(()=>validateFiles([file(MAX_FILE_BYTES+1)])).toThrow("FILE_TOO_LARGE");for(const size of [0,-1,1.5,NaN])expect(()=>validateFiles([file(size)])).toThrow();});
   it("rejects unsafe file names without trusting a client MIME type",()=>{for(const name of ["../file.pdf","a\\b.pdf","bad\nname.txt","a.exe","a.HTML","a.svg"])expect(()=>validateFiles([{...file(),name}])).toThrow();});
   it("pins chunk limits and short final chunk",()=>{expect(expectedChunkSize(MAX_FILE_BYTES,11)).toBe(CHUNK_BYTES);expect(expectedChunkSize(CHUNK_BYTES+1,1)).toBe(1);for(const i of [-1,12,1.5])expect(()=>expectedChunkSize(MAX_FILE_BYTES,i)).toThrow();});

@@ -1,5 +1,6 @@
 /** Shared validation only: safe to import into both browser and server. */
 // Legacy stored attachments remain readable at their original chunk size.
+export const MAX_POST_PHOTOS = 10;
 export const MAX_FILE_BYTES = 6 * 1024 * 1024;
 export const MAX_PHOTO_UPLOAD_BYTES = 1024 * 1024;
 export const CHUNK_BYTES = 512 * 1024;
@@ -41,7 +42,7 @@ export function record(value: unknown): Record<string, unknown> {
 }
 export function validateFiles(value: unknown): FileInput[] {
   if (!Array.isArray(value)) throw new CommunityError("INVALID_INPUT");
-  if (value.length > 2) throw new CommunityError("TOO_MANY_FILES");
+  if (value.length > MAX_POST_PHOTOS) throw new CommunityError("TOO_MANY_FILES");
   return value.map(item => {
     const file = record(item);
     const name = text(file.name, 180);

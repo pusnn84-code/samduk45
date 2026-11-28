@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { getDb, lockedPost, rows, sql, type Executor } from "./db";
-import { assertPostContent, CommunityError, expectedChunkSize, type Actor, type FileInput } from "./policy";
+import { MAX_POST_PHOTOS, assertPostContent, CommunityError, expectedChunkSize, type Actor, type FileInput } from "./policy";
 import { assertAuthor, parseEditInput, type EditInput } from "./refinement-policy";
 import type { FileRow } from "./posts";
 import { assertValidPostPhoto } from "./images";
@@ -94,7 +94,7 @@ export async function commitEdit(user:Actor,postId:string,id:string) {
       const chunks=await rows<Chunk>(tx,sql`select chunk_index as index,data from prayer_app.community_edit_chunks where edit_id=${id} and slot=${slot} order by chunk_index`);
       verify(file,chunks);final.push({file,chunks});
     }
-    if(final.length>2)throw new CommunityError("TOO_MANY_FILES");
+    if(final.length>MAX_POST_PHOTOS)throw new CommunityError("TOO_MANY_FILES");
     assertPostContent(edit.body, final.map(item=>item.file));
     await assertValidPostPhoto(edit.body,final.map(item=>item.file),index=>Buffer.concat(final[index].chunks.map(chunk=>chunk.data)));
     // Readers observe either complete old content or complete new content, never half an upload.
