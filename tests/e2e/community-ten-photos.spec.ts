@@ -62,6 +62,19 @@ test("ten photos can be selected, published, viewed and replaced without losing 
     await last.scrollIntoViewIfNeeded();
     await expect.poll(()=>last.evaluate((el:HTMLImageElement)=>el.complete&&el.naturalWidth>0)).toBe(true);
     await expectNoOverflow(page);
+    await page.goto("/community");
+    const feedGallery=page.locator(".doran-post").filter({has:page.locator(`img[src*="/posts/${id}/"]`)}).locator(".community-photo-gallery");
+    await expect(feedGallery).toHaveCount(1);
+    await feedGallery.getByRole("button",{name:"3번째 사진",exact:true}).click();
+    await expect(feedGallery.getByRole("button",{name:"3번째 사진",exact:true})).toHaveAttribute("aria-current","true");
+    const layout=await feedGallery.evaluate(el=>{
+      const photo=el.querySelector(".community-photo-window")!.getBoundingClientRect();
+      const dots=el.querySelector(".community-photo-dots")!.getBoundingClientRect();
+      return {below:dots.top>=photo.bottom-1,contained:dots.right<=el.getBoundingClientRect().right+1};
+    });
+    expect(layout).toEqual({below:true,contained:true});
+    await expectNoOverflow(page);
+    await page.goto(`/community?post=${id}`);
     const retainedHashes=saved.files.slice(2).map((f:{sha256:string})=>f.sha256);
     await page.getByRole("link",{name:"게시글 수정",exact:true}).click();
     for(const name of ["photo-0","photo-1"])await page.getByRole("button",{name:new RegExp(name+"\\.(webp|png|jpg) 첨부 제거")}).click();
